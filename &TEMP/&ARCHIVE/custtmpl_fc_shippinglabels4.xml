@@ -1,0 +1,10 @@
+<advancedpdftemplate scriptid="custtmpl_fc_shippinglabels4">
+  <description></description>
+  <displaysourcecode>T</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>F</preferred>
+  <printtype>SEARCH</printtype>
+  <savedsearch>[scriptid=customsearch2136]</savedsearch>
+  <title>FC | Shipping Labels 4</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

@@ -1,0 +1,449 @@
+<#macro openTable labelCounter>
+    <#if (labelCounter-1) % 10 == 0>
+    <table class="maintable">
+    </#if>
+</#macro>
+
+<#macro openRow labelCounter>
+    <#if (labelCounter-1) % 2 == 0>
+    <tr>
+    </#if>
+</#macro>
+
+<#macro closeRow labelCounter isLastResult isLastLabelOfResult hasUnlottedRemainder=false>
+    <#if labelCounter % 2 == 0 || (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder)>
+    </tr>
+    </#if>
+</#macro>
+
+<#macro closeTable labelCounter isLastResult isLastLabelOfResult hasUnlottedRemainder=false>
+    <#if labelCounter % 10  == 0 || (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder)>
+    </table>
+        <#if !isLastResult || !isLastLabelOfResult>
+            <pbr></pbr>
+        </#if>
+    </#if>
+</#macro>
+
+<#macro writeLabel customer shipDate route itemId transId lotNum itemName labelQty labelPos totalLabelCt>
+<td>
+    <div class="labelframe">
+        <div class="row1">
+
+            <div class="shipto-title textpadding2pc">
+                <p>Ship To:</p>
+            </div>
+            <div class="shipto-value textpadding2pc">
+                    <p>${customer}</p>
+            </div>
+        </div>
+
+        <div class="row2">
+            <div class="shipdate-title textpadding2pc" vertical-align="center">
+                <p vertical-align="center">Ship Date:</p> 
+            </div>
+            
+            <div class="shipdate-value textpadding2pc">
+                <p>${shipDate}</p>
+            </div>
+            
+            <div class="route-title textpadding2pc">
+                <p>Route:</p> 
+            </div>
+            <div class="route-value textpadding2pc">
+                <p>${route}</p>
+            </div>
+        
+        </div>
+
+        <div class="row3">
+            <div class="itemid-title textpadding2pc">
+                <p>Item:</p> 
+            </div>
+            <div class="itemid-value textpadding2pc">
+                <p>${itemId}</p>
+            </div>
+
+            <div class="orderid-title textpadding2pc">
+                <p>Order:</p> 
+            </div>
+            <div class="orderid-value textpadding2pc">
+                <p>${transId}</p>
+            </div>
+            <div class="lot-title textpadding2pc">
+                <p align="right">Lot:</p> 
+            </div>
+            <div class="lot-value textpadding2pc">
+                <p>${lotNum}</p>
+            </div>
+        </div>
+        
+
+        
+        <div class="row4">
+            <div class="itemdesc-value textpadding2pc">
+                <p>${itemName}</p>  
+            </div>
+            <div class="textpadding2pc qty">
+                <p style="align:center;vertical-align:middle;">Qty: ${labelQty}</p>
+                <p style="align:center">(${labelPos} of ${totalLabelCt})</p>
+            </div>
+            <div class="fccompanyname textpadding2pc">
+                <p align="center">Food <br></br> Connects</p>
+            </div>
+        
+        </div>
+
+    </div>
+</td>
+</#macro>
+
+<?xml version="1.0"?><!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<pdf>
+<head>
+    <style type="text/css">
+        body {
+            size: Letter;
+            margin:0;
+            padding:0;
+			padding-top: 0.5in;
+			padding-left: 0.1875in;
+        }
+
+		table, td {
+			border: 1px;
+		}
+
+		td {
+			padding-right:0.1875in;
+		}
+        
+        .maintable {
+            border: 1px;
+            margin:0;
+            padding:0;
+			
+        }
+
+		.labelframe{
+			height: 2in;
+			width: 4in;
+			font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10;
+			margin:0;
+			padding:0;
+		}
+
+        p {
+            margin: 0;
+            padding: 0;
+            overflow-wrap: break-word;
+            text-justify:none;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            text-align:left;
+            hyphens:auto;
+        }
+
+        .addborder{
+            border: 1px;
+        }
+
+        .textpadding2pc {
+            padding-top: 3px;
+            padding-bottom: 3px;
+            padding-left: 3px;
+            padding-right: 3px;
+        }
+
+		.labelframe .row1 {
+			height: 25%;
+			width: 100%;
+			border: 1px;
+			overflow: hidden;
+            font-size: 10;
+		}
+		.labelframe .row1 .shipto-title {
+			position:absolute;
+			top:0;
+			left:0;
+            height: 100%;
+            width: 18%;
+            vertical-align: top;
+		}
+
+		.labelframe .row1 .shipto-value {
+			position:absolute;
+			top: 0;
+            right: 0;
+            left: 18%;
+            width: 82%;
+            height: 100%;
+			font-weight: 600;
+            vertical-align: top;
+            font-size: 13;
+
+			
+		}
+		.labelframe .row1 .itemposition{
+			position:absolute;
+			right:0;
+			bottom:0;
+			left:80%;
+			text-align: right;
+			white-space: nowrap;
+			background-color: white;
+			z-index:10;
+			padding-right:1%
+
+		}
+		.labelframe .row2 {
+			height:15%;
+			width:100%;
+			overflow:hidden;
+			white-space: nowrap;
+            line-height: 18;
+
+		}
+
+		.labelframe .row2 .shipdate-title{
+            position:absolute;
+            width:18%;
+			height:100%;
+		}
+		.labelframe .row2 .shipdate-value{
+            position:absolute;
+            left:18%;
+            width:24%;
+			height:100%;
+            font-weight: 600;
+
+		}
+
+		.labelframe .row2 .route-title{
+            position:absolute;
+            left:42%;
+            width:16%;
+            height:100%;
+
+
+		}
+		.labelframe .row2 .route-value{
+            position:absolute;
+            left:58%;
+            width:42%;
+            height:100%;
+            font-weight: 600;
+
+		}
+        .labelframe .row3 {
+			height:15%;
+			width:100%;
+			overflow:hidden;
+			white-space: nowrap;
+            line-height: 18;
+
+		}
+
+		.labelframe .row3 .itemid-title{
+            position:absolute;
+            width:18%;
+			height:100%;
+            overflow:hidden;
+            white-space: nowrap;
+
+
+		}
+		.labelframe .row3 .itemid-value{
+            position:absolute;
+            left:18%;
+            width:24%;
+			height:100%;
+            font-weight: 600;
+            overflow:hidden;
+            white-space: nowrap;
+
+		}
+
+		.labelframe .row3 .orderid-title{
+            position:absolute;
+            left:42%;
+            width:16%;
+            height:100%;
+            overflow:hidden;
+            white-space: nowrap;
+
+
+		}
+		.labelframe .row3 .orderid-value{
+            position:absolute;
+            left:58%;
+            width:42%;
+            height:100%;
+            font-weight: 600;
+            overflow:hidden;
+            white-space: nowrap;
+
+		}
+
+        .labelframe .row4 {
+			height:45%;
+			width:100%;
+			border: 1px;
+			overflow:hidden;
+		}
+
+		.labelframe .row4 .itemdesc-value{
+            position:absolute;
+            width:80%;
+			height:100%;
+            font-weight:600;
+            font-size:13.2;
+            text-align:left;
+            overflow:hidden;
+		}
+		.labelframe .row4 .qty {
+			margin:0;
+			position:absolute;
+			top:0%;
+			right:0%;
+			left:80%;
+			width:20%;
+			height:55%;
+			border:0px;
+			font-size: 9;
+			align: center;
+            text-align: middle;
+            vertical-align:middle;
+			z-index: 10; 
+		}
+        .labelframe .row4 .fccompanyname{
+            margin:0;
+			position:absolute;
+            top:55%;
+			left:80%;
+			width:20%;
+            height:45%;
+			border: 1px;
+            font-size: 9;
+			font-weight:700;
+            text-align: center;
+            vertical-align:center;
+			font-style:italic;
+			background-color: #D3D3D3;
+			z-index: 10;            
+        }
+    </style>
+</head>
+<body>
+
+<#setting date_format="EEE MM-dd-yy">
+<#assign counter = 1>
+
+<#list results as result>
+    <#assign itemqtyperlabel = result.custitem_fc_qtypershippinglabel?string>
+    <#if (itemqtyperlabel == '')>
+        <#assign itemqtyperlabel = 1>
+    <#else>
+        <#assign itemqtyperlabel = itemqtyperlabel?number>
+        <#if (itemqtyperlabel <= 0)>
+            <#assign itemqtyperlabel = 1>
+        </#if>
+    </#if>
+
+    <#assign qtyremaining = 0>
+    <#if result.inventorynumber?string == ''>
+        <#assign qtyremaining = result.quantity?number>
+    <#else>
+        <#assign qtyremaining = result.quantity_1?number>
+    </#if>
+
+    <#assign numberoflabels = (qtyremaining/itemqtyperlabel)?ceiling>
+
+    <#list 1..numberoflabels as i>
+        <#assign qtyforthislabel = [itemqtyperlabel, qtyremaining]?min>
+
+        <@openTable counter></@openTable>
+        <@openRow counter></@openRow>
+
+        <@writeLabel 
+            customer=result.entity 
+            shipDate=result.shipdate
+            route=result.custbody_rd_so_route
+            itemId=result.itemid
+            transId=result.tranid
+            lotNum=result.inventorynumber
+            itemName=result.displayname
+            labelQty=qtyforthislabel 
+            labelPos=i
+            totalLabelCt=numberoflabels>
+        </@writeLabel>
+        
+        <@closeRow
+            labelCounter=counter
+            isLastResult=(result?is_last)
+            isLastLabelOfResult=(i >= numberoflabels)
+            hasUnlottedRemainder=(result.formulatext == "True" && result.formulanumeric_1?number > 0)
+            >
+        </@closeRow>
+        <@closeTable 
+            labelCounter=counter
+            isLastResult=(result?is_last)
+            isLastLabelOfResult=(i >= numberoflabels)
+            hasUnlottedRemainder=(result.formulatext == "True" && result.formulanumeric_1?number > 0)
+            >
+        </@closeTable>
+ 
+        <#assign qtyremaining = (qtyremaining - itemqtyperlabel)>
+        <#assign counter++>
+    </#list>
+
+    <#if (result.formulatext == "True") && (result.formulanumeric_1?number > 0)>
+        <#assign qtyremaining = result.formulanumeric_1?number>
+
+        <#if (qtyremaining > 0)>
+            <#assign numberoflabels = (qtyremaining/itemqtyperlabel)?ceiling>
+
+            <#list 1..numberoflabels as j>   
+                <#assign qtyforthislabel = [itemqtyperlabel, qtyremaining]?min>
+
+                <@openTable counter></@openTable>
+                <@openRow counter></@openRow>
+
+                <@writeLabel 
+                    customer=result.entity 
+                    shipDate=result.shipdate
+                    route=result.custbody_rd_so_route
+                    itemId=result.itemid
+                    transId=result.tranid
+                    lotNum="---"
+                    itemName=result.displayname
+                    labelQty=qtyforthislabel 
+                    labelPos=j
+                    totalLabelCt=numberoflabels>
+                </@writeLabel>
+                
+                <@closeRow
+                    labelCounter=counter
+                    isLastResult=(result?is_last)
+                    isLastLabelOfResult=(j >= numberoflabels)
+                    >
+                </@closeRow>
+                <@closeTable 
+                    labelCounter=counter
+                    isLastResult=(result?is_last)
+                    isLastLabelOfResult=(j >= numberoflabels)
+                    >
+                </@closeTable>
+        
+                <#assign qtyremaining = (qtyremaining - itemqtyperlabel)>
+                <#assign counter++>
+            </#list>
+        </#if>
+    </#if>
+</#list>
+
+
+
+</body> 
+</pdf>
