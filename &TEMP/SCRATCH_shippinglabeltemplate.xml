@@ -1,0 +1,93 @@
+<#assign unassignedLots = {}>
+<#list results as result>
+    <#if !unassignedLots[result.lineuniquekey]>
+        <#if (result.UNASSIGNED_LOT_ITEM_CT > 0)>
+            <#assign unassignedLots = unassignedLots + {result.lineuniquekey: result.UNASSIGNED_LOT_ITEM_CT}>
+        </#if>
+    </#if>
+</#list>
+
+
+results = [
+    {
+        "shipdate" : "3-6-2023",
+        "entity" : "282 Alex McCullough",
+        "custbody_rd_so_route" : "Upper Valley" ,
+        "tranid" : "SO123",
+        "itemid" : "ATG001",
+        "displayname" : "Against the Grain -- Pepperoni Pizzas 12in Frozen -- Case of 12",
+        "custitem_fc_qtypershippinglabel" : 1,
+        "inventorynumber" : "Lot1234",
+        "quantity" : 10,
+        "quantity_1" : 2,
+        "formulanumeric" : 7,
+        "formulanumeric_1" : 3 ,
+        "formulanumeric_2" : 2,
+        "formulatext" : ""
+    },
+    {
+        "shipdate" : "3-6-2023",
+        "entity" : "282 Alex McCullough",
+        "custbody_rd_so_route" : "Upper Valley" ,
+        "tranid" : "SO123",
+        "itemid" : "ATG001",
+        "displayname" : "Against the Grain -- Pepperoni Pizzas 12in Frozen -- Case of 12",
+        "custitem_fc_qtypershippinglabel" : 1,
+        "inventorynumber" : "Lot5678",
+        "quantity" : 10,
+        "quantity_1" : 5,
+        "formulatext" : "True",
+        "formulanumeric" : 7,
+        "formulanumeric_1" : 3 ,
+        "formulanumeric_2" : 7,
+        "formulatext" : "True"
+    }
+]
+
+<#assign testResults = [
+    {
+        "shipdate" : "3-6-2023",
+        "entity" : "282 Alex McCullough",
+        "custbody_rd_so_route" : "Upper Valley" ,
+        "tranid" : "SO123",
+        "itemid" : "ATG001",
+        "displayname" : "Against the Grain -- Pepperoni Pizzas 12in Frozen -- Case of 12",
+        "custitem_fc_qtypershippinglabel" : 1,
+        "inventorynumber" : "Lot1234",
+        "quantity" : 10,
+        "quantity_1" : 2,
+        "formulanumeric" : 7,
+        "formulanumeric_1" : 3 ,
+        "formulanumeric_2" : 2,
+        "formulatext" : ""
+    },
+    {
+        "shipdate" : "3-6-2023",
+        "entity" : "282 Alex McCullough",
+        "custbody_rd_so_route" : "Upper Valley" ,
+        "tranid" : "SO123",
+        "itemid" : "ATG001",
+        "displayname" : "Against the Grain -- Pepperoni Pizzas 12in Frozen -- Case of 12",
+        "custitem_fc_qtypershippinglabel" : 1,
+        "inventorynumber" : "Lot5678",
+        "quantity" : 10,
+        "quantity_1" : 5,
+        "formulatext" : "True",
+        "formulanumeric" : 7,
+        "formulanumeric_1" : 3 ,
+        "formulanumeric_2" : 7,
+        "formulatext" : "True"
+    }
+]>
+
+
+customer=result.entity 
+            shipDate=result.shipdate
+            route=result.custbody_rd_so_route
+            itemId=result.itemid
+            transId=result.tranid
+            lotNum=result.inventorynumber
+            itemName=result.displayname
+            labelQty=qtyforthislabel 
+            labelPos=i
+            totalLabelCt=numberoflabels>
