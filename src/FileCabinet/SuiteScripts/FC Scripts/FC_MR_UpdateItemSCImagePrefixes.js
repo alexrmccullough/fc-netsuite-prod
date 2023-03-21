@@ -1,7 +1,7 @@
 /**
 * @NApiVersion 2.1
 * @NScriptType MapReduceScript
-* @NModuleScope Public
+* @NModuleScope SameAccount
 * @copyright 2023 Food Connects
 * @author Alex McCullough alex.mccullough@gmail.com
 * @description This Map/Reduce script sets the SuiteCommerce item image prefix field on the Item record. If the item has image files named after its ItemID in the SC image directory, the script sets the prefix as the ItemID so those images are used. Otherwise, it will set the prefix to match the item Brand's default prefix, as long as the Brand has a prefix set and the item setting is toggled to Default to Brand Image Prefix. 

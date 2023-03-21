@@ -1,14 +1,28 @@
 var query;
 
-define(['N/query'], main);
+define(['N/query', 'N/task', 'N/runtime', 'N/email'], main);
 
-function main(queryModule) {
+function main(queryModule, taskModule, runtimeModule, emailModule) {
     query = queryModule;
+    task = taskModule;
+    runtime = runtimeModule;
+    email = emailModule;
 
     var Ids = {
         Scripts: {
         },
         Fields: {
+            Item: {
+                InternalId: 'id',
+                Name: 'itemid',
+                ItemType: 'itemtype',
+                IsLotItem: 'islotitem',
+                IsJIT: 'custitem_soft_comit',
+                StandingJITQty: 'custitem_fc_zen_sft_comm_qty',
+                StartJITQty: 'custitem_fc_am_jit_start_qty',
+                RemainingJITQty: 'custitem_fc_am_jit_remaining',
+                JITProducers: 'custitem_fc_zen_jit_producers',  
+            }
         },
         Sublists: {
         }
@@ -83,7 +97,12 @@ function main(queryModule) {
     };
     exports.Ids = Ids;
 
-
+    function lookupInternalItemType (itemType, isLotItem) {
+        let itemLookupStr =  itemType + '.' + isLotItem;
+        var convertedType = Lookups.ItemTypes[itemLookupStr];
+        return convertedType;
+    }
+    exports.lookupInternalItemType = lookupInternalItemType;
 
     function sqlSelectAllRows(sql, queryParams = new Array()) {
         try {
@@ -219,6 +238,71 @@ function main(queryModule) {
         return str;
     }
     exports.stripBomFirstChar = stripBomFirstChar;
+
+
+    function submitMapReduceJob(scriptId, params) {
+        var mrTask = task.create({
+            taskType: task.TaskType.MAP_REDUCE,
+            scriptId: scriptId,
+            params: params
+        });
+        var mrTaskId = mrTask.submit();
+        return mrTaskId;
+    }
+
+    function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
+        // Store the script ID of the script to submit
+        //
+        // Update the following statement so it uses the script ID
+        // of the map/reduce script record you want to submit
+        const mapReduceScriptId = mrScriptId;
+
+        // Create a map/reduce task
+        //
+        // Update the deploymentId parameter to use the script ID of
+        // the deployment record for your map/reduce script
+        let mrTask = task.create({
+            taskType: task.TaskType.MAP_REDUCE,
+            scriptId: mrScriptId,
+            deploymentId: mrDeploymentId,
+            params: params
+        });
+
+        // Submit the map/reduce task
+        let mrTaskId = mrTask.submit();
+
+        // Check the status of the task, and send an email if the
+        // task has a status of FAILED
+        //
+        // Update the authorId value with the internal ID of the user
+        // who is the email sender. Update the recipientEmail value
+        // with the email address of the recipient.
+        let taskStatus = task.checkStatus(mrTaskId);
+        if (taskStatus.status === 'FAILED') {
+            const authorId = -5;
+            const recipientEmail = 'notify@myCompany.com';
+            email.send({
+                author: authorId,
+                recipients: recipientEmail,
+                subject: 'Failure executing map/reduce job!',
+                body: 'Map reduce task: ' + mapReduceScriptId + ' has failed.'
+            });
+        }
+
+        // Retrieve the status of the search task
+        let taskStatus2 = task.checkStatus({
+            taskId: myTaskId
+        });
+
+        // Optionally, add logic that executes when the task is complete
+        if (taskStatus.status === task.TaskStatus.COMPLETE) {
+            // Add any code that is appropriate. For example, if this script created
+            // a saved search, you may want to delete it.
+        }
+    }
+
+
+
 
     return exports;
 }
