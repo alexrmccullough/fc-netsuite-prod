@@ -65,10 +65,10 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
 
     var Ids = {
         Scripts: {
-            MR_JIT_UPDATE: 'customscript_fc_am_mr_jit_updateitemjitstartqty',
+            MR_JIT_UPDATE: 'customscript_fc_am_jit_mr_updateitemjit',
         },
         Deployments: {
-            MR_JIT_UPDATE: 'customdeploy_fc_am_mr_jit_updateitemjitstartqty',
+            MR_JIT_UPDATE: 'customdeploy_fc_am_jit_mr_updateitemjit',
         },
         Fields: {
         },

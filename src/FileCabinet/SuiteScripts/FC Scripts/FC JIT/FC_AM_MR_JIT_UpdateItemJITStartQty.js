@@ -16,7 +16,7 @@ var
     FCJITUploadLib,
     Papa;
 
-define(['N/query', 'N/record', 'N/task', 'N/file', './Libraries/FC_MainLibrary', 'FC_JITUpload_Library', '../Libraries/papaparse.min.js'], main);
+define(['N/query', 'N/record', 'N/task', 'N/file', '../Libraries/FC_MainLibrary', './FC_JITUpload_Library.js', '../Libraries/papaparse.min.js'], main);
 
 function main(queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcJITUploadLibModule, papaParseModule) {
 
