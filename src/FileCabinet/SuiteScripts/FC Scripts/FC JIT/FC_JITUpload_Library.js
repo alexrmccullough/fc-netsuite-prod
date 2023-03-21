@@ -82,7 +82,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         Files: {
 
         },
-
         Parameters: {
             JIT_ITEM_UPDATE_CSV_FILEID: 'custscript_fc_am_jit_update_csv_fileid',
             SUBTRACT_FUTURE_SOS_ON_UPDATE: 'custscript_fc_am_jit_subtract_future_sos',
@@ -99,7 +98,36 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         SESSION_RESULTS_FOLDER_NAME_PREFIX: 'JIT_CSV_Upload_',
         PAPAPARSE_EXTRA_COL_NAME: "__parsed_extra",
         JIT_UPLOAD_SUCCESS_FILENAME: 'JIT_Upload_Success.csv',
-        JIT_UPLOAD_UTILITY_CSV_FILENAME_PREFIX: 'JIT_Upload_Successful_Items_'
+        JIT_UPLOAD_UTILITY_CSV_FILENAME_PREFIX: 'JIT_Upload_Successful_Items_',
+
+        Ui: {
+            Main: {
+                JIT_UPLOAD_UTILITY_FORM_TITLE: 'JIT Upload Utility',
+            },
+            Fields: {
+                ERROR_RESULTS_FIELD_ID: 'custpage_error_results',
+                ERROR_RESULTS_FIELD_LABEL: 'Error Results',
+                ITEM_UPDATE_RESULTS_FIELD_ID: 'custpage_item_update_results',
+                ITEM_UPDATE_RESULTS_FIELD_LABEL: 'Item Update Results',
+
+            },
+            FieldGroups: {
+                OPTIONS_FIELD_GROUP_ID: 'custpage_submit_fieldgroup',
+                OPTIONS_FIELD_GROUP_LABEL: 'Options',
+                ERROR_RESULTS_FIELD_GROUP_ID: 'custpage_error_results_fieldgroup',
+                ERROR_RESULTS_FIELD_GROUP_LABEL: 'Error Results',
+                ITEM_UPDATE_RESULTS_FIELD_GROUP_ID: 'custpage_item_update_results_fieldgroup',
+                ITEM_UPDATE_RESULTS_FIELD_GROUP_LABEL: 'Item Update Results',
+            },
+            Buttons: {
+                SUBMIT_BUTTON_LABEL: 'Submit',
+                SUBTRACT_FUTURE_SOS_CHECKBOX_ID: 'custpage_subtract_future_sos',
+                SUBTRACT_FUTURE_SOS_CHECKBOX_LABEL: 'Subtract Future SOs from Start Quantity',
+                RESET_ALL_JIT_CHECKBOX_ID: 'custpage_reset_all_jit',
+                RESET_ALL_JIT_CHECKBOX_LABEL: 'Zero All JIT Items before Update',
+
+            }
+        },
     };
 
     var TempFields = {
@@ -109,6 +137,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
 
     exports.Ids = Ids;
     exports.Settings = Settings;
+    exports.TempFields = TempFields;
 
     return exports;
 }

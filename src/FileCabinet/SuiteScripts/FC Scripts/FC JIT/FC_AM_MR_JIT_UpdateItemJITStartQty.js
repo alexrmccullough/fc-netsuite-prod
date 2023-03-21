@@ -8,6 +8,7 @@
 */
 
 var
+    runtime,
     query,
     record,
     task,
@@ -16,10 +17,11 @@ var
     FCJITUploadLib,
     Papa;
 
-define(['N/query', 'N/record', 'N/task', 'N/file', '../Libraries/FC_MainLibrary', './FC_JITUpload_Library.js', '../Libraries/papaparse.min.js'], main);
+define(['N/runtime', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/FC_MainLibrary', './FC_JITUpload_Library.js', '../Libraries/papaparse.min.js'], main);
 
-function main(queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcJITUploadLibModule, papaParseModule) {
+function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcJITUploadLibModule, papaParseModule) {
 
+    runtime = runtimeModule;
     query = queryModule;
     record = recordModule;
     task = taskModule;
@@ -38,7 +40,14 @@ function main(queryModule, recordModule, taskModule, fileModule, fcMainLibModule
 
 
 function getInputData(context) {
-    let itemUpdateCSVFileId = context.params[FCJITUploadLib.JIT_ITEM_UPDATE_CSV_FILEID];
+    var currentScript = runtime.getCurrentScript();
+
+    let itemUpdateCSVFileId = currentScript.getParameter({
+        name: FCJITUploadLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID
+    });
+
+    log.debug({ title: 'getInputData', details: { itemUpdateCSVFileId: itemUpdateCSVFileId } });
+
 
     // FIX?: Run query on future SOs at time of MR to reduce lag between launch and completion?
     // let subtractFutureSOS = context.params[FCJITUploadLib.SUBTRACT_FUTURE_SOS_ON_UPDATE];
@@ -62,7 +71,7 @@ function getInputData(context) {
 function map(context) {
     log.debug({ title: 'map - result', details: context });
     let itemUpdateInfo = JSON.parse(context.value);
-    
+
     try {
         context.write({
             key: itemUpdateInfo[FCLib.Ids.Fields.Item.InternalId],
@@ -78,19 +87,24 @@ function map(context) {
 
 function reduce(context) {
     log.audit({ title: 'reduce - context', details: context });
-
-    //NOTE: We shouldn't ever have more than one value returned here due to how we designed the input. 
-    // How should we deal with it if we do have > 1 result? 
-    // Currently: Consider only the first result.
-    let result = context.values.map(JSON.parse)[0];
-
-    // Get the internal item type for this item
-    let itemType = FCLib.lookupInternalItemType(
-        result[FCLib.Ids.Fields.Item.Type],
-        result[FCLib.Ids.Fields.Item.IsLotItem]
-    );
-
     try {
+
+        //NOTE: We shouldn't ever have more than one value returned here due to how we designed the input. 
+        // How should we deal with it if we do have > 1 result? 
+        // Currently: Consider only the first result.
+        let result = context.values.map(JSON.parse)[0];
+
+        log.debug({ title: 'reduce - result', details: { item: context.key, result: result } });
+
+        // Get the internal item type for this item
+        let itemType = FCLib.lookupInternalItemType(
+            result[FCLib.Ids.Fields.Item.ItemType],
+            result[FCLib.Ids.Fields.Item.IsLotItem]
+        );
+
+
+        log.debug({ title: 'reduce - itemType', details: itemType });
+
         var changedRecordId = record.submitFields({
             type: itemType,
             id: result[FCLib.Ids.Fields.Item.InternalId],
@@ -106,7 +120,7 @@ function reduce(context) {
                 Remaining JIT Qty: ${result[FCLib.Ids.Fields.Item.RemainingJITQty]}
                 From: Old Start (${result[FCLib.Ids.Fields.Item.OldStartJITQty]}) / Old Remaining (${result[FCLib.Ids.Fields.Item.OldRemainingJITQty]})`,
         };
-        Object.assign(summaryValue(result));
+        Object.assign(summaryValue, result);
 
         context.write({
             key: context.key,
@@ -134,7 +148,7 @@ function summarize(context) {
         details: context.yields
     });
 
-    var recordChangeCt = Object.keys(context.output).length;
+    // var recordChangeCt = Object.keys(context.output).length;
     var itemsUpdated = [];
 
     context.output.iterator().each(function (key, value) {
@@ -145,6 +159,6 @@ function summarize(context) {
 
     log.audit({
         title: 'Items updated with new JIT quantities',
-        details: `Updated ${recordChangeCt} items. Item IDs: ${itemsUpdated.join(',')}`
+        details: `Updated ${itemsUpdated.length} items. Item IDs: ${itemsUpdated.join(',')}`
     });
 }

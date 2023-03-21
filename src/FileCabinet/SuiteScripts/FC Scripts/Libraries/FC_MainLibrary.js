@@ -1,4 +1,7 @@
-var query;
+var query,
+    task,
+    runtime,
+    email;
 
 define(['N/query', 'N/task', 'N/runtime', 'N/email'], main);
 
@@ -21,7 +24,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                 StandingJITQty: 'custitem_fc_zen_sft_comm_qty',
                 StartJITQty: 'custitem_fc_am_jit_start_qty',
                 RemainingJITQty: 'custitem_fc_am_jit_remaining',
-                JITProducers: 'custitem_fc_zen_jit_producers',  
+                JITProducers: 'custitem_fc_zen_jit_producers',
             }
         },
         Sublists: {
@@ -97,12 +100,13 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     };
     exports.Ids = Ids;
 
-    function lookupInternalItemType (itemType, isLotItem) {
-        let itemLookupStr =  itemType + '.' + isLotItem;
-        var convertedType = Lookups.ItemTypes[itemLookupStr];
+    function lookupInternalItemType(itemType, isLotItem) {
+        let itemLookupStr = itemType + '.' + isLotItem;
+        let convertedType = exports.Lookups.ItemTypes[itemLookupStr];
         return convertedType;
     }
     exports.lookupInternalItemType = lookupInternalItemType;
+
 
     function sqlSelectAllRows(sql, queryParams = new Array()) {
         try {
@@ -144,6 +148,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     }
     exports.sqlSelectAllRowsIntoDict = sqlSelectAllRowsIntoDict;
 
+    
     function simpleObjCopy(obj) {
         var newObj = {};
         for (k in obj) {
@@ -238,6 +243,119 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         return str;
     }
     exports.stripBomFirstChar = stripBomFirstChar;
+
+
+    function convertHashDataToHTMLTable(fields, hashData) {
+
+        var tableHtml = '';
+
+        if (hashData.length > 0) {
+            var htmlHeader = '<thead><tr>';
+
+            for (var i = 0; i < fields.length; i++) {
+                htmlHeader += '<th>' + fields[i] + '</th>';
+            }
+
+            htmlHeader += '</tr></thead>';
+
+            var htmlBody = '<tbody>';
+            for (var i = 0; i < hashData.length; i++) {
+                var row = hashData[i];
+                htmlBody += '<tr>';
+                for (var j = 0; j < fields.length; j++) {
+                    var key = fields[j];
+                    htmlBody += '<td>' + row[key] + '</td>';
+                }
+                htmlBody += '</tr>';
+            }
+            htmlBody += '</tbody>';
+
+            tableHtml = '<table>' + htmlHeader + htmlBody + '</table>';
+        }
+
+        return tableHtml;
+    }
+    exports.convertHashDataToHTMLTable = convertHashDataToHTMLTable;
+
+
+    function convertHashDataToHTMLTableStylized({
+        fields = [],
+        hashData = [],
+        headerBGColor = '#009879',
+        headerTextColor = '#ffffff'
+    } = {}) {
+        var tableHtml = '';
+        var tableElem = `<table style="border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)">`;
+        var theadTrElem = `<tr style="background-color: ${headerBGColor}; color: ${headerTextColor}; text-align: left">`;
+        var thElem = `<th style="padding: 12px 15px">`;
+        var tdElem = `<td style="padding: 12px 15px">`;
+        var tbodyTrElem = `<tr style="border-bottom: 1px solid #dddddd">`;
+
+
+        if (hashData.length > 0) {
+            var htmlHeader = '<thead>';
+            htmlHeader += theadTrElem;
+
+            for (var i = 0; i < fields.length; i++) {
+                htmlHeader += thElem + fields[i] + '</th>';
+            }
+
+            htmlHeader += '</tr></thead>';
+
+            var htmlBody = '<tbody>';
+            for (var i = 0; i < hashData.length; i++) {
+                var row = hashData[i];
+                htmlBody += tbodyTrElem;
+                for (var j = 0; j < fields.length; j++) {
+                    var key = fields[j];
+                    htmlBody += tdElem + row[key] + '</td>';
+                }
+                htmlBody += '</tr>';
+            }
+            htmlBody += '</tbody>';
+
+            tableHtml = tableElem + htmlHeader + htmlBody + '</table>';
+        }
+
+        return tableHtml;
+    }
+    exports.convertHashDataToHTMLTableStylized = convertHashDataToHTMLTableStylized;
+
+
+
+    function convertCSVStringToHTMLTableStylized({
+        csvString = '',
+        headerBGColor = '#009879',
+        headerTextColor = '#ffffff'
+    } = {}) {
+
+        let parsed = Papa.parse(
+            csvString,
+            {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: 'greedy',
+            }
+        );
+
+        return exports.convertHashDataToHTMLTableStylized({
+            fields: parsed.meta.fields,
+            hashData: parsed.data,
+            headerBGColor: headerBGColor,
+            headerTextColor: headerTextColor,
+        });
+    }
+    exports.convertCSVStringToHTMLTableStylized = convertCSVStringToHTMLTableStylized;
+
+
+
+    function getFileUrl(fileId) {
+        var fileObj = file.load({ id: fileId });
+        var fileUrl = fileObj.url;
+        return fileUrl;
+    }
+    exports.getFileUrl = getFileUrl;
+
 
 
     function submitMapReduceJob(scriptId, params) {
