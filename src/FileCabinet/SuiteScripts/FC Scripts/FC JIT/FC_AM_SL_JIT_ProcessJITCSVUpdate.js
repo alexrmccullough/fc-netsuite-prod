@@ -601,7 +601,7 @@ function initializeForm(context) {
 
     // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
     var subtractFutureSOsCheckbox = form.addField({
-        id: FCJITUploadLib.Settings.Ui.Buttons.SUBTRACT_FUTURE_SOS_CHECKBOX_ID,
+        id: FCJITUploadLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID,
         type: serverWidget.FieldType.CHECKBOX,
         label: FCJITUploadLib.Settings.Ui.Buttons.SUBTRACT_FUTURE_SOS_CHECKBOX_LABEL,
         container: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
@@ -612,7 +612,7 @@ function initializeForm(context) {
 
     // Add a checkbox to switch on/off Reset all JIT
     var resetAllJITCheckbox = form.addField({
-        id: FCJITUploadLib.Settings.Ui.Buttons.RESET_ALL_JIT_CHECKBOX_ID,
+        id: FCJITUploadLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID,
         type: serverWidget.FieldType.CHECKBOX,
         label: FCJITUploadLib.Settings.Ui.Buttons.RESET_ALL_JIT_CHECKBOX_LABEL,
         container: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
@@ -668,6 +668,12 @@ function buildErrorTablesHTML(errorTables) {
 
 
 function getRequestHandle(context) {
+    let subtractFutureJITSOs = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID] === 'T';
+    let resetJITQuantities = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID] === 'T';
+    let pregeneratedJITUpdateFileId = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.JIT_UPDATE_CSV_FILE_ID];
+
+
+
     let formElements = initializeForm(context);
 
     var parsedCSVs = parseJITCSVs(context, FCJITUploadLib.Ids.Folders.INPUT);
@@ -707,6 +713,9 @@ function getRequestHandle(context) {
             errorHtml += thisHTMLTable;
         }
     }
+
+    // DEBUG
+    errorHtml += JSON.stringify(context.request.parameters);
 
 
     let itemUpdateData = buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot);

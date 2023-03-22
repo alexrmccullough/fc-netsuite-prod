@@ -121,11 +121,13 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
             },
             Buttons: {
                 SUBMIT_BUTTON_LABEL: 'Submit',
-                SUBTRACT_FUTURE_SOS_CHECKBOX_ID: 'custpage_subtract_future_sos',
                 SUBTRACT_FUTURE_SOS_CHECKBOX_LABEL: 'Subtract Future SOs from Start Quantity',
-                RESET_ALL_JIT_CHECKBOX_ID: 'custpage_reset_all_jit',
                 RESET_ALL_JIT_CHECKBOX_LABEL: 'Zero All JIT Items before Update',
-
+            },
+            Parameters: {
+                SUBTRACT_FUTURE_SOS_CHECKBOX_ID: 'custscript_subtract_future_sos',
+                RESET_ALL_JIT_CHECKBOX_ID: 'custpage_reset_all_jit',
+                JIT_UPDATE_CSV_FILE_ID: 'custpage_jit_update_csv_fileid',
             }
         },
     };
