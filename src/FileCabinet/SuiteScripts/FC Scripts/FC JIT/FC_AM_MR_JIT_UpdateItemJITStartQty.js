@@ -148,7 +148,6 @@ function summarize(context) {
         details: context.yields
     });
 
-    // var recordChangeCt = Object.keys(context.output).length;
     var itemsUpdated = [];
 
     context.output.iterator().each(function (key, value) {

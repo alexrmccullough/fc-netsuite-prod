@@ -54,12 +54,14 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                     (Item.custitem_soft_comit = 'T') 
                     AND 
                     (Transaction.shipDate >= (SELECT SYSDATE FROM Dual))
-                    AND
-                    (Item.itemId IN (?))
+
         
                 GROUP BY 
                     Item.itemId
                 `,
+
+            GET_ALL_CSV_FILES_IN_FOLDER_BY_ID: `SELECT ID FROM File WHERE ( Folder = ? ) AND ( Name LIKE '%.csv' )`,
+            
         }
     };
 
@@ -75,7 +77,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         Sublists: {
         },
         Folders: {
-            MAIN: 8138,
+            MAIN: 9115,
             INPUT: 8142,
             RESULTS: 8141,
         },
@@ -109,6 +111,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                 ERROR_RESULTS_FIELD_LABEL: 'Error Results',
                 ITEM_UPDATE_RESULTS_FIELD_ID: 'custpage_item_update_results',
                 ITEM_UPDATE_RESULTS_FIELD_LABEL: 'Item Update Results',
+                ITEM_UPLOAD_CSV_FIELD_LABEL: 'Upload CSV',
 
             },
             FieldGroups: {
@@ -127,7 +130,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
             Parameters: {
                 SUBTRACT_FUTURE_SOS_CHECKBOX_ID: 'custscript_subtract_future_sos',
                 RESET_ALL_JIT_CHECKBOX_ID: 'custpage_reset_all_jit',
-                JIT_UPDATE_CSV_FILE_ID: 'custpage_jit_update_csv_fileid',
+                ITEM_UPLOAD_CSV_FIELD_ID: 'custpage_item_upload_csv_id',
             }
         },
     };

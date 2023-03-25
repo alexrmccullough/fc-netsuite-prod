@@ -11,52 +11,14 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     runtime = runtimeModule;
     email = emailModule;
 
-    var Ids = {
-        Scripts: {
-        },
-        Fields: {
-            Item: {
-                InternalId: 'id',
-                Name: 'itemid',
-                ItemType: 'itemtype',
-                IsLotItem: 'islotitem',
-                IsJIT: 'custitem_soft_comit',
-                StandingJITQty: 'custitem_fc_zen_sft_comm_qty',
-                StartJITQty: 'custitem_fc_am_jit_start_qty',
-                RemainingJITQty: 'custitem_fc_am_jit_remaining',
-                JITProducers: 'custitem_fc_zen_jit_producers',
-            }
-        },
-        Sublists: {
-        }
-    }
     var exports = {
         Form: {
         },
         Sublists: {
         },
         Searches: {
-            // SoSearch: {
-            //     FILTERS: [
-            //         ["type", "anyof", "SalesOrd"],
-            //         "AND",
-            //         ["status", "anyof", "SalesOrd:D", "SalesOrd:B", "SalesOrd:E", "SalesOrd:F"],
-            //         "AND",
-            //         ["mainline", "is", "F"],
-            //         "AND",
-            //         ["closed", "is", "F"],
-            //         "AND",
-            //         ["taxline", "is", "F"],
-            //         "AND",
-            //         ["cogs", "is", "F"],
-            //         "AND",
-            //         ["shipping", "is", "F"]
-            //     ]
-            // }
         },
         Urls: {
-            // PO_URL: '/app/accounting/transactions/purchord.nl?id=',
-            // SO_URL: '/app/accounting/transactions/salesord.nl?id='
         },
         Lookups: {
             ItemTypes: {
@@ -96,9 +58,38 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                 'InvtPart.T': 'lotnumberedinventoryitem'
 
             }
+        },
+        ModulePaths: {
+            'netsuite-task-status': '/SuiteScripts/FC Scripts/Libraries/netsuite-task-status-master/src/task-status/task_status_sl.ts',
         }
     };
+
+    var Ids = {
+        Scripts: {
+        },
+        Fields: {
+            Item: {
+                InternalId: 'id',
+                Name: 'itemid',
+                ItemType: 'itemtype',
+                IsLotItem: 'islotitem',
+                IsJIT: 'custitem_soft_comit',
+                StandingJITQty: 'custitem_fc_zen_sft_comm_qty',
+                StartJITQty: 'custitem_fc_am_jit_start_qty',
+                RemainingJITQty: 'custitem_fc_am_jit_remaining',
+                JITProducers: 'custitem_fc_zen_jit_producers',
+            }
+        },
+        Folders: {
+            MAIN_TEMP_CACHE_FOLDER: 9114,
+        },
+        Sublists: {
+        }
+    }
     exports.Ids = Ids;
+
+
+
 
     function lookupInternalItemType(itemType, isLotItem) {
         let itemLookupStr = itemType + '.' + isLotItem;
@@ -134,6 +125,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
 
 
     function sqlSelectAllRowsIntoDict(sql, dictKey, queryParams = new Array()) {
+        // Note: This assumes that the key has no duplicates across all rows. 
+        // Otherwise, we will overwrite the previous value.
         let rows;
         let dict;
         try {
@@ -148,7 +141,61 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     }
     exports.sqlSelectAllRowsIntoDict = sqlSelectAllRowsIntoDict;
 
-    
+
+    function sqlSelectAllRowsIntoNestedDict(sql, keys = [], queryParams = new Array()) {
+        let mappedResults;
+        let dict;
+
+        try {
+            mappedResults = sqlSelectAllRows(sql, queryParams);
+            dict = exports.createNestedDictFromObjArray(mappedResults, keys);
+
+        } catch (e) {
+            log.error({ title: 'sqlSelectAllRowsIntoNestedDict - error', details: { 'sql': sql, 'queryParams': queryParams, 'error': e } });
+        }
+
+        return dict;
+    }
+    exports.sqlSelectAllRowsIntoNestedDict = sqlSelectAllRowsIntoNestedDict;
+
+
+    function createNestedDictFromObjArray(objArray, keys = []) {
+        // Assume that every key can have duplicate entries. 
+        // Create nested dict structure with the nestedKeys.
+        let dict = {};
+        let key = keys[0];
+
+        try {
+            if (keys.length == 0) {
+                return objArray;
+            }
+
+
+
+            for (let row of objArray) {
+                if (row[key]) {
+                    if (!dict[row[key]]) {
+                        dict[row[key]] = [];
+                    }
+                    dict[row[key]].push(row);
+                }
+            }
+
+            for (const [key, val] of Object.entries(dict)) {
+                dict[key] = exports.createNestedDictFromObjArray(dict[key], keys.slice(1));
+            }
+
+            return dict;
+
+        } catch (e) {
+            log.error({ title: 'createNestedDictFromObjArray - error', details: { 'params': [objArray, keys], 'error': e } });
+        }
+
+        return dict;
+    }
+    exports.createNestedDictFromObjArray = createNestedDictFromObjArray;
+
+
     function simpleObjCopy(obj) {
         var newObj = {};
         for (k in obj) {
@@ -210,21 +257,35 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     exports.moveFileToFolder = moveFileToFolder;
 
 
-    function writeCSVToFolder(fileName, contents, folderId) {
-        let csvFile = file.create({
+    function writeFileToFileCabinet(type, fileName, contents, folderId) {
+        type = type.toLowerCase();
+        switch (type) {
+            case 'csv':
+                type = file.Type.CSV;
+            case 'json':
+                type = file.Type.JSON;
+            case 'pdf':
+                type = file.Type.PDF;
+            case 'plain_text':
+                type = file.Type.PLAINTEXT;
+        }
+
+        let fileObj = file.create({
             name: fileName,
+            fileType: type,
             contents: contents,
-            folder: folderId,
-            fileType: 'CSV'
+            folder: folderId
         });
-        let csvFileId = csvFile.save();
+        let fileId = fileObj.save();
 
-        return csvFileId;
+        return fileId;
     }
-    exports.writeCSVToFolder = writeCSVToFolder;
+    exports.writeFileToFileCabinet = writeFileToFileCabinet;
 
 
-    function sortObjValuesByKeyAsc(obj, ascending = true) {
+
+
+    function mapObjToSortedListByKey(obj, ascending = true) {
         var keys = Object.keys(obj);
         var sortedKeys = keys.sort();
         if (!ascending) { sortedKeys.reverse(); }
@@ -234,7 +295,24 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         }
         return sortedValues;
     }
-    exports.sortObjValuesByKeyAsc = sortObjValuesByKeyAsc;
+    exports.mapObjToSortedListByKey = mapObjToSortedListByKey;
+
+
+    function sortArrayOfObjsByKey(arr, key, ascending = true) {
+        var sortedArr = arr.sort(function (a, b) {
+            if (a[key] < b[key]) {
+                return ascending ? -1 : 1;
+            }
+            if (a[key] > b[key]) {
+                return ascending ? 1 : -1;
+            }
+            return 0;
+        });
+        return sortedArr;
+    }
+
+    exports.sortArrayOfObjsByKey = sortArrayOfObjsByKey;
+
 
     function stripBomFirstChar(str) {
         if (str.charCodeAt(0) === 0xfeff) {
@@ -245,54 +323,22 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     exports.stripBomFirstChar = stripBomFirstChar;
 
 
-    function convertHashDataToHTMLTable(fields, hashData) {
-
-        var tableHtml = '';
-
-        if (hashData.length > 0) {
-            var htmlHeader = '<thead><tr>';
-
-            for (var i = 0; i < fields.length; i++) {
-                htmlHeader += '<th>' + fields[i] + '</th>';
-            }
-
-            htmlHeader += '</tr></thead>';
-
-            var htmlBody = '<tbody>';
-            for (var i = 0; i < hashData.length; i++) {
-                var row = hashData[i];
-                htmlBody += '<tr>';
-                for (var j = 0; j < fields.length; j++) {
-                    var key = fields[j];
-                    htmlBody += '<td>' + row[key] + '</td>';
-                }
-                htmlBody += '</tr>';
-            }
-            htmlBody += '</tbody>';
-
-            tableHtml = '<table>' + htmlHeader + htmlBody + '</table>';
-        }
-
-        return tableHtml;
-    }
-    exports.convertHashDataToHTMLTable = convertHashDataToHTMLTable;
-
-
-    function convertHashDataToHTMLTableStylized({
+    function convertObjToHTMLTable({
         fields = [],
-        hashData = [],
+        data = [],
         headerBGColor = '#009879',
-        headerTextColor = '#ffffff'
+        headerTextColor = '#ffffff',
+        tableElem = '<table>',
+        theadTrElem = '<tr>',
+        thElem = '<th>',
+        tdElem = '<td>',
+        tbodyTrElem = '<tr>',
+        specialElems = []
     } = {}) {
+
         var tableHtml = '';
-        var tableElem = `<table style="border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)">`;
-        var theadTrElem = `<tr style="background-color: ${headerBGColor}; color: ${headerTextColor}; text-align: left">`;
-        var thElem = `<th style="padding: 12px 15px">`;
-        var tdElem = `<td style="padding: 12px 15px">`;
-        var tbodyTrElem = `<tr style="border-bottom: 1px solid #dddddd">`;
 
-
-        if (hashData.length > 0) {
+        if (data.length > 0) {
             var htmlHeader = '<thead>';
             htmlHeader += theadTrElem;
 
@@ -303,12 +349,30 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
             htmlHeader += '</tr></thead>';
 
             var htmlBody = '<tbody>';
-            for (var i = 0; i < hashData.length; i++) {
-                var row = hashData[i];
+            for (var i = 0; i < data.length; i++) {
+                var row = data[i];
                 htmlBody += tbodyTrElem;
                 for (var j = 0; j < fields.length; j++) {
-                    var key = fields[j];
-                    htmlBody += tdElem + row[key] + '</td>';
+                    let field = fields[j];
+                    let val = '';
+                    // Determine the value of what goes in here
+                    if (field in specialElems) {
+                        const elem = specialElems[field];
+
+                        // Build element id
+                        let elemId =
+                            `${elem.idPrefixPart1Str}_${elem.idPrefixPart2Str}_${row[elem.idUniqueSuffixPart1Field]}`;
+
+                        switch (elem.htmlElem) {
+                            case 'input':
+                                val = `<input type="${elem.type}" id="${elemId}" name="${elemId}" value="${row[elem.defaultValueField]}">`;
+                        }
+
+                    } else {
+                        val = row[field];
+                    }
+
+                    htmlBody += tdElem + val + '</td>';
                 }
                 htmlBody += '</tr>';
             }
@@ -319,9 +383,40 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
 
         return tableHtml;
     }
-    exports.convertHashDataToHTMLTableStylized = convertHashDataToHTMLTableStylized;
+    exports.convertObjToHTMLTable = convertObjToHTMLTable;
 
 
+    function convertObjToHTMLTableStylized({
+        fields = [],
+        data = [],
+        headerBGColor = '#009879',
+        headerTextColor = '#ffffff',
+        specialElems = []
+    } = {}) {
+
+        return exports.convertObjToHTMLTable({
+            fields: fields,
+            data: data,
+            headerBGColor: headerBGColor,
+            headerTextColor: headerTextColor,
+            tableElem: `<table style="border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)">`,
+            theadTrElem: `<tr style="background-color: ${headerBGColor}; color: ${headerTextColor}; text-align: left">`,
+            thElem: `<th style="padding: 12px 15px">`,
+            tdElem: `<td style="padding: 12px 15px">`,
+            tbodyTrElem: `<tr style="border-bottom: 1px solid #dddddd">`,
+            specialElems: specialElems
+        });
+
+    }
+    exports.convertObjToHTMLTableStylized = convertObjToHTMLTableStylized;
+
+
+    function addDaysToDate(date, numDays) {
+        let newDate = new Date(date);
+        newDate.setDate(newDate.getDate() + numDays);
+        return newDate;
+    }
+    exports.addDaysToDate = addDaysToDate;
 
     function convertCSVStringToHTMLTableStylized({
         csvString = '',
@@ -338,9 +433,9 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
             }
         );
 
-        return exports.convertHashDataToHTMLTableStylized({
+        return exports.convertObjToHTMLTableStylized({
             fields: parsed.meta.fields,
-            hashData: parsed.data,
+            data: parsed.data,
             headerBGColor: headerBGColor,
             headerTextColor: headerTextColor,
         });
@@ -357,73 +452,168 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     exports.getFileUrl = getFileUrl;
 
 
-
-    function submitMapReduceJob(scriptId, params) {
-        var mrTask = task.create({
-            taskType: task.TaskType.MAP_REDUCE,
-            scriptId: scriptId,
-            params: params
-        });
-        var mrTaskId = mrTask.submit();
-        return mrTaskId;
+    function pickFromObj(obj, keys) {
+        return keys.reduce((acc, key) => {
+            if (obj && Object.prototype.hasOwnProperty.call(obj, key)) {
+                acc[key] = obj[key];
+            }
+            return acc;
+        }, {});
     }
+    exports.pickFromObj = pickFromObj;
 
-    function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
-        // Store the script ID of the script to submit
-        //
-        // Update the following statement so it uses the script ID
-        // of the map/reduce script record you want to submit
-        const mapReduceScriptId = mrScriptId;
-
-        // Create a map/reduce task
-        //
-        // Update the deploymentId parameter to use the script ID of
-        // the deployment record for your map/reduce script
-        let mrTask = task.create({
-            taskType: task.TaskType.MAP_REDUCE,
-            scriptId: mrScriptId,
-            deploymentId: mrDeploymentId,
-            params: params
-        });
-
-        // Submit the map/reduce task
-        let mrTaskId = mrTask.submit();
-
-        // Check the status of the task, and send an email if the
-        // task has a status of FAILED
-        //
-        // Update the authorId value with the internal ID of the user
-        // who is the email sender. Update the recipientEmail value
-        // with the email address of the recipient.
-        let taskStatus = task.checkStatus(mrTaskId);
-        if (taskStatus.status === 'FAILED') {
-            const authorId = -5;
-            const recipientEmail = 'notify@myCompany.com';
-            email.send({
-                author: authorId,
-                recipients: recipientEmail,
-                subject: 'Failure executing map/reduce job!',
-                body: 'Map reduce task: ' + mapReduceScriptId + ' has failed.'
-            });
-        }
-
-        // Retrieve the status of the search task
-        let taskStatus2 = task.checkStatus({
-            taskId: myTaskId
-        });
-
-        // Optionally, add logic that executes when the task is complete
-        if (taskStatus.status === task.TaskStatus.COMPLETE) {
-            // Add any code that is appropriate. For example, if this script created
-            // a saved search, you may want to delete it.
-        }
+    function generateRandomNumberXDigits(x) {
+        return Math.floor(Math.random() * Math.pow(10, x));
     }
+    exports.generateRandomNumberXDigits = generateRandomNumberXDigits;
+
+    function getStandardDateString1(date) {
+        let dateObj = new Date(date);
+        let year = dateObj.getFullYear();
+        let month = dateObj.getMonth() + 1;
+        let day = dateObj.getDate();
+        return `${year}${month}${day}`;
+    }
+    exports.getStandardDateString1 = getStandardDateString1;
+
+    function getStandardDateTimeString1(date) {
+        let dateObj = new Date(date);
+        let year = dateObj.getFullYear();
+        let month = dateObj.getMonth() + 1;
+        let day = dateObj.getDate();
+        let hours = dateObj.getHours();
+        let minutes = dateObj.getMinutes();
+        let seconds = dateObj.getSeconds();
+        return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+    }
+    exports.getStandardDateTimeString1 = getStandardDateTimeString1;
+
+
+    function generateTimestampedFilename(prefix, fileExt, date = new Date()) {
+        const curDateTimeStr = exports.getStandardDateTimeString1(date);
+        // If fileExt doesn't start with ., add it
+        if (fileExt.charAt(0) !== '.') {
+            fileExt = '.' + fileExt;
+        }
+        return prefix + curDateTimeStr + fileExt;
+    }
+    exports.generateTimestampedFilename = generateTimestampedFilename;
+
+
+    function runSavedSearchToMappedRows (savedSearchId, filters = []) {
+        let searchObj = search.load({
+            id: savedSearchId
+        });
+
+        filters.forEach(filter => {
+            searchObj.filters.push(filter);
+        });
+
+        let pagedData = searchObj.runPaged({ pageSize: 1000 });
+        // let resultCount = pagedData.count;
+
+        let mappedRows = [];
+        let mappedColumns = {};
+
+        for (let pageRange of pagedData.pageRanges) {
+            let page = pagedData.fetch({ index: pageRange.index });
+            // Add result value / text to the mappedResults array
+            for (let result of page.data) {
+                for (let pageRange of pagedData.pageRanges) {
+                    let page = pagedData.fetch({ index: pageRange.index });
+                    if (!mappedColumns.length) {
+                        for (let columnObj of page.columns) {
+                            colKey = columnObj.join ? columnObj.join : columnObj.join + '.' + columnObj.name;
+                            mappedColumns[colKey] = {
+                                KEY: colKey,
+                                name: columnObj.name,
+                                label: columnObj.label,
+                                join: columnObj.join,
+                                formula: columnObj.formula,
+                                function: columnObj.function,
+                                summary: columnObj.summary,
+                                sort: columnObj.sort,
+                                group: columnObj.group,
+                            };
+                        }
+                    }
+
+                    // Add result value / text to the mappedResults array
+                    for (let rowObj in page.data) {
+                        
+                        let mappedRow = page.columns.map(column => {
+                            return {
+                                value: rowObj.getValue(column),
+                                text: rowObj.getText(column)
+                            };
+                        });
+                        mappedRows.push(mappedRow);
+                    }
+                }
+
+                return {
+                    columns: mappedColumns,
+                    rows: mappedRows
+                };
+            }
+        }
+        exports.runSavedSearchToMappedRows = runSavedSearchToMappedRows;
 
 
 
+        // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
+        //     // Store the script ID of the script to submit
+        //     //
+        //     // Update the following statement so it uses the script ID
+        //     // of the map/reduce script record you want to submit
+        //     const mapReduceScriptId = mrScriptId;
 
-    return exports;
+        //     // Create a map/reduce task
+        //     //
+        //     // Update the deploymentId parameter to use the script ID of
+        //     // the deployment record for your map/reduce script
+        //     let mrTask = task.create({
+        //         taskType: task.TaskType.MAP_REDUCE,
+        //         scriptId: mrScriptId,
+        //         deploymentId: mrDeploymentId,
+        //         params: params
+        //     });
+
+        //     // Submit the map/reduce task
+        //     let mrTaskId = mrTask.submit();
+
+        //     // Check the status of the task, and send an email if the
+        //     // task has a status of FAILED
+        //     //
+        //     // Update the authorId value with the internal ID of the user
+        //     // who is the email sender. Update the recipientEmail value
+        //     // with the email address of the recipient.
+        //     let taskStatus = task.checkStatus(mrTaskId);
+        //     if (taskStatus.status === 'FAILED') {
+        //         const authorId = -5;
+        //         const recipientEmail = 'notify@myCompany.com';
+        //         email.send({
+        //             author: authorId,
+        //             recipients: recipientEmail,
+        //             subject: 'Failure executing map/reduce job!',
+        //             body: 'Map reduce task: ' + mapReduceScriptId + ' has failed.'
+        //         });
+        //     }
+
+        //     // Retrieve the status of the search task
+        //     let taskStatus2 = task.checkStatus({
+        //         taskId: myTaskId
+        //     });
+
+        //     // Optionally, add logic that executes when the task is complete
+        //     if (taskStatus.status === task.TaskStatus.COMPLETE) {
+        //         // Add any code that is appropriate. For example, if this script created
+        //         // a saved search, you may want to delete it.
+        //     }
+        // }
+
+
+
+        return exports;
+    }
 }
-
-
-

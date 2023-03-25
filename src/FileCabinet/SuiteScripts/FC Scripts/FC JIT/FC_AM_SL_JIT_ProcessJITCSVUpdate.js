@@ -18,6 +18,9 @@ var
     FCLib,
     FCJITUploadLib,
     Papa;
+// assistant, 
+// stepSelectOptions;
+
 
 define(['N/file', 'N/https', 'N/log', 'N/ui/message', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/FC_MainLibrary', './FC_JITUpload_Library.js', '../Libraries/papaparse.min.js'], main);
 
@@ -42,15 +45,176 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         onRequest: function (context) {
             scriptURL = url.resolveScript({ scriptId: runtime.getCurrentScript().id, deploymentId: runtime.getCurrentScript().deploymentId, returnExternalURL: false });
 
-            if (context.request.method == 'POST') {
-                postRequestHandle(context);
-            } else {
-                getRequestHandle(context);
+            var assistant = serverWidget.createAssistant({
+                title: 'JIT Upload Assistant',
+                hideNavBar: false
+            });
+
+            var stepSelectOptions = assistant.addStep({
+                id: 'custpage_step_select_options',
+                label: 'Select Options',
+            });
+
+            var stepReviewAndCommit = assistant.addStep({
+                id: 'custpage_step_commit_upload',
+                label: 'Review & Commit Upload',
+            });
+
+
+            if (context.request.method === 'GET') //GET method means starting the assistant
+            {
+                writeStepSelectOptions(context, assistant);
+                assistant.currentStep = stepSelectOptions;
+                context.response.writePage(assistant);
+
+            } else //POST method - process step of the assistant
+            {
+                if (context.request.parameters.next === 'Finish') //Finish was clicked
+                    writeResult(context, assistant);
+                else if (context.request.parameters.cancel) //Cancel was clicked
+                    writeCancel();
+                else if (assistant.currentStep.stepNumber === 1) { //transition from step 1 to step 2
+                    writeStepReviewAndCommit(context, assistant);
+                    assistant.currentStep = assistant.getNextStep();
+                    context.response.writePage(assistant);
+                } else { //transition from step 2 back to step 1
+                    writeStepSelectOptions(context, assistant);
+                    assistant.currentStep = assistant.getNextStep();
+                    context.response.writePage(assistant);
+                }
             }
         }
     }
 
 }
+
+function writeStepSelectOptions(context, assistant) {
+
+    // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
+    var subtractFutureSOsCheckbox = assistant.addField({
+        id: FCJITUploadLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID,
+        type: serverWidget.FieldType.CHECKBOX,
+        label: FCJITUploadLib.Settings.Ui.Buttons.SUBTRACT_FUTURE_SOS_CHECKBOX_LABEL,
+        // container: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
+    });
+    subtractFutureSOsCheckbox.defaultValue = 'T';
+
+    // Add a checkbox to switch on/off Reset all JIT
+    var resetAllJITCheckbox = assistant.addField({
+        id: FCJITUploadLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID,
+        type: serverWidget.FieldType.CHECKBOX,
+        label: FCJITUploadLib.Settings.Ui.Buttons.RESET_ALL_JIT_CHECKBOX_LABEL,
+        // container: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
+    });
+    resetAllJITCheckbox.defaultValue = 'T';
+
+}
+
+function writeStepReviewAndCommit(context, assistant) {
+    var allParams = JSON.stringify(context.request.parameters);
+    // Get parameters
+    var subtractFutureJITSOs = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID];
+    var resetAllJIT = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID];
+
+    subtractFutureJITSOs = subtractFutureJITSOs == 'T' ? true : false;
+    resetAllJIT = resetAllJIT == 'T' ? true : false;
+
+    // Add a field group for the error results
+    var errorResultsFieldGroup = assistant.addFieldGroup({
+        id: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_ID,
+        label: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_LABEL
+    });
+
+    // Add a field group for the item update results
+    var itemUpdateResultsFieldGroup = assistant.addFieldGroup({
+        id: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_ID,
+        label: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_LABEL
+    });
+
+    // Add a field to display the results of the file validation
+    var errorResultsField = assistant.addField({
+        id: FCJITUploadLib.Settings.Ui.Fields.ERROR_RESULTS_FIELD_ID,
+        type: serverWidget.FieldType.INLINEHTML,
+        label: FCJITUploadLib.Settings.Ui.Fields.ERROR_RESULTS_FIELD_LABEL,
+        container: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_ID
+    });
+    errorResultsField.updateLayoutType({
+        layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
+    });
+    errorResultsField.updateBreakType({
+        breakType: serverWidget.FieldBreakType.STARTCOL
+    });
+
+    // Add a field to display the results of the item update
+    var itemUpdateResultsField = assistant.addField({
+        id: FCJITUploadLib.Settings.Ui.Fields.ITEM_UPDATE_RESULTS_FIELD_ID,
+        type: serverWidget.FieldType.INLINEHTML,
+        label: FCJITUploadLib.Settings.Ui.Fields.ITEM_UPDATE_RESULTS_FIELD_LABEL,
+        container: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_ID
+    });
+    itemUpdateResultsField.updateLayoutType({
+        layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
+    });
+    itemUpdateResultsField.updateBreakType({
+        breakType: serverWidget.FieldBreakType.STARTCOL
+    });
+
+
+    // Add a hidden field to hold the ID of the JIT CSV upload file
+    var itemUploadCSVIdField = assistant.addField({
+        id: FCJITUploadLib.Settings.Ui.Parameters.ITEM_UPLOAD_CSV_FIELD_ID,
+        type: serverWidget.FieldType.INTEGER,
+        label: FCJITUploadLib.Settings.Ui.Fields.ITEM_UPLOAD_CSV_FIELD_LABEL
+    });
+    itemUploadCSVIdField.updateDisplayType({
+        displayType: serverWidget.FieldDisplayType.HIDDEN
+    });
+
+
+    uploadPreviewResults = loadUploadPreview(context, subtractFutureJITSOs, resetAllJIT);
+    uploadPreviewResults.errorHtml += uploadPreviewResults.debugOut;
+    uploadPreviewResults.errorHtml += uploadPreviewResults.uploadCSVFileId;
+
+    errorResultsField.defaultValue = uploadPreviewResults.errorHtml;
+    itemUpdateResultsField.defaultValue = uploadPreviewResults.itemUpdateHtml;
+    itemUploadCSVIdField.defaultValue = uploadPreviewResults.uploadCSVFileId;
+
+}
+
+function writeResult (context, assistant) {
+    // Launch the MR task using the JIT CSV upload ID passed as a parameter
+    // Display a message to the user that the task has been launched
+    // Display a link to the task status page
+    let itemUploadCSVId = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.ITEM_UPLOAD_CSV_FIELD_ID];
+
+    let mrTaskId = submitItemUpdateMRJob(
+        context,
+        itemUploadCSVId
+    );
+
+    // if (Object.keys(itemUpdateMaster).length > 0) {
+    //     let mrTaskId = submitItemUpdateMRJob(
+    //         context,
+    //         itemUpdateData,
+    //         itemUpdateMaster,
+    //         jitItemSnapshot,
+    //         false,
+    //         sessionSubfolder.sessionResultsFolder.id
+    //     );
+
+    // }
+    
+    // Resolve URL for MR Task monitoring suitelet
+    
+    
+    context.response.write(
+        `Launching update script using itemUploadCSVId: ${itemUploadCSVId}.
+           MR Task ID: ${mrTaskId}
+           Monitor the status of the task at: `
+    );
+
+}
+
 
 
 function ParsedFile({
@@ -118,7 +282,7 @@ function ParsedFile({
         outputFields.push(...this.parsingMeta.fields);
 
         // Sort the error output by original row number
-        let sortedErrorData = FCLib.sortObjValuesByKeyAsc(this.errors, true);
+        let sortedErrorData = FCLib.mapObjToSortedListByKey(this.errors, true);
 
         // Add extra column headers to fit all __parsed_extra columns, if they exist
         let maxParsedExtra = 0;
@@ -186,7 +350,7 @@ function ParsedFile({
 function parseJITCSVs(context, folderId) {
     var parsedFiles = [];
     try {
-        let sql = "SELECT ID FROM File WHERE ( Folder = ? ) AND ( Name LIKE '%.csv' )";
+        let sql = FCJITUploadLib.Queries.GET_ALL_CSV_FILES_IN_FOLDER_BY_ID;
         let queryResults = query.runSuiteQL({ query: sql, params: [folderId] });
         let files = queryResults.asMappedResults();
         if (files.length == 0) {
@@ -242,8 +406,8 @@ function getJITItemSnapshot(context) {
 
 function getJITItemsOnFutureSOs(context, itemIds) {
     let sql = FCJITUploadLib.Queries.GET_JIT_ITEMS_ON_FUTURE_SOS;
-    let queryParams = [itemIds];
-    let items = FCLib.sqlSelectAllRowsIntoDict(sql, 'itemId', queryParams);
+    // let queryParams = [itemIds];
+    let items = FCLib.sqlSelectAllRowsIntoDict(sql, 'itemId');
     return items;
 }
 
@@ -418,7 +582,7 @@ function buildItemUpdateMaster(
 
     // If subtractFutureJITSOs is true, then query NS for all future JIT SO transaction counts by item
     if (subtractFutureJITSOs) {
-        futureSOCounts = getJITItemsOnFutureSOs(context, Object.keys(itemsToUpdateFromCSV));
+        futureSOCounts = getJITItemsOnFutureSOs(context);
     }
 
     for (let itemId in nsJITSnapshot) {
@@ -426,7 +590,7 @@ function buildItemUpdateMaster(
         let oldJITStartQty = nsJITSnapshot[itemId].startjitqty;
         let newJITStartQty = resetJITQuantities ? 0 : nsJITSnapshot[itemId].startjitqty;
 
-        // If item present in itemsToUpdateFromCSV, override the default value
+        // If item present in itemsToUpdateFromCSV, override the standing quantity
         // Otherwise, if item has a standing qty set, use that value
         if (itemId in itemsToUpdateFromCSV) {
             newJITStartQty = itemsToUpdateFromCSV[itemId];
@@ -434,9 +598,12 @@ function buildItemUpdateMaster(
             newJITStartQty = nsJITSnapshot[itemId].standingjitqty;
         }
 
-        let newJITRemainingQty = subtractFutureJITSOs ?
-            newJITStartQty - futureSOCounts[itemId] :
-            newJITStartQty;
+        // If subtractFutureJITSOs is true, then subtract the future JIT SO counts from the new JIT start qty
+        let newJITRemainingQty = newJITStartQty;
+
+        if (subtractFutureJITSOs && itemId in futureSOCounts) {
+            newJITRemainingQty -= futureSOCounts[itemId];
+        }
 
         // If the new JIT start qty is different from the old JIT start qty
         //     1. Calculate the remaining JIT qty
@@ -455,8 +622,8 @@ function buildItemUpdateMaster(
 
 
 function buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot) {
-    var csvData = [];
-    var csvHeaders = [
+    var data = [];
+    var fields = [
         FCLib.Ids.Fields.Item.InternalId,
         FCLib.Ids.Fields.Item.Name,
         FCLib.Ids.Fields.Item.ItemType,
@@ -471,7 +638,7 @@ function buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot) 
         let itemUpdateData = itemUpdateMaster[itemId];
         let nsItemData = jitItemSnapshot[itemId];
 
-        csvData.push({
+        data.push({
             [FCLib.Ids.Fields.Item.InternalId]: nsItemData.internalid,
             [FCLib.Ids.Fields.Item.Name]: itemId,
             [FCLib.Ids.Fields.Item.ItemType]: nsItemData.itemtype,
@@ -484,30 +651,67 @@ function buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot) 
     }
 
     return {
-        fields: csvHeaders,
-        data: csvData
+        fields: fields,
+        data: data
     };
 }
 
-function buildSuccessfulUploadsCSV(context, itemUpdateMaster, jitItemSnapshot, fields, data) {
+function buildSuccessfulUploadsCSVContent(context, itemUpdateMaster, jitItemSnapshot, fields, data) {
     if (!fields || !data) {
         let allData = buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot);
         fields = allData.fields;
         data = allData.data;
     }
 
-    let uploadCSV = Papa.unparse({
-        fields: csvHeaders,
-        data: csvData
+    let uploadCSVContent = Papa.unparse({
+        fields: fields,
+        data: data
     });
 
-    return uploadCSV;
+    return uploadCSVContent;
+}
+
+function buildSuccessfulUploadsCSV(context, itemUpdateMaster, jitItemSnapshot, csvDataFolderId) {
+    let uploadData = buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot);
+
+    const curDateTimeStr = FCLib.getStandardDateTimeString1(new Date());
+
+    // const curDateTime = new Date();
+    // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
+
+    var uploadFileName =
+        FCJITUploadLib.Settings.JIT_UPLOAD_UTILITY_CSV_FILENAME_PREFIX +
+        curDateTimeStr +
+        '.csv';
+
+    // Save a temporary CSV file to File Cabinet holding the itemUpdateMaster data
+    var csvContent = buildSuccessfulUploadsCSVContent(
+        context,
+        itemUpdateMaster,
+        jitItemSnapshot,
+        uploadData.fields,
+        uploadData.data
+    );
+
+    var csvFileId = FCLib.writeFileToFileCabinet(
+        'csv',
+        uploadFileName,
+        csvContent,
+        csvDataFolderId
+    );
+
+    return {
+        uploadData: uploadData,
+        csvFileId: csvFileId
+    }
 }
 
 
-function createSessionSubfolder(context) {
-    const curDateTime = new Date();
-    const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
+
+function createSessionSubfolder(context, date = new Date()) {
+    const curDateTimeStr = FCLib.getStandardDateTimeString1(date);
+    // const curDateTime = new Date();
+    // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
     var resultsFolderName = FCJITUploadLib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
     var resultsFolder = FCLib.createFolderInFileCabinet(resultsFolderName, FCJITUploadLib.Ids.Folders.RESULTS);
     var originalsFolder = FCLib.createFolderInFileCabinet(FCJITUploadLib.Settings.CSV_ORIGINALS_SUBFOLDER_NAME, resultsFolder.id);
@@ -518,35 +722,13 @@ function createSessionSubfolder(context) {
     };
 }
 
-function submitItemUpdateMRJob(context, itemUpdateMaster, itemUpdateData, jitItemSnapshot, subtractFutureJITSOs, csvDataFolderId) {
-    // FIX: Get this date generation logic to module library
-    const curDateTime = new Date();
-    const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
 
-    var uploadFileName =
-        FCJITUploadLib.Settings.JIT_UPLOAD_UTILITY_CSV_FILENAME_PREFIX +
-        curDateTimeStr +
-        '.csv';
 
-    // Save a temporary CSV file to File Cabinet holding the itemUpdateMaster data
-    var csvContent = buildSuccessfulUploadsCSV(
-        context,
-        itemUpdateMaster,
-        jitItemSnapshot,
-        itemUpdateData.fields,
-        itemUpdateData.data
-    );
-
-    var csvFile = FCLib.writeCSVToFolder(
-        uploadFileName,
-        csvContent,
-        csvDataFolderId
-    );
-
+function submitItemUpdateMRJob(context, itemUpdateCSVId) {
     // Launch a map/reduce job to update the items with the successully parsed csv data
     let mrParams = {
-        [FCJITUploadLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID]: csvFile,
-        [FCJITUploadLib.Ids.Parameters.SUBTRACT_FUTURE_SOS_ON_UPDATE]: subtractFutureJITSOs
+        [FCJITUploadLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID]: itemUpdateCSVId,
+        // [FCJITUploadLib.Ids.Parameters.SUBTRACT_FUTURE_SOS_ON_UPDATE]: subtractFutureJITSOs
     };
 
     let mrTask = task.create({
@@ -561,120 +743,11 @@ function submitItemUpdateMRJob(context, itemUpdateMaster, itemUpdateData, jitIte
     return mrTaskId;
 }
 
-// Build a Suitelet form to:
-//    Display the results of the validation
-//    Display a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
-//    Display a checkbox to switch on/off Reset all JIT
-//    Display a Apply Changes button with a popup confirmation
-function initializeForm(context) {
 
-    var form = serverWidget.createForm({
-        title: FCJITUploadLib.Settings.Ui.Main.JIT_UPLOAD_UTILITY_FORM_TITLE
-    });
-
-    // Add a field group for the Submit button and checkboxes
-    var optionsFieldGroup = form.addFieldGroup({
-        id: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID,
-        label: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_LABEL
-    });
-
-    // Add a field group for the error results
-    var errorResultsFieldGroup = form.addFieldGroup({
-        id: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_ID,
-        label: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_LABEL
-    });
-
-    // Add a field group for the item update results
-    var itemUpdateResultsFieldGroup = form.addFieldGroup({
-        id: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_ID,
-        label: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_LABEL
-    });
-
-    // Add a Submit button to optionsFieldGroup
-    var submitButton = form.addSubmitButton({
-        label: FCJITUploadLib.Settings.Ui.Buttons.SUBMIT_BUTTON_LABEL
-    });
-
-    // submitButton.updateDisplayType({
-    //     displayType: serverWidget.FieldDisplayType.ENTRY
-    // });
-
-    // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
-    var subtractFutureSOsCheckbox = form.addField({
-        id: FCJITUploadLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID,
-        type: serverWidget.FieldType.CHECKBOX,
-        label: FCJITUploadLib.Settings.Ui.Buttons.SUBTRACT_FUTURE_SOS_CHECKBOX_LABEL,
-        container: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
-    });
-    // subtractFutureSOsCheckbox.updateDisplayType({
-    //     displayType: serverWidget.FieldDisplayType.ENTRY
-    // });
-
-    // Add a checkbox to switch on/off Reset all JIT
-    var resetAllJITCheckbox = form.addField({
-        id: FCJITUploadLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID,
-        type: serverWidget.FieldType.CHECKBOX,
-        label: FCJITUploadLib.Settings.Ui.Buttons.RESET_ALL_JIT_CHECKBOX_LABEL,
-        container: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
-    });
-
-    // Add a field to display the results of the file validation
-    var errorResultsField = form.addField({
-        id: FCJITUploadLib.Settings.Ui.Fields.ERROR_RESULTS_FIELD_ID,
-        type: serverWidget.FieldType.INLINEHTML,
-        label: FCJITUploadLib.Settings.Ui.Fields.ERROR_RESULTS_FIELD_LABEL,
-        container: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_ID
-    });
-    errorResultsField.updateLayoutType({
-        layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
-    });
-    errorResultsField.updateBreakType({
-        breakType: serverWidget.FieldBreakType.STARTCOL
-    });
-
-    // Add a field to display the results of the item update
-    var itemUpdateResultsField = form.addField({
-        id: FCJITUploadLib.Settings.Ui.Fields.ITEM_UPDATE_RESULTS_FIELD_ID,
-        type: serverWidget.FieldType.INLINEHTML,
-        label: FCJITUploadLib.Settings.Ui.Fields.ITEM_UPDATE_RESULTS_FIELD_LABEL,
-        container: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_ID
-    });
-    itemUpdateResultsField.updateLayoutType({
-        layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
-    });
-    itemUpdateResultsField.updateBreakType({
-        breakType: serverWidget.FieldBreakType.STARTCOL
-    });
-
-    let formElements = {
-        form: form,
-        optionsFieldGroup: optionsFieldGroup,
-        errorResultsFieldGroup: errorResultsFieldGroup,
-        itemUpdateResultsFieldGroup: itemUpdateResultsFieldGroup,
-        submitButton: submitButton,
-        subtractFutureSOsCheckbox: subtractFutureSOsCheckbox,
-        resetAllJITCheckbox: resetAllJITCheckbox,
-        errorResultsField: errorResultsField,
-        itemUpdateResultsField: itemUpdateResultsField
-    };
-
-    return formElements;
-}
-
-
-function buildErrorTablesHTML(errorTables) {
-
-}
-
-
-function getRequestHandle(context) {
-    let subtractFutureJITSOs = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID] === 'T';
-    let resetJITQuantities = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID] === 'T';
-    let pregeneratedJITUpdateFileId = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.JIT_UPDATE_CSV_FILE_ID];
-
-
-
-    let formElements = initializeForm(context);
+// function getRequestHandle(context) {
+function loadUploadPreview(context, subtractFutureJITSOs, resetAllJIT) {
+    var debugOut = [];
+    debugOut.push(`loadUploadPreview / params: subtractFutureJITSOs: ${subtractFutureJITSOs}, resetAllJIT: ${resetAllJIT}`);
 
     var parsedCSVs = parseJITCSVs(context, FCJITUploadLib.Ids.Folders.INPUT);
     if (!parsedCSVs) {
@@ -682,7 +755,16 @@ function getRequestHandle(context) {
     }
     var jitItemSnapshot = getJITItemSnapshot(context);
     var validationOutput = validateCSVData(context, parsedCSVs, jitItemSnapshot);
-    var itemUpdateMaster = buildItemUpdateMaster(context, jitItemSnapshot, validationOutput.itemsToUpdate);
+    var itemUpdateMaster = buildItemUpdateMaster(
+        context,
+        jitItemSnapshot,
+        validationOutput.itemsToUpdate,
+        resetAllJIT,
+        subtractFutureJITSOs,
+    );
+
+    // debugOut.push(`loadUploadPreview / itemUpdateMaster: ${JSON.stringify(itemUpdateMaster)}`);
+
     var sessionSubfolder = createSessionSubfolder(context);
 
 
@@ -694,7 +776,8 @@ function getRequestHandle(context) {
 
     for (let errorTable of errorTables) {
         if (errorTable && errorTable.contents && !errorTable.isEmpty) {
-            let fileId = FCLib.writeCSVToFolder(
+            let fileId = FCLib.writeFileToFileCabinet(
+                'csv',
                 errorTable.outputFileName,
                 errorTable.contents,
                 sessionSubfolder.sessionResultsFolder.id
@@ -715,40 +798,68 @@ function getRequestHandle(context) {
     }
 
     // DEBUG
-    errorHtml += JSON.stringify(context.request.parameters);
+    // errorHtml += JSON.stringify(context.request.parameters);
 
 
-    let itemUpdateData = buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot);
-    let itemUpdateHtml = FCLib.convertHashDataToHTMLTableStylized(itemUpdateData.fields, itemUpdateData.data);
+    // let itemUpdateData = buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot);
+    let uploadCSVResults = buildSuccessfulUploadsCSV(
+        context,
+        itemUpdateMaster,
+        jitItemSnapshot,
+        sessionSubfolder.sessionResultsFolder.id
+    );
 
 
-    formElements.errorResultsField.defaultValue = errorHtml;
-    formElements.itemUpdateResultsField.defaultValue = itemUpdateHtml;
+    // debugOut.push(`loadUploadPreview / itemUpdateData: ${JSON.stringify(itemUpdateData)}`);
+
+    let itemUpdateCSVUrl = FCLib.getFileUrl(uploadCSVResults.csvFileId);
+
+    let itemUpdateHtml = `<h5><a href="${itemUpdateCSVUrl}" target="_blank">Download CSV</a></h5>`;
+    let sortedData = FCLib.sortArrayOfObjsByKey(
+        uploadCSVResults.uploadData.data,
+        FCLib.Ids.Fields.Item.Name,
+        true
+    );
+    debugOut.push(`loadUploadPreview / sortedData: ${JSON.stringify(sortedData)}`);
+
+    itemUpdateHtml += FCLib.convertObjToHTMLTableStylized({
+        fields: uploadCSVResults.uploadData.fields,
+        data: sortedData
+        // data: FCLib.sortArrayOfObjsByKey(
+        //     uploadCSVResults.uploadData.data,
+        //     FCLib.Ids.Fields.Item.Name,
+        //     true
+        // )
+        // headerBGColor: '#c23041',
+    });
+    // debugOut.push(`loadUploadPreview / itemUpdateHtml: ${itemUpdateHtml}`);
 
 
-    log.debug({ title: 'get - itemUpdateData', details: itemUpdateData });
-    log.debug({ title: 'get - itemUpdateHtml', details: itemUpdateHtml });
+    debugOut.push(`uploadCSVFileId: ${uploadCSVResults.csvFileId}`);
+
+    return {
+        errorHtml: errorHtml,
+        itemUpdateHtml: itemUpdateHtml,
+        uploadCSVFileId: uploadCSVResults.csvFileId,
+        debugOut: debugOut,
+    };
+
+    // formElements.errorResultsField.defaultValue = errorHtml;
+    // formElements.itemUpdateResultsField.defaultValue = itemUpdateHtml;
 
 
-    context.response.writePage(formElements.form);
-    return;
+    // log.debug({ title: 'get - itemUpdateData', details: itemUpdateData });
+    // log.debug({ title: 'get - itemUpdateHtml', details: itemUpdateHtml });
+
+
+    // context.response.writePage(formElements.form);
 
 
 
 
     // Submit to our map/reduce script to update the items
 
-    if (Object.keys(itemUpdateMaster).length > 0) {
-        let mrTaskId = submitItemUpdateMRJob(
-            context,
-            itemUpdateData,
-            itemUpdateMaster,
-            jitItemSnapshot,
-            false,
-            sessionSubfolder.sessionResultsFolder.id
-        );
 
-    }
 
     // FIXME: Enable this code once we're ready to move the original files to the session subfolder
 
@@ -769,22 +880,6 @@ function getRequestHandle(context) {
 
     return true;
 
-    // if ( context.request.parameters.hasOwnProperty( 'function' ) ) {	
-    // 	// if ( context.request.parameters['function'] == 'tablesReference' ) { htmlGenerateTablesReference( context ); }
-    // 	if ( context.request.parameters['function'] == 'documentGenerate' ) { documentGenerate( context ); }				
 
-    // } else {
-    // 	var form = serverWidget.createForm( { title: `FC JIT PO Sending Tool`, hideNavBar: false } );		
-    // 	var htmlField = form.addField(
-    // 		{
-    // 			id: 'custpage_field_html',
-    // 			type: serverWidget.FieldType.INLINEHTML,
-    // 			label: 'HTML'
-    // 		}								
-    // 	);
-
-    // 	htmlField.defaultValue = htmlGenerateTool();						
-    // 	context.response.writePage( form );					
-    // }
 
 }
