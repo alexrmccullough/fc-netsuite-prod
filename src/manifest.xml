@@ -9,7 +9,7 @@
       <feature required="false">CREATESUITEBUNDLES</feature>
     </features>
     <objects>
-      <object>customsearch2136</object>
+      <object>customsearch_fc_shippinglabel_mainstatic</object>
       <object>customsearch2144</object>
     </objects>
   </dependencies>

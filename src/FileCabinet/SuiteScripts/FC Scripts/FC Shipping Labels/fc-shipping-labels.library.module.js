@@ -1,4 +1,4 @@
-var fcLibModulePath = 'SuiteScripts/FC Scripts/Libraries/FC_MainLibrary.js';
+var fcLibModulePath = '../Libraries/FC_MainLibrary.js';
 
 var query,
     task,
@@ -9,11 +9,12 @@ var query,
 
 define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/search', fcLibModulePath], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) {
+function main(queryModule, taskModule, runtimeModule, emailModule, searchModule, fcLibModule) {
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
+    search = searchModule;
     FCLib = fcLibModule;
 
     var exports = {
@@ -25,42 +26,104 @@ function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) 
             SHIPPING_LABEL_SS_MAIN_IDS: {
                 Id: 'customsearch_fc_shippinglabel_mainstatic',
                 InternalId: 2136,
-                FieldToValueMap: {
-                    'shipdate': { getType: 'value', recast: null },
-                    'quantity': { getType: 'value', recast: parseFloat },
-                    'lineuniquekey': { getType: 'value', recast: null },
-                    'tranid': { getType: 'value', recast: null },
-                    'entity': { getType: 'text', recast: null },
-                    'custbody_rd_so_route': { getType: 'text', recast: null },
-                    'item.itemid': { getType: 'value', recast: null },
-                    'item.displayname': { getType: 'value', recast: null },
-                    'item.custitem_fc_brand': { getType: 'text', recast: null },
-                    'item.custitem_fc_product_stub': { getType: 'value', recast: null },
-                    'item.custitem_fc_mastercase': { getType: 'value', recast: null },
-                    'item.custitem_fc_qtypershippinglabel': { getType: 'value', recast: parseFloat },
-                    'inventoryDetail.quantity': { getType: 'value', recast: null },
-                    'inventoryDetail.inventorynumber': { getType: 'text', recast: null },
-                },
                 Filters: {
-                    SOShipDate: 'shipdate',
+                    SOShipDate: {
+                        name: 'shipdate',
+                        join: '',
+                    },
+                    PreferredVendor: {
+                        name: 'vendor',
+                        join: 'item',
+                    },
+                    Customer: {
+                        name: 'entity',
+                        join: ''
+                    }
+
                 },
-                InternalFieldName: {
-                    SOShipDate: 'shipdate',
-                    soLineQuantity: 'quantity',
-                    TransLineUniqueKey: 'lineuniquekey',
-                    SONumber: 'tranid',
-                    Customer: 'entity',
-                    Route: 'custbody_rd_so_route',
-                    ItemId: 'item.itemid',
-                    ItemName: 'item.displayname',
-                    Brand: 'item.custitem_fc_brand',
-                    ProductStub: 'item.custitem_fc_product_stub',
-                    MasterCase: 'item.custitem_fc_mastercase',
-                    QtyPerLabel: 'item.custitem_fc_qtypershippinglabel',
-                    LotNumber: 'inventoryDetail.inventorynumber',
-                    LotQuantity: 'inventoryDetail.quantity',
-                    CurLotQty: 'curlotqty'
+                RequiredFields: {
+                    SOShipDate: {
+                        nsSsFieldId: 'shipdate',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    SOLineQuantity: {
+                        nsSsFieldId: 'quantity',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    TransLineUniqueKey: {
+                        nsSsFieldId: 'lineuniquekey',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    SONumber: {
+                        nsSsFieldId: 'tranid',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    Customer: {
+                        nsSsFieldId: 'entity',
+                        nsSsTargetGetType: 'text',
+                        recastValueFunc: null,
+                    },
+                    Route: {
+                        nsSsFieldId: 'custbody_rd_so_route',
+                        nsSsTargetGetType: 'text',
+                        recastValueFunc: null,
+                    },
+                    ItemId: {
+                        nsSsFieldId: 'item.itemid',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    ItemName: {
+                        nsSsFieldId: 'item.displayname',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    Brand: {
+                        nsSsFieldId: 'item.custitem_fc_brand',
+                        nsSsTargetGetType: 'text',
+                        recastValueFunc: null,
+                    },
+                    ProductStub: {
+                        nsSsFieldId: 'item.custitem_fc_product_stub',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    MasterCase: {
+                        nsSsFieldId: 'item.custitem_fc_mastercase',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    QtyPerLabel: {
+                        nsSsFieldId: 'item.custitem_fc_qtypershippinglabel',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    LotNumber: {
+                        nsSsFieldId: 'inventoryDetail.inventorynumber',
+                        nsSsTargetGetType: 'text',
+                        recastValueFunc: null,
+                    },
+                    LotQuantity: {
+                        nsSsFieldId: 'inventoryDetail.quantity',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
+                    PreferredVendor: {
+                        nsSsFieldId: 'item.vendor',
+                        nsSsTargetGetType: 'text',
+                        recastValueFunc: null,
+                    }
                 },
+                AddedFields: {
+                    CurLotQty: {
+                        fieldId: 'temp.curlotqty',
+                        outputLabel: 'Current Lot Qty',
+                    },
+                }
             }
         },
         Urls: {
@@ -77,23 +140,23 @@ function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) 
             LabelRowsPerPage: 5,
             LabelColsPerPage: 2,
             Path: './fc-shipping-labels.generate-pdf.template8x11.main.xml',
-            FileId: -1,
+            FileId: 27457,
             Placeholders: {
                 Body: '<!--@@BODY_XML@@-->',
-            } 
+            }
         },
         XMLTemplate2x4ZebraMain: {
             LabelRowsPerPage: 1,
             LabelColsPerPage: 1,
             Path: './fc-shipping-labels.generate-pdf.template2x4zebra.main.xml',
-            FileId: -1,
+            FileId: 27456,
             Placeholders: {
                 Body: '<!--@@BODY_XML@@-->',
-            }
+            },
         },
         XMLTemplate2x4Label: {
             Path: './fc-shipping-labels.generate-pdf.template_general.label.xml',
-            FileId: -1,
+            FileId: 27455,
             Placeholders: {
                 Customer: '<!--@@ENTITYNAME@@-->',
                 SOShipDate: '<!--@@SHIPDATE@@-->',
@@ -134,7 +197,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) 
         Deployments: {
         },
         Searches: {
-
         },
         Fields: {
         },
@@ -151,7 +213,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) 
 
     };
 
-  
 
     var Settings = {
 
@@ -174,8 +235,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) 
         customerInternalIds = [],
     } = {}) {
 
-        soShipStartDate = new Date(startDate);
-        soShipEndDate = new Date(endDate);
+        soShipStartDate = soShipStartDate ? new Date(soShipStartDate) : null;
+        soShipEndDate = soShipEndDate ? new Date(soShipEndDate) : null;
 
         // Build filters
         let filters = [];
@@ -183,39 +244,44 @@ function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) 
         if (soShipStartDate && soShipEndDate) {
             filters.push(
                 search.createFilter({
-                    name: Resources.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate,
+                    name: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate.name,
+                    join: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate.join,
                     operator: search.Operator.WITHIN,
                     values: [soShipStartDate, soShipEndDate]
                 }));
         } else if (soShipStartDate) {
             filters.push(
                 search.createFilter({
-                    name: Resources.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate,
+                    name: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate.name,
+                    join: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate.join,
                     operator: search.Operator.ONORAFTER,
                     values: [soShipStartDate]
                 }));
         } else if (soShipEndDate) {
             filters.push(
                 search.createFilter({
-                    name: Resources.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate,
+                    name: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate.name,
+                    join: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.SOShipDate.join,
                     operator: search.Operator.ONORBEFORE,
                     values: [soShipEndDate]
                 }));
         }
 
-        if (vendorIds.length > 0) {
+        if (vendorInternalIds && vendorInternalIds.length > 0) {
             filters.push(
                 search.createFilter({
-                    name: Resources.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.PreferredVendor,
+                    name: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.PreferredVendor.name,
+                    join: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.PreferredVendor.join,
                     operator: search.Operator.ANYOF,
                     values: vendorInternalIds
                 }));
         }
 
-        if (customerIds.length > 0) {
+        if (customerInternalIds && customerInternalIds.length > 0) {
             filters.push(
                 search.createFilter({
-                    name: Resources.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.Customer,
+                    name: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.Customer.name,
+                    join: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.Customer.join,
                     operator: search.Operator.ANYOF,
                     values: customerInternalIds
                 }));
@@ -223,59 +289,63 @@ function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) 
 
 
         // Run search on date filter
-        let searchResultsRaw = FCLib.runSavedSearchToMappedRows(
-            Resources.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Id,
+        let searchResultsRaw = FCLib.runSearch(
+            exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Id,
             filters
         );
 
-        const searchColFieldToValueMap = Resources.Searches.SHIPPING_LABEL_SS_MAIN_IDS.FieldToValueMap;
-        const searchColFieldNames = Object.keys(searchColFieldToValueMap);
-
-        // Validate that the search results have all the expected columns
-
-        //Filter out the column names that are in the search results
-        const searchResultRawColNames = Object.keys(searchResultsRaw.columns);
-
-        let searchColFieldNamesMissing = searchColFieldNames.filter(function (searchColName) {
-            return !searchResultRawColNames.columns.hasOwnProperty(searchColName);
+        // const searchColFieldToValueMap = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.FieldToValueMap;
+        const internalFieldInfo = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields;
+        const internalFieldIds = Object.keys(internalFieldInfo);
+        const requiredSsFieldIds = internalFieldIds.map(function (id) {
+            return internalFieldInfo[id].nsSsFieldId;
         });
 
-        // FIX: Add Try/Catch block
-        if (searchColFieldNamesMissing.length > 0) {
+
+        // Validate that the search results have all the expected columns
+        //Filter out the column names that are in the search results
+        const actualSsFieldIds = Object.keys(searchResultsRaw.columns);
+
+        let searchColFieldNamesMissing = requiredSsFieldIds.filter(function (searchColName) {
+            return !(actualSsFieldIds.includes(searchColName));
+        });
+
+
+        if (searchColFieldNamesMissing && searchColFieldNamesMissing.length > 0) {
             throw new Error('The following columns are missing from the search results: ' + searchColFieldNamesMissing.join(', '));
         }
 
         // Next, simplify the data structure to choose only the value || text, depending on the field
-        let searchResultData = {};
+        let searchResultData = [];
 
         // Prepare special case column names
-        const curLotQtyColName = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldName.CurLotQty;
+        const curLotQtySsFieldId = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.AddedFields.CurLotQty.fieldId;
 
-        for (let i = 0; i < searchResultsRaw.data.length; i++) {
-            let rawRow = searchResultsRaw.data[i];
+        for (let i = 0; i < searchResultsRaw.rows.length; i++) {
+            let rawRow = searchResultsRaw.rows[i];
             let row = {};
 
             // Add all the simplified row values to the row object 
-            for (let j = 0; j < searchColFieldNames.length; j++) {
-                let colName = searchColFieldNames[j];
-                let value = rawRow[colName][searchColFieldToValueMap[colName].getType];      // e.g. row['itemid']['value']
-
-                let recast = searchColFieldToValueMap[colName].recast;
+            for (const [ifKey, ifSettings] of Object.entries(internalFieldInfo)) {
+                // let ssFieldId = internalField.nsSsFieldId;
+                let value = rawRow[ifSettings.nsSsFieldId][ifSettings.nsSsTargetGetType];      // e.g. row['itemid']['value']
+                let recast = ifSettings.recastValueFunc;
                 if (recast) {
                     value = recast(value);
                 }
 
-                row[colName] = value;
+                row[ifSettings.nsSsFieldId] = value;
             }
+
 
             // Special case: If the Lot Num field is null/empty, assign the line's total lineQty to curLotQty.
             // Treats a line with no Lot # assigned as its own blank Lot.
             // NOTE: This assumes that the saved search does NOT return a separate row for the unassigned
             //   quantity of a line with a mix of assigned/unassigned lots within the line.
-            if (row['inventoryDetail.inventorynumber'] && row['inventoryDetail.inventorynumber'] > 0) {
-                row[curLotQtyColName] = row['inventoryDetail.inventorynumber'];
+            if (row[internalFieldInfo.LotNumber.nsSsFieldId] && row[internalFieldInfo.LotNumber.nsSsFieldId] > 0) {
+                row[curLotQtySsFieldId] = row[internalFieldInfo.LotNumber.nsSsFieldId];
             } else {
-                row[curLotQtyColName] = row['quantity'];
+                row[curLotQtySsFieldId] = row[internalFieldInfo.SOLineQuantity.nsSsFieldId];
             }
 
             searchResultData.push(row);
@@ -292,8 +362,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, fcLibModule) 
         // });
 
         // Add in the special case column names
-        searchResultsRaw.columns[curLotQtyColName] = {
-            label: 'Line Lot Qty Generic',
+        searchResultsRaw.columns[curLotQtySsFieldId] = {
+            label: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.AddedFields.CurLotQty.outputLabel,
         }
 
         return {

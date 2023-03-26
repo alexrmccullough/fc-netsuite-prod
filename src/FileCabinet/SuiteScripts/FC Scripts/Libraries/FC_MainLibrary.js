@@ -1,15 +1,17 @@
 var query,
     task,
     runtime,
-    email;
+    email,
+    search;
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email'], main);
+define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/search'], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule) {
+function main(queryModule, taskModule, runtimeModule, emailModule, searchModule) {
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
+    search = searchModule;
 
     var exports = {
         Form: {
@@ -443,6 +445,13 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     exports.convertCSVStringToHTMLTableStylized = convertCSVStringToHTMLTableStylized;
 
 
+    function getTextFileContents (fileId) {
+        var fileObj = file.load({ id: fileId });
+        var fileContents = fileObj.getContents();
+        return fileContents;
+    }
+    exports.getTextFileContents = getTextFileContents;
+
 
     function getFileUrl(fileId) {
         var fileObj = file.load({ id: fileId });
@@ -500,7 +509,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     exports.generateTimestampedFilename = generateTimestampedFilename;
 
 
-    function runSavedSearchToMappedRows (savedSearchId, filters = []) {
+    function runSearch(savedSearchId, filters = []) {
         let searchObj = search.load({
             id: savedSearchId
         });
@@ -515,105 +524,110 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         let mappedRows = [];
         let mappedColumns = {};
 
+        let buildColumnKey = (columnObj) => {
+            return columnObj.join ? columnObj.join + '.' + columnObj.name : columnObj.name;
+        };
+
         for (let pageRange of pagedData.pageRanges) {
             let page = pagedData.fetch({ index: pageRange.index });
             // Add result value / text to the mappedResults array
-            for (let result of page.data) {
-                for (let pageRange of pagedData.pageRanges) {
-                    let page = pagedData.fetch({ index: pageRange.index });
-                    if (!mappedColumns.length) {
-                        for (let columnObj of page.columns) {
-                            colKey = columnObj.join ? columnObj.join : columnObj.join + '.' + columnObj.name;
-                            mappedColumns[colKey] = {
-                                KEY: colKey,
-                                name: columnObj.name,
-                                label: columnObj.label,
-                                join: columnObj.join,
-                                formula: columnObj.formula,
-                                function: columnObj.function,
-                                summary: columnObj.summary,
-                                sort: columnObj.sort,
-                                group: columnObj.group,
-                            };
-                        }
-                    }
-
-                    // Add result value / text to the mappedResults array
-                    for (let rowObj in page.data) {
-                        
-                        let mappedRow = page.columns.map(column => {
-                            return {
-                                value: rowObj.getValue(column),
-                                text: rowObj.getText(column)
-                            };
-                        });
-                        mappedRows.push(mappedRow);
+            for (let resultObj of page.data) {
+                if (!mappedColumns.length) {
+                    for (let columnObj of resultObj.columns) {
+                        let colKey = buildColumnKey(columnObj);
+                        mappedColumns[colKey] = {
+                            KEY: colKey,
+                            name: columnObj.name,
+                            label: columnObj.label,
+                            join: columnObj.join,
+                            formula: columnObj.formula,
+                            function: columnObj.function,
+                            summary: columnObj.summary,
+                            sort: columnObj.sort,
+                            group: columnObj.group,
+                        };
                     }
                 }
 
-                return {
-                    columns: mappedColumns,
-                    rows: mappedRows
-                };
+                // Add result value / text to the mappedResults array
+                // for (let rowObj in page.data) {
+                let mappedRow = resultObj.columns.reduce(
+                    (outRow, columnObj) => {
+                        outRow[buildColumnKey(columnObj)] = {
+                            value: resultObj.getValue(columnObj),
+                            text: resultObj.getText(columnObj)
+                        };
+                        return outRow;
+                    },
+                    {}
+                );
+
+                mappedRows.push(mappedRow);
+                // }
             }
         }
-        exports.runSavedSearchToMappedRows = runSavedSearchToMappedRows;
 
-
-
-        // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
-        //     // Store the script ID of the script to submit
-        //     //
-        //     // Update the following statement so it uses the script ID
-        //     // of the map/reduce script record you want to submit
-        //     const mapReduceScriptId = mrScriptId;
-
-        //     // Create a map/reduce task
-        //     //
-        //     // Update the deploymentId parameter to use the script ID of
-        //     // the deployment record for your map/reduce script
-        //     let mrTask = task.create({
-        //         taskType: task.TaskType.MAP_REDUCE,
-        //         scriptId: mrScriptId,
-        //         deploymentId: mrDeploymentId,
-        //         params: params
-        //     });
-
-        //     // Submit the map/reduce task
-        //     let mrTaskId = mrTask.submit();
-
-        //     // Check the status of the task, and send an email if the
-        //     // task has a status of FAILED
-        //     //
-        //     // Update the authorId value with the internal ID of the user
-        //     // who is the email sender. Update the recipientEmail value
-        //     // with the email address of the recipient.
-        //     let taskStatus = task.checkStatus(mrTaskId);
-        //     if (taskStatus.status === 'FAILED') {
-        //         const authorId = -5;
-        //         const recipientEmail = 'notify@myCompany.com';
-        //         email.send({
-        //             author: authorId,
-        //             recipients: recipientEmail,
-        //             subject: 'Failure executing map/reduce job!',
-        //             body: 'Map reduce task: ' + mapReduceScriptId + ' has failed.'
-        //         });
-        //     }
-
-        //     // Retrieve the status of the search task
-        //     let taskStatus2 = task.checkStatus({
-        //         taskId: myTaskId
-        //     });
-
-        //     // Optionally, add logic that executes when the task is complete
-        //     if (taskStatus.status === task.TaskStatus.COMPLETE) {
-        //         // Add any code that is appropriate. For example, if this script created
-        //         // a saved search, you may want to delete it.
-        //     }
-        // }
-
-
-
-        return exports;
+        return {
+            columns: mappedColumns,
+            rows: mappedRows
+        };
     }
+    exports.runSearch = runSearch;
+
+
+
+    // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
+    //     // Store the script ID of the script to submit
+    //     //
+    //     // Update the following statement so it uses the script ID
+    //     // of the map/reduce script record you want to submit
+    //     const mapReduceScriptId = mrScriptId;
+
+    //     // Create a map/reduce task
+    //     //
+    //     // Update the deploymentId parameter to use the script ID of
+    //     // the deployment record for your map/reduce script
+    //     let mrTask = task.create({
+    //         taskType: task.TaskType.MAP_REDUCE,
+    //         scriptId: mrScriptId,
+    //         deploymentId: mrDeploymentId,
+    //         params: params
+    //     });
+
+    //     // Submit the map/reduce task
+    //     let mrTaskId = mrTask.submit();
+
+    //     // Check the status of the task, and send an email if the
+    //     // task has a status of FAILED
+    //     //
+    //     // Update the authorId value with the internal ID of the user
+    //     // who is the email sender. Update the recipientEmail value
+    //     // with the email address of the recipient.
+    //     let taskStatus = task.checkStatus(mrTaskId);
+    //     if (taskStatus.status === 'FAILED') {
+    //         const authorId = -5;
+    //         const recipientEmail = 'notify@myCompany.com';
+    //         email.send({
+    //             author: authorId,
+    //             recipients: recipientEmail,
+    //             subject: 'Failure executing map/reduce job!',
+    //             body: 'Map reduce task: ' + mapReduceScriptId + ' has failed.'
+    //         });
+    //     }
+
+    //     // Retrieve the status of the search task
+    //     let taskStatus2 = task.checkStatus({
+    //         taskId: myTaskId
+    //     });
+
+    //     // Optionally, add logic that executes when the task is complete
+    //     if (taskStatus.status === task.TaskStatus.COMPLETE) {
+    //         // Add any code that is appropriate. For example, if this script created
+    //         // a saved search, you may want to delete it.
+    //     }
+    // }
+
+
+
+    return exports;
 }

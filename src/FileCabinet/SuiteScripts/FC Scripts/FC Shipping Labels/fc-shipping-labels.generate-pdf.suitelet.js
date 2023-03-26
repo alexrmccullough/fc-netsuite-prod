@@ -6,6 +6,7 @@
 var modulePathShippingLabelLibrary = './fc-shipping-labels.library.module.js';
 
 var
+    ui,
     runtime,
     record,
     render,
@@ -15,9 +16,10 @@ var
     FCShipLabelLib;
 
 
-define(['N/runtime', 'N/record', 'N/render', 'N/xml', 'N/search', 'N/file', modulePathShippingLabelLibrary], main);
+define(['N/ui/serverWidget', 'N/runtime', 'N/record', 'N/render', 'N/xml', 'N/search', 'N/file', modulePathShippingLabelLibrary], main);
 
-function main(runtimeModule, recordModule, renderModule, xmlModule, searchModule, fileModule, FCShipLabelLibModule) {
+function main(serverWidgetModule, runtimeModule, recordModule, renderModule, xmlModule, searchModule, fileModule, FCShipLabelLibModule) {
+    ui = serverWidgetModule;
     runtime = runtimeModule;
     record = recordModule;
     render = renderModule;
@@ -26,18 +28,96 @@ function main(runtimeModule, recordModule, renderModule, xmlModule, searchModule
     file = fileModule;
     FCShipLabelLib = FCShipLabelLibModule;
 
-    if (context.request.method === 'GET') {
-    }
-    else {   // POST
-    }
+
     return {
-        onRequest: generateShippingLabels
+        onRequest: function (context) {
+            if (context.request.method === 'GET') {
+                let shipping_form = ui.createForm({ title: 'Print Shipping Labels' });
+                let from_Date = shipping_form.addField({
+                    id: 'custpage_from_date',
+                    type: ui.FieldType.DATE,
+                    label: 'From Date'
+                });
+                let to_Date = shipping_form.addField({
+                    id: 'custpage_to_date',
+                    type: ui.FieldType.DATE,
+                    label: 'To Date'
+                });
+                let vendor = shipping_form.addField({
+                    id: 'custpage_vendor',
+                    type: ui.FieldType.TEXT,
+                    label: 'Vendor'
+                });
+                let vendor2 = shipping_form.addField({
+                    id: 'custpage_vendor2',
+                    type: ui.FieldType.MULTISELECT,
+                    label: 'Vendor2',
+                    source: 'vendor'
+
+                });
+                vendor2.updateDisplaySize({
+                    height: 15,
+                    width: 400
+                });
+
+                shipping_form.addSubmitButton({ label: 'Print' });
+                shipping_form.addResetButton({ label: 'Cancel' });
+
+                context.response.writePage(shipping_form);
+            }
+
+            else {   // POST
+                let parameters = context.request.parameters;
+
+                let vendorIds = parameters.custpage_vendor2 ?
+                    parameters.custpage_vendor2.split('\u0005').map((id) => parseInt(id)) :
+                    null;
+
+                let labelXml = generateShippingLabelXml(
+                    context,
+                    'PDF_AVERY_8X11',
+                    parameters.custpage_from_date,
+                    parameters.custpage_to_date,
+                    vendorIds,
+                    null
+                );
+
+                let debugHtml = '';
+
+                // Add paramters to debug
+                debugHtml += `<h3>Parameters</h3><pre>${JSON.stringify(parameters, null, 4)}</pre>`;
+                debugHtml += `<h3>Vendor IDs</h3><pre>${JSON.stringify(vendorIds, null, 4)}</pre>`;
+
+                // labelXml = labelXml.replace(/</g, '&#60;').replace(/>/g, '&#62;');
+                // debugHtml += `<h3>Label XML</h3><pre>${labelXml}</pre>`;
+                // context.response.write(labelXml);
+                // context.response.write(debugHtml);
+
+                
+                context.response.renderPdf(labelXml);
+                return;
+            }
+
+        }
     }
 
 }
 
 
-function generateShippingLabels(context, printFormat = FCShipLabelLib.LabelFormatting.PrintFormat.PDF_AVERY_8X11) {
+
+function generateShippingLabelXml(
+    context,
+    printFormat = 'PDF_AVERY_8X11',
+    getFromDate = null,
+    getToDate = null,
+    vendorInternalIds = [],
+    customerInternalIds = [],
+) {
+
+    var xmlFinal = "";
+    var xmlMainTemplateInfo;
+    var xmlLabelTemplateInfo;
+
     // TRY/CATCH
     try {
         if (!(printFormat in FCShipLabelLib.LabelFormatting.PrintFormat)) {
@@ -46,24 +126,29 @@ function generateShippingLabels(context, printFormat = FCShipLabelLib.LabelForma
                  Valid formats are: ${Object.values(FCShipLabelLib.LabelFormatting.PrintFormat).join(', ')}`
             );
         }
+        printFormat = FCShipLabelLib.LabelFormatting.PrintFormat[printFormat];
+        // Depending on the type chosen, we will load the appropriate XML and handle logic differently
+        xmlMainTemplateInfo = printFormat.TemplateMain;
+        xmlLabelTemplateInfo = printFormat.TemplateLabel;
 
-        // let request = context.request;
-        let getFromDate = request.parameters.custpage_from_date;
-        let getToDate = request.parameters.custpage_to_date;
 
 
-        let searchResults = FCShipLabelLib.runLotNumberedShippingLabelSearch({
-            soShipStartDate: getFromDate,
-            soShipEndDate: getToDate,
-            // vendorInternalIds = [],            // Preferred vendor / primary vendor -- need to add this to search? 
-            // customerInternalIds = [],
-        });
+        let searchParams = {};
+        if (getFromDate) { searchParams.soShipStartDate = getFromDate; }
+        if (getToDate) { searchParams.soShipEndDate = getToDate; }
+        if (vendorInternalIds && vendorInternalIds.length) { searchParams.vendorInternalIds = vendorInternalIds; }
+        if (customerInternalIds && customerInternalIds.length) { searchParams.customerInternalIds = customerInternalIds; }
+
+        let searchResults = FCShipLabelLib.runLotNumberedShippingLabelSearch(searchParams);
+        let requiredFields = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields;
+        let addedFields = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.AddedFields;
+
 
         let lineLotsVsQuantities = {};
-        for (const result of searchResults) {
-            let lineUniqueKey = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.TransLineUniqueKey];
-            let lineQty = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.LineQty];
-            let curLotQty = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.CurLotQty];
+        for (const result of searchResults.data) {
+            let lineUniqueKey = result[requiredFields.TransLineUniqueKey.nsSsFieldId];
+            let lineQty = result[requiredFields.SOLineQuantity.nsSsFieldId];
+            let curLotQty = result[addedFields.CurLotQty.fieldId];
 
             if (!(lineUniqueKey in lineLotsVsQuantities)) {
                 lineLotsVsQuantities[lineUniqueKey] = {
@@ -75,79 +160,80 @@ function generateShippingLabels(context, printFormat = FCShipLabelLib.LabelForma
             lineLotsVsQuantities[lineUniqueKey].remainingLineQtyLotted += curLotQty;
         }
 
-        let resultCount = searchResults.length;
-        let xmlFinal = "";
+        let resultCount = searchResults.data.length;
         let labelCounter = 1;
         let resultIdx = 0;
 
         let extras = [];
+
+        // Start generating labels
+        // We can generate labels in two formats:
+        //   1) 8x11 Avery sheet 5163 PDF > regular printer
+        //   2) 2x4 single label/sheet PDF > Zebra printer
+
+        // Load in the xml for the main PDF body and the label
+        xmlMainTemplateInfo.Xml = FCLib.getTextFileContents(xmlMainTemplateInfo.FileId);
+        xmlLabelTemplateInfo.Xml = FCLib.getTextFileContents(xmlLabelTemplateInfo.FileId);
+
+        let rowsPerPage = xmlMainTemplateInfo.LabelRowsPerPage;
+        let colsPerPage = xmlMainTemplateInfo.LabelColsPerPage;
+        let labelCountPerPage = rowsPerPage * colsPerPage;
+
 
         while (resultIdx < resultCount || extras.length) {
             let result = {};
             if (extras.length) {
                 result = extras.pop();
             } else {
-                result = searchResults[resultIdx];
+                result = searchResults.data[resultIdx];
                 resultIdx += 1;
             }
 
-            let soShipDate = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.SOShipDate];
-            let soLineQuantity = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.soLineQuantity];
-            let lineUniqueDBKey = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.TransLineUniqueKey];
-            let soNumber = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.SONumber];
-            let customer = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.Customer];
-            let route = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.Route];
-            let itemId = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.ItemId];
-            let itemName = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.ItemName];
-            let brand = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.Brand];
-            let productStub = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.ProductStub];
-            let masterCase = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.MasterCase];
-            let qtyPerLabel = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.QtyPerLabel];
-            let lotNumber = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.LotNumber];
-            let lotQuantity = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.LotQuantity];
-            let curLotQty = result[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.InternalFieldNames.CurLotQty];
+            let soShipDate = result[requiredFields.SOShipDate.nsSsFieldId];
+            let soLineQuantity = result[requiredFields.SOLineQuantity.nsSsFieldId];
+            let lineUniqueDBKey = result[requiredFields.TransLineUniqueKey.nsSsFieldId];
+            let soNumber = result[requiredFields.SONumber.nsSsFieldId];
+            let customer = result[requiredFields.Customer.nsSsFieldId];
+            let route = result[requiredFields.Route.nsSsFieldId];
+            let itemId = result[requiredFields.ItemId.nsSsFieldId];
+            let itemName = result[requiredFields.ItemName.nsSsFieldId];
+            let brand = result[requiredFields.Brand.nsSsFieldId];
+            let productStub = result[requiredFields.ProductStub.nsSsFieldId];
+            let masterCase = result[requiredFields.MasterCase.nsSsFieldId];
+            let qtyPerLabel = result[requiredFields.QtyPerLabel.nsSsFieldId];
+            let lotNumber = result[requiredFields.LotNumber.nsSsFieldId];
+            let lotQuantity = result[requiredFields.LotQuantity.nsSsFieldId];
+            let preferredVendor = result[requiredFields.PreferredVendor.nsSsFieldId];
+            let curLotQty = result[addedFields.CurLotQty.fieldId];
 
 
             if (!qtyPerLabel || qtyPerLabel <= 0) {
                 qtyPerLabel = 1;
             }
 
-            // Start generating labels
-            // We can generate labels in two formats:
-            //   1) 8x11 Avery sheet 5163 PDF > regular printer
-            //   2) 2x4 single label/sheet PDF > Zebra printer
-            // Depending on the type chosen, we will load the appropriate XML and handle logic differently
-
-            let xmlMainTemplate = printFormat.TemplateMain;
-            let xmlLabelTemplate = printFormat.TemplateLabel;
-            let rowsPerPage = xmlMainTemplate.LabelRowsPerPage;
-            let colsPerPage = xmlMainTemplate.LabelColsPerPage;
-            let labelCountPerPage = rowsPerPage * colsPerPage;
-
             // FIX: This will probably fail if we have more than one partial-qty item
             let lineLabelCount = Math.ceil(curLotQty / qtyPerLabel);
             let lotQtyRemaining = curLotQty;
-            let labelTemplateSettings = FCShipLabelLib.Resources.XMLTemplate2x4Label;
 
             for (let k = 0; k < lineLabelCount; k++) {  // individual label
                 let thisLabelQty = Math.min(lotQtyRemaining, result.qtyPerLabel);
+
                 let labelFields = {
-                    [labelTemplateSettings.Placeholders.Customer]: customer,
-                    [labelTemplateSettings.Placeholders.SOShipDate]: soShipDate,
-                    [labelTemplateSettings.Placeholders.Route]: route,
-                    [labelTemplateSettings.Placeholders.ItemId]: itemId,
-                    [labelTemplateSettings.Placeholders.SONumber]: soNumber,
-                    [labelTemplateSettings.Placeholders.LabelQty]: thisLabelQty,
-                    [labelTemplateSettings.Placeholders.CurLabel]: k + 1,
-                    [labelTemplateSettings.Placeholders.LineLabelCt]: lineLabelCount,
-                    [labelTemplateSettings.Placeholders.LotNumber]: lotNumber,
-                    [labelTemplateSettings.Placeholders.Brand]: brand,
-                    [labelTemplateSettings.Placeholders.ProductStub]: productStub,
-                    [labelTemplateSettings.Placeholders.MasterCase]: masterCase,
-                    [labelTemplateSettings.Placeholders.ItemDisplayName]: itemName
+                    [xmlLabelTemplateInfo.Placeholders.Customer]: customer,
+                    [xmlLabelTemplateInfo.Placeholders.SOShipDate]: soShipDate,
+                    [xmlLabelTemplateInfo.Placeholders.Route]: route,
+                    [xmlLabelTemplateInfo.Placeholders.ItemId]: itemId,
+                    [xmlLabelTemplateInfo.Placeholders.SONumber]: soNumber,
+                    [xmlLabelTemplateInfo.Placeholders.LabelQty]: thisLabelQty,
+                    [xmlLabelTemplateInfo.Placeholders.CurLabel]: k + 1,
+                    [xmlLabelTemplateInfo.Placeholders.LineLabelCt]: lineLabelCount,
+                    [xmlLabelTemplateInfo.Placeholders.LotNumber]: lotNumber,
+                    [xmlLabelTemplateInfo.Placeholders.Brand]: brand,
+                    [xmlLabelTemplateInfo.Placeholders.ProductStub]: productStub,
+                    [xmlLabelTemplateInfo.Placeholders.MasterCase]: masterCase,
+                    [xmlLabelTemplateInfo.Placeholders.ItemDisplayName]: itemName
                 };
                 const replRegex = new RegExp(Object.keys(labelFields).join('|'), 'g');
-
 
 
                 // Start new table if completed chunk of 10 labels.
@@ -163,7 +249,7 @@ function generateShippingLabels(context, printFormat = FCShipLabelLib.LabelForma
                     xmlFinal += '<tr>';
                 }
 
-                let labelXml = xmlLabelTemplate.replace(
+                let labelXml = xmlLabelTemplateInfo.Xml.replace(
                     replRegex, (matched) => labelFields[matched]
                 );
 
@@ -182,46 +268,43 @@ function generateShippingLabels(context, printFormat = FCShipLabelLib.LabelForma
 
                 lotQtyRemaining -= qtyPerLabel;
                 labelCounter += 1;
-
-                lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty -= curLotQty;
-                lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted -= curLotQty;
-
-                // resultIdx += 1;
-
-                // If all lotted quantity has been labeled and still lineQty > 0 for the line, then we have unlotted quantity to label 
-                if (
-                    lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted <= 0 &&
-                    lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty > 0
-                ) {
-                    let newLine = { ...result };
-                    newLine.curLotNum = FCShipLabelLib.LabelFormatting.BLANK_LOT_STRING;
-                    newLine.curLotQty = lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty;
-                    extras.push(newLine);
-                }
-
             }
 
-            xmlFinal += '\n</tr>\n</table>\n';
-            xmlFinal = xmlMainTemplate.replace(xmlMainTemplate.Placeholders.Body, xmlFinal);
+            lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty -= curLotQty;
+            lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted -= curLotQty;
+
+            // resultIdx += 1;
+
+            // If all lotted quantity has been labeled and still lineQty > 0 for the line, then we have unlotted quantity to label 
+            if (
+                lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted <= 0 &&
+                lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty > 0
+            ) {
+                let newLine = { ...result };
+                newLine.curLotNum = FCShipLabelLib.LabelFormatting.BLANK_LOT_STRING;
+                newLine.curLotQty = lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty;
+                extras.push(newLine);
+            }
+
         }
+
+        xmlFinal += '\n</tr>\n</table>\n';
+
 
     } catch (e) {
         log.error({ title: 'Error in generateShippingLabels', details: e });
         throw e;
     }
 
+    xmlFinal = xmlMainTemplateInfo.Xml.replace(xmlMainTemplateInfo.Placeholders.Body, xmlFinal);
     remainingUsage = runtime.getCurrentScript().getRemainingUsage();
 
     // FIX: Write pdf to file cabinet
     // Need to input destination folder and have default if not specified
-    try {
 
-        context.response.renderPdf(xmlFinal);
+    //context.response.renderPdf(xmlFinal);
+    return xmlFinal;
 
-    } catch (e) {
-        log.error({ title: 'Error in renderPdf', details: e });
-        throw e;
-    }
 
 }
 
@@ -351,4 +434,3 @@ function generateShippingLabels(context, printFormat = FCShipLabelLib.LabelForma
 //             parseFloat(result.getValue({ name: "inventorynumber", join: "inventoryDetail" }) ?
 //                 result.getValue({ name: "quantity", join: "inventoryDetail" }) || 0 :
 //                 result.getValue({ name: "quantity" }) || 0)
-//     };
