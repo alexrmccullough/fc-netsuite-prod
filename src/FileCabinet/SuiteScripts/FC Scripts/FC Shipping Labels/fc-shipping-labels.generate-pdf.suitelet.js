@@ -161,23 +161,6 @@ function generateShippingLabelXml(
         let requiredFields = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields;
         let addedFields = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.AddedFields;
 
-
-        // let lineLotsVsQuantities = {};
-        // for (const result of searchResults.data) {
-        //     let lineUniqueKey = result[requiredFields.TransLineUniqueKey.nsSsFieldId];
-        //     let lineQty = result[requiredFields.SOLineQuantity.nsSsFieldId];
-        //     let curLotQty = result[addedFields.CurLotQty.fieldId];
-
-        //     if (!(lineUniqueKey in lineLotsVsQuantities)) {
-        //         lineLotsVsQuantities[lineUniqueKey] = {
-        //             remainingLineQty: lineQty,
-        //             remainingLineQtyLotted: 0
-        //         }
-        //     }
-
-        //     lineLotsVsQuantities[lineUniqueKey].remainingLineQtyLotted += curLotQty;
-        // }
-
         // Start generating labels
         // We can generate labels in two formats:
         //   1) 8x11 Avery sheet 5163 PDF > regular printer
@@ -263,8 +246,6 @@ function generateShippingLabelXml(
                     colsPerPage
                 );
 
-
-
                 // Write the label div
                 let labelFieldValues = {
                     [xmlLabelTemplateInfo.Placeholders.Customer]: customer,
@@ -315,8 +296,6 @@ function generateShippingLabelXml(
                 // xmlFinal += '\n</td>';
 
 
-
-
                 xmlFinal += xmlCloseRow({
                     labelCounter: labelCounter,
                     colsPerPage: colsPerPage,
@@ -336,16 +315,6 @@ function generateShippingLabelXml(
                 quantityRemaining -= qtyPerLabel;
                 // labelCounter += 1;
             }
-
-            // lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty -= curLotQty;
-            // lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted -= curLotQty;
-
-            // // If all lotted quantity has been labeled and still lineQty > 0 for the line, then we have unlotted quantity to label 
-            // // Create a duplicate result line with the remaining unlotted quantity and push it onto our "extras" stack to be written next.
-            // if (
-            //     lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted <= 0 &&
-            //     lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty > 0
-            // ) {
 
             if (hasUnlottedRemainder) {
                 let newLine = { ...result };
