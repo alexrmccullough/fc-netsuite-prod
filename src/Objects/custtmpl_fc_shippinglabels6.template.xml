@@ -473,12 +473,6 @@
     </#if>
 </#macro>
 
-<#macro closeRow labelCounter isLastResult isLastLabelOfResult hasUnlottedRemainder=false>
-    <#if labelCounter % 2 == 0 || (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder)>
-    </tr>
-    </#if>
-</#macro>
-
 <#macro closeTable labelCounter isLastResult isLastLabelOfResult hasUnlottedRemainder=false>
     <#if labelCounter % 10  == 0 || (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder)>
     </table>
@@ -487,6 +481,14 @@
         </#if>
     </#if>
 </#macro>
+
+<#macro closeRow labelCounter isLastResult isLastLabelOfResult hasUnlottedRemainder=false>
+    <#if labelCounter % 2 == 0 || (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder)>
+    </tr>
+    </#if>
+</#macro>
+
+
 
 <#macro writeLabel 
     customer="" 

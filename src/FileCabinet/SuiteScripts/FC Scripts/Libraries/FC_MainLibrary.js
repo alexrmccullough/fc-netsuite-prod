@@ -445,7 +445,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
     exports.convertCSVStringToHTMLTableStylized = convertCSVStringToHTMLTableStylized;
 
 
-    function getTextFileContents (fileId) {
+    function getTextFileContents(fileId) {
         var fileObj = file.load({ id: fileId });
         var fileContents = fileObj.getContents();
         return fileContents;
@@ -525,18 +525,30 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
         let mappedColumns = {};
 
         let buildColumnKey = (columnObj) => {
-            return columnObj.join ? columnObj.join + '.' + columnObj.name : columnObj.name;
+            let currentColumnKeys = Object.keys(mappedColumns);
+            let newColKey = columnObj.join ? columnObj.join + '.' + columnObj.name : columnObj.name;
+            let colKeyExists = currentColumnKeys.includes(newColKey);
+            if (colKeyExists) {
+                let colKeyCount = currentColumnKeys.filter(key => key.startsWith(newColKey)).length;
+                newColKey = newColKey + '_' + colKeyCount;
+            }
+            return newColKey;
         };
+
+        let mappedColKeys = [];
 
         for (let pageRange of pagedData.pageRanges) {
             let page = pagedData.fetch({ index: pageRange.index });
             // Add result value / text to the mappedResults array
             for (let resultObj of page.data) {
-                if (!mappedColumns.length) {
+                if (Object.keys(mappedColumns).length === 0) {
                     for (let columnObj of resultObj.columns) {
+                        // Need to build a lookup of unique columnKey => columnObj
+                        // Column key should append _1, _2, etc. if there are multiple columns with the same name
                         let colKey = buildColumnKey(columnObj);
                         mappedColumns[colKey] = {
                             KEY: colKey,
+                            COLUMN_OBJ: columnObj,
                             name: columnObj.name,
                             label: columnObj.label,
                             join: columnObj.join,
@@ -546,22 +558,21 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
                             sort: columnObj.sort,
                             group: columnObj.group,
                         };
+
+                        mappedColKeys.push(colKey);
                     }
                 }
 
                 // Add result value / text to the mappedResults array
-                // for (let rowObj in page.data) {
-                let mappedRow = resultObj.columns.reduce(
-                    (outRow, columnObj) => {
-                        outRow[buildColumnKey(columnObj)] = {
-                            value: resultObj.getValue(columnObj),
-                            text: resultObj.getText(columnObj)
-                        };
-                        return outRow;
-                    },
-                    {}
-                );
-
+                let mappedRow = {};
+                for (let colKey of mappedColKeys) {
+                    let columnObj = mappedColumns[colKey].COLUMN_OBJ;
+                    mappedRow[colKey] = {
+                        value: resultObj.getValue(columnObj),
+                        text: resultObj.getText(columnObj)
+                    };
+                }
+                
                 mappedRows.push(mappedRow);
                 // }
             }

@@ -116,7 +116,32 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         nsSsFieldId: 'item.vendor',
                         nsSsTargetGetType: 'text',
                         recastValueFunc: null,
+                    },
+                    TotalLottedQtyInLine: {                 //FIX: UNUSED?
+                        nsSsFieldId: 'formulanumeric',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                        displayName: 'Total Lotted Qty In Line',
+                    },
+                    TotalUnlottedQtyInLine: {
+                        nsSsFieldId: 'formulanumeric_1',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                        displayName: 'Total Unlotted Qty In Line',
+                    },
+                    LottedQtyCompletedSoFar: {              // FIX: UNUSED?
+                        nsSsFieldId: 'formulanumeric_2',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                        displayName: 'Lotted Qty Completed So Far',
+                    },
+                    IsLastLotOfLine: {
+                        nsSsFieldId: 'formulatext',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,  
+                        displayName: 'Is Last Lot of Line?',
                     }
+
                 },
                 AddedFields: {
                     CurLotQty: {
@@ -165,7 +190,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 SONumber: '<!--@@ORDERID@@-->',
                 ItemDisplayName: '<!--@@ITEMDISPLAYNAME@@-->',
                 LabelQty: '<!--@@LABELQTY@@-->',
-                CurLabel: '<!--@@CURLABEL@@-->',
+                LabelPos: '<!--@@LABELPOS@@-->',
                 LineLabelCt: '<!--@@LABELCTFORITEM@@-->',
                 LotNumber: '<!--@@LOTNUM@@-->',
                 Brand: '<!--@@ITEMBRAND@@-->',
@@ -342,8 +367,9 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             // Treats a line with no Lot # assigned as its own blank Lot.
             // NOTE: This assumes that the saved search does NOT return a separate row for the unassigned
             //   quantity of a line with a mix of assigned/unassigned lots within the line.
-            if (row[internalFieldInfo.LotNumber.nsSsFieldId] && row[internalFieldInfo.LotNumber.nsSsFieldId] > 0) {
-                row[curLotQtySsFieldId] = row[internalFieldInfo.LotNumber.nsSsFieldId];
+            if (row[internalFieldInfo.LotNumber.nsSsFieldId]) {
+                // if (row[internalFieldInfo.LotNumber.nsSsFieldId] && row[internalFieldInfo.LotNumber.nsSsFieldId] > 0) {
+                row[curLotQtySsFieldId] = row[internalFieldInfo.LotQuantity.nsSsFieldId];
             } else {
                 row[curLotQtySsFieldId] = row[internalFieldInfo.SOLineQuantity.nsSsFieldId];
             }

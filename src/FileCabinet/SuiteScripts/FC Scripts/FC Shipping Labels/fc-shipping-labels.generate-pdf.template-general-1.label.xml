@@ -1,44 +1,42 @@
 <div class="labelframe">
     <div class="row1">
+
         <div class="shipto-title textpadding2pc">
             <p>Ship To:</p>
         </div>
         <div class="shipto-value textpadding2pc">
-            <p><!--@@ENTITYNAME@@-->
-            </p>
+                <p><!--@@ENTITYNAME@@--></p>
         </div>
     </div>
 
     <div class="row2">
         <div class="shipdate-title textpadding2pc" vertical-align="center">
-            <p vertical-align="center">Ship Date:</p>
+            <p vertical-align="center">Ship Date:</p> 
         </div>
-
+        
         <div class="shipdate-value textpadding2pc">
-            <p><!--@@SHIPDATE@@-->
-            </p>
+            <p><!--@@SHIPDATE@@--></p>
         </div>
-
+        
         <div class="route-title textpadding2pc">
-            <p>Route:</p>
+            <p>Route:</p> 
         </div>
         <div class="route-value textpadding2pc">
-            <p><!--@@ROUTENAME@@-->
-            </p>
+            <p><!--@@ROUTENAME@@--></p>
         </div>
-
+    
     </div>
 
     <div class="row3">
         <div class="itemid-title textpadding2pc">
-            <p>Item:</p>
+            <p>Item:</p> 
         </div>
         <div class="itemid-value textpadding2pc">
             <p><!--@@ITEMID@@--></p>
         </div>
 
         <div class="orderid-title textpadding2pc">
-            <p>Order:</p>
+            <p>Order:</p> 
         </div>
         <div class="orderid-value textpadding2pc">
             <p><!--@@ORDERID@@--></p>
@@ -50,8 +48,9 @@
             <p><!--@@LOTNUM@@--></p>
         </div>
     </div>
+    
 
-
+    
     <div class="row4">
         <div class="itemdesc-brand textpadding2pc">
             <p><!--@@ITEMBRAND@@--></p>
@@ -64,12 +63,12 @@
         </div>
         <div class="textpadding2pc qty">
             <p style="align:center;vertical-align:middle;">Qty: <!--@@LABELQTY@@--></p>
-            <p style="align:center">(<!--@@CURLABEL@@--> of <!--@@LABELCTFORITEM@@-->)</p>
+            <p style="align:center">(<!--@@LABELPOS@@--> of <!--@@LABELCTFORITEM@@-->)</p>
         </div>
         <div class="fccompanyname textpadding2pc">
             <p align="center">Food <br></br> Connects</p>
         </div>
-
+    
     </div>
 
 </div>

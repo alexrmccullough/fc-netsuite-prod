@@ -93,7 +93,7 @@ function main(serverWidgetModule, runtimeModule, recordModule, renderModule, xml
                 // context.response.write(labelXml);
                 // context.response.write(debugHtml);
 
-                
+
                 context.response.renderPdf(labelXml);
                 return;
             }
@@ -118,6 +118,8 @@ function generateShippingLabelXml(
     var xmlMainTemplateInfo;
     var xmlLabelTemplateInfo;
 
+
+
     // TRY/CATCH
     try {
         if (!(printFormat in FCShipLabelLib.LabelFormatting.PrintFormat)) {
@@ -131,6 +133,22 @@ function generateShippingLabelXml(
         xmlMainTemplateInfo = printFormat.TemplateMain;
         xmlLabelTemplateInfo = printFormat.TemplateLabel;
 
+        const labelPlaceholders = [
+            [xmlLabelTemplateInfo.Placeholders.Customer],
+            [xmlLabelTemplateInfo.Placeholders.SOShipDate],
+            [xmlLabelTemplateInfo.Placeholders.Route],
+            [xmlLabelTemplateInfo.Placeholders.ItemId],
+            [xmlLabelTemplateInfo.Placeholders.SONumber],
+            [xmlLabelTemplateInfo.Placeholders.LabelQty],
+            [xmlLabelTemplateInfo.Placeholders.LabelPos],
+            [xmlLabelTemplateInfo.Placeholders.LineLabelCt],
+            [xmlLabelTemplateInfo.Placeholders.LotNumber],
+            [xmlLabelTemplateInfo.Placeholders.Brand],
+            [xmlLabelTemplateInfo.Placeholders.ProductStub],
+            [xmlLabelTemplateInfo.Placeholders.MasterCase],
+            [xmlLabelTemplateInfo.Placeholders.ItemDisplayName],
+        ];
+        const labelPlaceholdersReplRegex = new RegExp(labelPlaceholders.join('|'), 'g');
 
 
         let searchParams = {};
@@ -144,27 +162,21 @@ function generateShippingLabelXml(
         let addedFields = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.AddedFields;
 
 
-        let lineLotsVsQuantities = {};
-        for (const result of searchResults.data) {
-            let lineUniqueKey = result[requiredFields.TransLineUniqueKey.nsSsFieldId];
-            let lineQty = result[requiredFields.SOLineQuantity.nsSsFieldId];
-            let curLotQty = result[addedFields.CurLotQty.fieldId];
+        // let lineLotsVsQuantities = {};
+        // for (const result of searchResults.data) {
+        //     let lineUniqueKey = result[requiredFields.TransLineUniqueKey.nsSsFieldId];
+        //     let lineQty = result[requiredFields.SOLineQuantity.nsSsFieldId];
+        //     let curLotQty = result[addedFields.CurLotQty.fieldId];
 
-            if (!(lineUniqueKey in lineLotsVsQuantities)) {
-                lineLotsVsQuantities[lineUniqueKey] = {
-                    remainingLineQty: lineQty,
-                    remainingLineQtyLotted: 0
-                }
-            }
+        //     if (!(lineUniqueKey in lineLotsVsQuantities)) {
+        //         lineLotsVsQuantities[lineUniqueKey] = {
+        //             remainingLineQty: lineQty,
+        //             remainingLineQtyLotted: 0
+        //         }
+        //     }
 
-            lineLotsVsQuantities[lineUniqueKey].remainingLineQtyLotted += curLotQty;
-        }
-
-        let resultCount = searchResults.data.length;
-        let labelCounter = 1;
-        let resultIdx = 0;
-
-        let extras = [];
+        //     lineLotsVsQuantities[lineUniqueKey].remainingLineQtyLotted += curLotQty;
+        // }
 
         // Start generating labels
         // We can generate labels in two formats:
@@ -179,15 +191,27 @@ function generateShippingLabelXml(
         let colsPerPage = xmlMainTemplateInfo.LabelColsPerPage;
         let labelCountPerPage = rowsPerPage * colsPerPage;
 
+        let resultCount = searchResults.data.length;
+        let labelCounter = 0;
+        let resultIdx = 0;
 
-        while (resultIdx < resultCount || extras.length) {
+        let extras = [];
+
+
+        while ((resultIdx < resultCount) || extras.length > 0) {
             let result = {};
-            if (extras.length) {
+            let quantityRemaining = 0;
+            let inExtras = false;
+
+
+            if (extras.length > 0) {
                 result = extras.pop();
+                inExtras = true;
             } else {
                 result = searchResults.data[resultIdx];
-                resultIdx += 1;
+                inExtras = false;
             }
+
 
             let soShipDate = result[requiredFields.SOShipDate.nsSsFieldId];
             let soLineQuantity = result[requiredFields.SOLineQuantity.nsSsFieldId];
@@ -212,83 +236,131 @@ function generateShippingLabelXml(
             }
 
             // FIX: This will probably fail if we have more than one partial-qty item
-            let lineLabelCount = Math.ceil(curLotQty / qtyPerLabel);
-            let lotQtyRemaining = curLotQty;
+            if (lotNumber) {
+                quantityRemaining = lotQuantity;
+            } else {
+                quantityRemaining = soLineQuantity;
+            }
 
-            for (let k = 0; k < lineLabelCount; k++) {  // individual label
-                let thisLabelQty = Math.min(lotQtyRemaining, result.qtyPerLabel);
+            let lineLabelCount = Math.ceil(quantityRemaining / qtyPerLabel);
+            let hasUnlottedRemainder = false;
+            
+            // let lineLabelCount = Math.ceil(curLotQty / qtyPerLabel);
+            // let lotQtyRemaining = curLotQty;
 
-                let labelFields = {
+
+            for (let i = 1; i <= lineLabelCount; i++) {  // individual label
+                labelCounter += 1;
+                let thisLabelQty = Math.min(quantityRemaining, qtyPerLabel);
+
+                xmlFinal += xmlOpenTable(
+                    labelCounter,
+                    labelCountPerPage
+                );
+
+                xmlFinal += xmlOpenRow(
+                    labelCounter,
+                    colsPerPage
+                );
+
+
+
+                // Write the label div
+                let labelFieldValues = {
                     [xmlLabelTemplateInfo.Placeholders.Customer]: customer,
                     [xmlLabelTemplateInfo.Placeholders.SOShipDate]: soShipDate,
                     [xmlLabelTemplateInfo.Placeholders.Route]: route,
                     [xmlLabelTemplateInfo.Placeholders.ItemId]: itemId,
                     [xmlLabelTemplateInfo.Placeholders.SONumber]: soNumber,
                     [xmlLabelTemplateInfo.Placeholders.LabelQty]: thisLabelQty,
-                    [xmlLabelTemplateInfo.Placeholders.CurLabel]: k + 1,
+                    [xmlLabelTemplateInfo.Placeholders.LabelPos]: i,
                     [xmlLabelTemplateInfo.Placeholders.LineLabelCt]: lineLabelCount,
                     [xmlLabelTemplateInfo.Placeholders.LotNumber]: lotNumber,
                     [xmlLabelTemplateInfo.Placeholders.Brand]: brand,
                     [xmlLabelTemplateInfo.Placeholders.ProductStub]: productStub,
                     [xmlLabelTemplateInfo.Placeholders.MasterCase]: masterCase,
-                    [xmlLabelTemplateInfo.Placeholders.ItemDisplayName]: itemName
+                    [xmlLabelTemplateInfo.Placeholders.ItemDisplayName]: itemName,
                 };
-                const replRegex = new RegExp(Object.keys(labelFields).join('|'), 'g');
-
-
-                // Start new table if completed chunk of 10 labels.
-                // One main table per page. 
-                // if ((labelCounter - 1) % 10 == 0) {
-                if ((labelCounter - 1) % labelCountPerPage == 0) {
-                    xmlFinal += '<table class="maintable">';
-                }
-
-                // Start tr row if writing label to first column
-                // if ((labelCounter - 1) % 2 == 0) {
-                if ((labelCounter - 1) % colsPerPage == 0) {
-                    xmlFinal += '<tr>';
-                }
 
                 let labelXml = xmlLabelTemplateInfo.Xml.replace(
-                    replRegex, (matched) => labelFields[matched]
+                    labelPlaceholdersReplRegex, (matched) => labelFieldValues[matched]
                 );
 
                 xmlFinal += '\n<td>' + labelXml + '\n</td>';
 
-                // If we have more data to process, end <table> and <row> gracefully
-                if (k + 1 < lineLabelCount || resultIdx < resultCount || extras.length) {
-                    if (labelCounter % labelCountPerPage == 0) {
-                        // DO: End table AND page break
-                        xmlFinal += '</tr></table><pbr></pbr>';
 
-                    } else if (labelCounter % colsPerPage == 0) { // Otherwise, end tr row if wrote label to second column
-                        xmlFinal += '</tr>';
-                    }
-                }
+                // Close row + table, if needed
+                let isLastResult = (resultIdx === (resultCount - 1));
+                let isLastLabelOfResult = (i >= lineLabelCount);
+                hasUnlottedRemainder =
+                    !inExtras &&
+                    (result[requiredFields.IsLastLotOfLine.nsSsFieldId] === 'True') &&
+                    (result[requiredFields.TotalUnlottedQtyInLine.nsSsFieldId] > 0);
 
-                lotQtyRemaining -= qtyPerLabel;
-                labelCounter += 1;
+
+                // // DEBUG: write all fields in plain text for debugging
+                // xmlFinal += '\n<td>';
+                // xmlFinal += `<p>quantityRemaining: ${quantityRemaining}</p>`;
+                // xmlFinal += `<p>thisLabelQty: ${thisLabelQty}</p>`
+                // xmlFinal += `<p>resultCount: ${resultCount}</p>`;
+                // xmlFinal += `<p>labelCounter: ${labelCounter}</p>`;
+                // xmlFinal += `<p>resultIdx: ${resultIdx}</p>`;
+                // xmlFinal += `<p>extras.length: ${extras.length}</p>`;
+                // xmlFinal += `<p>lineLabelCount: ${lineLabelCount}</p>`;
+                // xmlFinal += `<p>isLastResult: ${isLastResult}</p>`;
+                // xmlFinal += `<p>isLastLabelOfResult: ${isLastLabelOfResult}</p>`;
+                // xmlFinal += `<p>hasUnlottedRemainder: ${hasUnlottedRemainder}</p>`;
+                // xmlFinal += `<p>inExtras: ${inExtras}</p>`;
+                // xmlFinal += `<p>resultObj: ${JSON.stringify(result)}</p>`;
+                // xmlFinal += '\n</td>';
+
+
+
+
+                xmlFinal += xmlCloseRow({
+                    labelCounter: labelCounter,
+                    colsPerPage: colsPerPage,
+                    isLastResult: isLastResult,
+                    isLastLabelOfResult: isLastLabelOfResult,
+                    hasUnlottedRemainder: hasUnlottedRemainder
+                });
+
+                xmlFinal += xmlCloseTable({
+                    labelCounter: labelCounter,
+                    labelsPerPage: labelCountPerPage,
+                    isLastResult: isLastResult,
+                    isLastLabelOfResult: isLastLabelOfResult,
+                    hasUnlottedRemainder: hasUnlottedRemainder
+                })
+
+                quantityRemaining -= qtyPerLabel;
+                // labelCounter += 1;
             }
 
-            lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty -= curLotQty;
-            lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted -= curLotQty;
+            // lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty -= curLotQty;
+            // lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted -= curLotQty;
 
-            // resultIdx += 1;
+            // // If all lotted quantity has been labeled and still lineQty > 0 for the line, then we have unlotted quantity to label 
+            // // Create a duplicate result line with the remaining unlotted quantity and push it onto our "extras" stack to be written next.
+            // if (
+            //     lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted <= 0 &&
+            //     lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty > 0
+            // ) {
 
-            // If all lotted quantity has been labeled and still lineQty > 0 for the line, then we have unlotted quantity to label 
-            if (
-                lineLotsVsQuantities[lineUniqueDBKey].remainingLineQtyLotted <= 0 &&
-                lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty > 0
-            ) {
+            if (hasUnlottedRemainder) {
                 let newLine = { ...result };
-                newLine.curLotNum = FCShipLabelLib.LabelFormatting.BLANK_LOT_STRING;
-                newLine.curLotQty = lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty;
+                newLine.h
+                newLine[requiredFields.LotNumber.nsSsFieldId] = FCShipLabelLib.LabelFormatting.BLANK_LOT_STRING;
+                // newLine[addedFields.CurLotQty.fieldId] = lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty;
+                newLine[addedFields.CurLotQty.fieldId] = result[requiredFields.TotalUnlottedQtyInLine.nsSsFieldId];
                 extras.push(newLine);
             }
 
+            resultIdx += 1;
+
         }
 
-        xmlFinal += '\n</tr>\n</table>\n';
+        // xmlFinal += '\n</tr>\n</table>\n';
 
 
     } catch (e) {
@@ -304,133 +376,58 @@ function generateShippingLabelXml(
 
     //context.response.renderPdf(xmlFinal);
     return xmlFinal;
+}
 
+function xmlOpenRow(labelCounter, colsPerPage) {
+    if ((labelCounter - 1) % colsPerPage == 0) {
+        return `<tr>`;
+    }
+    return '';
+}
 
+function xmlCloseRow({
+    labelCounter = 0,
+    colsPerPage = 0,
+    isLastResult = true,
+    isLastLabelOfResult = true,
+    hasUnlottedRemainder = false
+} = {}) {
+    if ((labelCounter % colsPerPage == 0) || (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder)) {
+        return `</tr>`;
+    }
+    return '';
+}
+
+function xmlOpenTable(labelCounter, labelsPerPage) {
+    if (((labelCounter - 1) % labelsPerPage) == 0) {
+        return `<table class="maintable">`
+    }
+    return '';
+}
+
+function xmlCloseTable({
+    labelCounter = 0,
+    labelsPerPage = 0,
+    isLastResult = true,
+    isLastLabelOfResult = true,
+    hasUnlottedRemainder = false
+} = {}) {
+
+    let retXml = '';
+    if (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder) {
+        retXml = `</table>`;
+    } else if (labelCounter % labelsPerPage == 0) {
+        retXml = `</table><pbr></pbr>`;
+    }
+
+    // if (labelCounter % labelsPerPage == 0 || (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder)) {
+    //     retXml += `</table>`;
+    //     if (!isLastResult || !isLastLabelOfResult) {
+    //         retXml += `<pbr></pbr>`;
+    //     }
+    // }
+    return retXml;
 }
 
 
 
-
-
-
-
-
-// OLD SEARCH DEFINITION
-
-
-// let salesorderSearchObj = search.create({
-//     type: "salesorder",
-//     filters:
-//         [
-//             ["type", "anyof", "SalesOrd"],
-//             "AND",
-//             ["mainline", "is", "F"],
-//             "AND",
-//             ["status", "anyof", "SalesOrd:D", "SalesOrd:E", "SalesOrd:B"],
-//             "AND",
-//             ["item.type", "anyof", "InvtPart", "Group", "Kit"],
-//             "AND",
-//             ["shipping", "is", "F"],
-//             "AND",
-//             ["taxline", "is", "F"],
-//             "AND",
-//             ["shipdate", "within", getFromDate, getToDate]
-//         ],
-//     columns:
-//         [
-//             search.createColumn({ name: "shipdate", label: "Ship Date" }),
-//             search.createColumn({ name: "quantity", label: "Quantity" }),
-//             search.createColumn({
-//                 name: "displayname",
-//                 join: "item",
-//                 label: "Item Display Name"
-//             }),
-//             search.createColumn({ name: "tranid", label: "Document Number" }),
-//             search.createColumn({ name: "entity", label: "Customer Name" }),
-//             search.createColumn({ name: "custbody_rd_so_route", label: "Route" }),
-//             search.createColumn({
-//                 name: "itemid",
-//                 join: "item",
-//                 label: "Item ID"
-//             }),
-//             search.createColumn({
-//                 name: "custitem_fc_brand",
-//                 join: "item",
-//                 label: "Item Brand"
-//             }),
-//             search.createColumn({
-//                 name: "custitem_fc_product_stub",
-//                 join: "item",
-//                 label: "Product Stub"
-//             }),
-//             search.createColumn({
-//                 name: "custitem_fc_mastercase",
-//                 join: "item",
-//                 label: "Master Case"
-//             }),
-//             search.createColumn({
-//                 name: "custitem_fc_qtypershippinglabel",
-//                 join: "item",
-//                 label: "Qty per Shipping Label"
-//             }),
-//             search.createColumn({
-//                 name: "lineuniquekey",
-//                 label: "Line Unique Key"
-//             }),
-//             // search.createColumn({
-//             //     name: "serialnumber",
-//             //     sort: search.Sort.ASC,
-//             //     label: "Transaction Serial/Lot Number"
-//             //  }),
-//             //  search.createColumn({
-//             //     name: "serialnumberquantity",
-//             //     sort: search.Sort.ASC,
-//             //     label: "Transaction Serial/Lot Number Quantity"
-//             //  }),
-//             search.createColumn({
-//                 name: "quantity",
-//                 join: "inventoryDetail",
-//                 label: "Quantity"
-//             }),
-//             search.createColumn({
-//                 name: "inventorynumber",
-//                 join: "inventoryDetail",
-//                 label: " Number"
-//             })
-
-//         ]
-// });
-
-
-// // let pagedData = salesorderSearchObj.runPaged({ pageSize: 1000 });
-// let searchResultsRaw = salesorderSearchObj.run().getRange({
-//     start: 0,
-//     end: 1000
-// });
-// let searchResults = searchResultsRaw.map(function (result) {
-//     return {
-//         customerName: result.getText({ name: "entity" }),
-//         shipDate: result.getValue({ name: "shipdate" }),
-//         routeName: result.getText({ name: "custbody_rd_so_route" }),
-//         soDocNumber: result.getValue({ name: "tranid", label: "SO#" }),
-//         itemId: result.getValue({ name: "itemid", join: "item" }),
-//         itemDisplayName: result.getValue({ name: "displayname", join: "item" }),
-//         lineQty: parseFloat(result.getValue({ name: "quantity" })),
-//         itemBrand: result.getText({ name: "custitem_fc_brand", join: "item" }),
-//         itemStub: result.getValue({ name: "custitem_fc_product_stub", join: "item" }),
-//         itemMasterCase: result.getValue({ name: "custitem_fc_mastercase", join: "item" }),
-//         qtyPerLabel: parseFloat(result.getValue({ name: "custitem_fc_qtypershippinglabel", join: "item" }) || 1),
-//         lineUniqueKey: result.getValue({ name: "lineuniquekey" }),
-//         // curLotNum: result.getValue({ name: "serialnumber" }),
-//         // curLotQty: result.getValue({ name: "serialnumberquantity" })
-//         curLotNum: result.getText({ name: "inventorynumber", join: "inventoryDetail" }),
-
-//         // This line is important.
-//         // If the Lot Num field is null/empty, assign the line's total lineQty to curLotQty.
-//         // Treats a line with no Lot # assigned as its own blank Lot.
-//         // NOTE: This assumes that the saved search does NOT return a separate row for the unassigned
-//         //   quantity of a line with a mix of assigned/unassigned lots within the line.
-//         curLotQty:
-//             parseFloat(result.getValue({ name: "inventorynumber", join: "inventoryDetail" }) ?
-//                 result.getValue({ name: "quantity", join: "inventoryDetail" }) || 0 :
-//                 result.getValue({ name: "quantity" }) || 0)
