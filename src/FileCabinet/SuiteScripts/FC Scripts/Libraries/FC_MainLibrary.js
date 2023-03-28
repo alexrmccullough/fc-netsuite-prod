@@ -172,8 +172,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
                 return objArray;
             }
 
-
-
             for (let row of objArray) {
                 if (row[key]) {
                     if (!dict[row[key]]) {
@@ -572,7 +570,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
                         text: resultObj.getText(columnObj)
                     };
                 }
-                
+
                 mappedRows.push(mappedRow);
                 // }
             }

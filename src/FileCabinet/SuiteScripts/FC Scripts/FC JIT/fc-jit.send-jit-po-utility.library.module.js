@@ -98,6 +98,42 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                 Parameters: {
                     LotPrefix: '@@LOT_PREFIX@@'
                 }
+            },
+            GET_SUMMARIZED_ITEM_INFO_FROM_PO: {            /// Used in the Email JIT PO from PO Form script
+                BuildQueryFunction: buildQueryGetItemInfoFromPO,
+                Query: `
+                    SELECT TransactionLine.uniquekey AS tranlineuniquekey,
+                        -- Transaction.id AS tranid,
+                        Item.id AS itemid,
+                        ABS(SUM(TransactionLine.quantity)) AS itemquantity
+                    FROM TransactionLine
+                        JOIN Transaction ON Transaction.id = TransactionLine.transaction
+                        LEFT OUTER JOIN Item ON Item.id = TransactionLine.item
+                    WHERE TransactionLine.mainline = 'F'
+                        -- AND Item.custitem_soft_comit = 'T'
+                        @@PO_ID_FILTER_1@@
+                    GROUP BY TransactionLine.uniquekey,
+                        -- Transaction.id,
+                        Item.id            
+                `,
+                Filters: {
+                    POID: {
+                        ParamPlaceholder: '@@PO_ID@@',
+                        QueryLinePlaceholders: {
+                            '@@PO_ID_FILTER_1@@': 'AND (Transaction.id = @@PO_ID@@)',
+                            // '@@PO_ID_FILTER_2@@': 'WHERE (InventoryAssignment.transaction = @@PO_ID@@)',
+                        },
+                        
+                    }
+                },
+                
+                FieldSet1: {
+                    itemid: 'Item ID',
+                    item: 'Item Quantity',
+                },
+                Parameters: {
+
+                }
             }
         }
     };
@@ -190,9 +226,54 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     var TempFields = {
     }
 
+    
+    function buildQueryGetItemInfoFromPO(poId) {
+        let sqlQuery = exports.Queries.GET_ITEM_INFO_FROM_PO.Query;
+    
+        for (let queryPlaceholder in exports.Queries.GET_ITEM_INFO_FROM_PO.Filters.POID.QueryLinePlaceholders) {
+            let filterText = exports.Queries.GET_ITEM_INFO_FROM_PO.Filters.POID.QueryLinePlaceholders[queryPlaceholder].replace(
+                exports.Queries.GET_ITEM_INFO_FROM_PO.Filters.POID.ParamPlaceholder,
+                poId
+            );
+            sqlQuery = sqlQuery.replace(
+                queryPlaceholder,
+                filterText
+            );
+        }
+
+        return sqlQuery;
+    
+    }
+
+    function addPersistentParamsField(assistant, params) {
+        // Add a hidden field to hold persistentParams
+        let hiddenPersistentParamsField = assistant.addField({
+            id: exports.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID,
+            type: serverWidget.FieldType.LONGTEXT,
+            label: exports.Settings.Ui.Fields.HIDDEN_PERSISTENT_PARAMS_LABEL,
+        });
+        hiddenPersistentParamsField.updateDisplayType({
+            displayType: serverWidget.FieldDisplayType.HIDDEN
+        });
+
+        hiddenPersistentParamsField.defaultValue = JSON.stringify(params);
+    }
+
+
+    function getPersistentParams(context) {
+        return JSON.parse(
+            context.request.parameters[FCJITlib.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID]
+        );
+    }
+
+    
+
     exports.Ids = Ids;
     exports.Settings = Settings;
     exports.TempFields = TempFields;
+    exports.buildQueryGetItemInfoFromPO = buildQueryGetItemInfoFromPO;
+    exports.addPersistentParamsField = addPersistentParamsField;
+    exports.getPersistentParams = getPersistentParams;
 
     return exports;
 }

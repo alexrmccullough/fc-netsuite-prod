@@ -38,6 +38,10 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                     Customer: {
                         name: 'entity',
                         join: ''
+                    },
+                    ItemIsJit: {
+                        name: 'custitem_soft_comit',
+                        join: 'item',
                     }
 
                 },
@@ -138,7 +142,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                     IsLastLotOfLine: {
                         nsSsFieldId: 'formulatext',
                         nsSsTargetGetType: 'value',
-                        recastValueFunc: null,  
+                        recastValueFunc: null,
                         displayName: 'Is Last Lot of Line?',
                     }
 
@@ -258,10 +262,22 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         soShipEndDate = null,
         vendorInternalIds = [],            // Preferred vendor / primary vendor -- need to add this to search? 
         customerInternalIds = [],
+        itemIsJit = null,
     } = {}) {
 
+        // Validate parameters
         soShipStartDate = soShipStartDate ? new Date(soShipStartDate) : null;
         soShipEndDate = soShipEndDate ? new Date(soShipEndDate) : null;
+        if (itemIsJit !== null) {
+            if (itemIsJit === true || itemIsJit.match(/^(?:y(?:es)?|t(?:rue)?)$/i)) {
+                itemIsJit = 'T';
+            } else if (itemIsJit === false || itemIsJit.match(/^(?:n(?:o)?|f(?:alse)?)$/i)) {
+                itemIsJit = 'F';
+            }
+            else {
+                throw new Error('Invalid value for itemIsJit parameter. Must be boolean or string "T" or "F".');
+            }
+        }
 
         // Build filters
         let filters = [];
@@ -312,12 +328,36 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 }));
         }
 
+        if (itemIsJit !== null) {
+            filters.push(
+                search.createFilter({
+                    name: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.ItemIsJit.name,
+                    join: exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Filters.ItemIsJit.join,
+                    operator: search.Operator.IS,
+                    values: [itemIsJit]
+                }));
+        }
+
 
         // Run search on date filter
         let searchResultsRaw = FCLib.runSearch(
             exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Id,
             filters
         );
+
+        // If the search results are empty, return an empty results obj
+        if (
+            !searchResultsRaw ||
+            !Object.keys(searchResultsRaw) ||
+            Object.keys(searchResultsRaw).length === 0 ||
+            !searchResultsRaw.rows ||
+            searchResultsRaw.rows.length === 0
+        ) {
+            return {
+                columns: [],
+                data: [],
+            };
+        }
 
         // const searchColFieldToValueMap = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.FieldToValueMap;
         const internalFieldInfo = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields;

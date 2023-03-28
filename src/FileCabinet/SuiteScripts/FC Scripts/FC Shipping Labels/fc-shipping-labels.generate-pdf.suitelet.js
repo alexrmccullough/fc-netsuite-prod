@@ -53,8 +53,18 @@ function main(serverWidgetModule, runtimeModule, recordModule, renderModule, xml
                     type: ui.FieldType.MULTISELECT,
                     label: 'Vendor2',
                     source: 'vendor'
-
                 });
+
+                let labelFormat = shipping_form.addField({
+                    id: 'custpage_label_format',
+                    type: ui.FieldType.SELECT,
+                    label: 'Label Format',
+                });
+
+                labelFormat.addSelectOption({ value: 'PDF_AVERY_8X11', text: 'Avery 8x11 - 10/sheet' });
+                labelFormat.addSelectOption({ value: 'PDF_ZEBRA_2X4', text: 'Zebra 2x4 - singles' });
+
+
                 vendor2.updateDisplaySize({
                     height: 15,
                     width: 400
@@ -73,9 +83,12 @@ function main(serverWidgetModule, runtimeModule, recordModule, renderModule, xml
                     parameters.custpage_vendor2.split('\u0005').map((id) => parseInt(id)) :
                     null;
 
-                let labelXml = generateShippingLabelXml(
+                // let xmlMainTemplateInfo = FCShipLabelLib.LabelFormatting.PrintFormat.PDF_AVERY_8X11;
+                let labelXml = generateShippingLabelBodyXml(
                     context,
-                    'PDF_AVERY_8X11',
+                    // 'PDF_AVERY_8X11',
+                    // 'PDF_ZEBRA_2X4',
+                    parameters.custpage_label_format,
                     parameters.custpage_from_date,
                     parameters.custpage_to_date,
                     vendorIds,
@@ -93,7 +106,6 @@ function main(serverWidgetModule, runtimeModule, recordModule, renderModule, xml
                 // context.response.write(labelXml);
                 // context.response.write(debugHtml);
 
-
                 context.response.renderPdf(labelXml);
                 return;
             }
@@ -105,7 +117,7 @@ function main(serverWidgetModule, runtimeModule, recordModule, renderModule, xml
 
 
 
-function generateShippingLabelXml(
+function generateShippingLabelBodyXml(
     context,
     printFormat = 'PDF_AVERY_8X11',
     getFromDate = null,
@@ -133,6 +145,15 @@ function generateShippingLabelXml(
         xmlMainTemplateInfo = printFormat.TemplateMain;
         xmlLabelTemplateInfo = printFormat.TemplateLabel;
 
+        // We can generate labels in two formats:
+        //   1) 8x11 Avery sheet 5163 PDF > regular printer
+        //   2) 2x4 single label/sheet PDF > Zebra printer
+
+        // Load in the xml for the main PDF body and the label
+        xmlMainTemplateInfo.Xml = FCLib.getTextFileContents(xmlMainTemplateInfo.FileId);
+        xmlLabelTemplateInfo.Xml = FCLib.getTextFileContents(xmlLabelTemplateInfo.FileId);
+
+
         const labelPlaceholders = [
             [xmlLabelTemplateInfo.Placeholders.Customer],
             [xmlLabelTemplateInfo.Placeholders.SOShipDate],
@@ -158,17 +179,19 @@ function generateShippingLabelXml(
         if (customerInternalIds && customerInternalIds.length) { searchParams.customerInternalIds = customerInternalIds; }
 
         let searchResults = FCShipLabelLib.runLotNumberedShippingLabelSearch(searchParams);
+
+        // If we have no results, return an empty string
+        if (!searchResults || !searchResults.data || !searchResults.data.length) {
+            return xmlInjectBodyIntoTemplate(
+                xmlMainTemplateInfo,
+                '<h3>No results found!</h3>'
+            );
+        }
+
         let requiredFields = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields;
         let addedFields = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.AddedFields;
 
-        // Start generating labels
-        // We can generate labels in two formats:
-        //   1) 8x11 Avery sheet 5163 PDF > regular printer
-        //   2) 2x4 single label/sheet PDF > Zebra printer
 
-        // Load in the xml for the main PDF body and the label
-        xmlMainTemplateInfo.Xml = FCLib.getTextFileContents(xmlMainTemplateInfo.FileId);
-        xmlLabelTemplateInfo.Xml = FCLib.getTextFileContents(xmlLabelTemplateInfo.FileId);
 
         let rowsPerPage = xmlMainTemplateInfo.LabelRowsPerPage;
         let colsPerPage = xmlMainTemplateInfo.LabelColsPerPage;
@@ -227,9 +250,6 @@ function generateShippingLabelXml(
 
             let lineLabelCount = Math.ceil(quantityRemaining / qtyPerLabel);
             let hasUnlottedRemainder = false;
-            
-            // let lineLabelCount = Math.ceil(curLotQty / qtyPerLabel);
-            // let lotQtyRemaining = curLotQty;
 
 
             for (let i = 1; i <= lineLabelCount; i++) {  // individual label
@@ -320,7 +340,6 @@ function generateShippingLabelXml(
                 let newLine = { ...result };
                 newLine.h
                 newLine[requiredFields.LotNumber.nsSsFieldId] = FCShipLabelLib.LabelFormatting.BLANK_LOT_STRING;
-                // newLine[addedFields.CurLotQty.fieldId] = lineLotsVsQuantities[lineUniqueDBKey].remainingLineQty;
                 newLine[addedFields.CurLotQty.fieldId] = result[requiredFields.TotalUnlottedQtyInLine.nsSsFieldId];
                 extras.push(newLine);
             }
@@ -329,22 +348,19 @@ function generateShippingLabelXml(
 
         }
 
-        // xmlFinal += '\n</tr>\n</table>\n';
-
-
     } catch (e) {
         log.error({ title: 'Error in generateShippingLabels', details: e });
         throw e;
     }
 
-    xmlFinal = xmlMainTemplateInfo.Xml.replace(xmlMainTemplateInfo.Placeholders.Body, xmlFinal);
-    remainingUsage = runtime.getCurrentScript().getRemainingUsage();
+    xmlFinal = xmlInjectBodyIntoTemplate(xmlMainTemplateInfo, xmlFinal);
 
-    // FIX: Write pdf to file cabinet
-    // Need to input destination folder and have default if not specified
-
-    //context.response.renderPdf(xmlFinal);
     return xmlFinal;
+}
+
+
+function xmlInjectBodyIntoTemplate(xmlTemplateInfo, xmlBody) {
+    return xmlTemplateInfo.Xml.replace(xmlTemplateInfo.Placeholders.Body, xmlBody);
 }
 
 function xmlOpenRow(labelCounter, colsPerPage) {
@@ -383,18 +399,13 @@ function xmlCloseTable({
 } = {}) {
 
     let retXml = '';
+
     if (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder) {
         retXml = `</table>`;
     } else if (labelCounter % labelsPerPage == 0) {
         retXml = `</table><pbr></pbr>`;
     }
 
-    // if (labelCounter % labelsPerPage == 0 || (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder)) {
-    //     retXml += `</table>`;
-    //     if (!isLastResult || !isLastLabelOfResult) {
-    //         retXml += `<pbr></pbr>`;
-    //     }
-    // }
     return retXml;
 }
 

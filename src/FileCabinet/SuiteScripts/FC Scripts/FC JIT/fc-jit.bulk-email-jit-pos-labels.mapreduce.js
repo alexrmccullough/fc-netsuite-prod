@@ -16,7 +16,7 @@ var
     task,
     file,
     FCLib,
-    FCJITPoLib,
+    FCJITlib,
     Papa;
 
 define(['N/runtime', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/FC_MainLibrary', modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
@@ -29,7 +29,7 @@ function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, 
     task = taskModule;
     file = fileModule;
     FCLib = fcMainLibModule;
-    FCJITPoLib = fcJITPoLibModule;
+    FCJITlib = fcJITPoLibModule;
     Papa = papaParseModule;
 
     return {
@@ -47,19 +47,19 @@ function getInputData(context) {
     var currentScript = runtime.getCurrentScript();
 
     let posToEmailExternalIdsRaw = currentScript.getParameter({
-        name: FCJITPoLib.Ids.Parameters.POS_TO_EMAIL_EXTERNAL_IDS
+        name: FCJITlib.Ids.Parameters.POS_TO_EMAIL_EXTERNAL_IDS
     });
 
     let shippingLabelJsonFileId = currentScript.getParameter({
-        name: FCJITPoLib.Ids.Parameters.SHIPPING_LABEL_JSON_FILE_ID
+        name: FCJITlib.Ids.Parameters.SHIPPING_LABEL_JSON_FILE_ID
     });
 
     let targetSosStartDate = currentScript.getParameter({
-        name: FCJITPoLib.Ids.Parameters.TARGET_SOS_START_DATE
+        name: FCJITlib.Ids.Parameters.TARGET_SOS_START_DATE
     });
 
     let targetSosEndDate = currentScript.getParameter({
-        name: FCJITPoLib.Ids.Parameters.TARGET_SOS_END_DATE
+        name: FCJITlib.Ids.Parameters.TARGET_SOS_END_DATE
     });
 
     // If we don't have a shipping label JSON file ID, run a search/query generate that data
