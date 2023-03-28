@@ -584,6 +584,29 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
     exports.runSearch = runSearch;
 
 
+    function addPersistentParamsField(assistant, params) {
+        // Add a hidden field to hold persistentParams
+        let hiddenPersistentParamsField = assistant.addField({
+            id: exports.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID,
+            type: serverWidget.FieldType.LONGTEXT,
+            label: exports.Settings.Ui.Fields.HIDDEN_PERSISTENT_PARAMS_LABEL,
+        });
+        hiddenPersistentParamsField.updateDisplayType({
+            displayType: serverWidget.FieldDisplayType.HIDDEN
+        });
+
+        hiddenPersistentParamsField.defaultValue = JSON.stringify(params);
+    }
+    exports.addPersistentParamsField = addPersistentParamsField;
+
+
+    function getPersistentParams(context) {
+        return JSON.parse(
+            context.request.parameters[ThisAppLib.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID]
+        );
+    }
+    exports.getPersistentParams = getPersistentParams;
+
 
     // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
     //     // Store the script ID of the script to submit

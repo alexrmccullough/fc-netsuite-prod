@@ -69,7 +69,7 @@ function main(runtimeModule, logModule, urlModule) {
 
 function buildParametersToPass(context, poRec) {
     let params = {
-        custpage_param_po_internalid: poRec.id,
+        custpage_param_po_internalid: poRec.id, // FIX: Needs to match module param name
         custpage_param_po_rectype: poRec.type,
         custpage_param_po_recipients: '',
         custpage_param_po_cc: '',

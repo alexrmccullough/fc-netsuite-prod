@@ -245,27 +245,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     
     }
 
-    function addPersistentParamsField(assistant, params) {
-        // Add a hidden field to hold persistentParams
-        let hiddenPersistentParamsField = assistant.addField({
-            id: exports.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID,
-            type: serverWidget.FieldType.LONGTEXT,
-            label: exports.Settings.Ui.Fields.HIDDEN_PERSISTENT_PARAMS_LABEL,
-        });
-        hiddenPersistentParamsField.updateDisplayType({
-            displayType: serverWidget.FieldDisplayType.HIDDEN
-        });
-
-        hiddenPersistentParamsField.defaultValue = JSON.stringify(params);
-    }
-
-
-    function getPersistentParams(context) {
-        return JSON.parse(
-            context.request.parameters[FCJITlib.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID]
-        );
-    }
-
     
 
     exports.Ids = Ids;

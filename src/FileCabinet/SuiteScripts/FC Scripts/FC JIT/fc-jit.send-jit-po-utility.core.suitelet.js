@@ -20,7 +20,7 @@ var
     scriptURL,
     url,
     FCLib,
-    FCJITlib,
+    ThisAppLib,
     Papa;
 // assistant, 
 // stepSelectOptions;
@@ -41,7 +41,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
     serverWidget = serverWidgetModule;
     url = urlModule;
     FCLib = fcLibModule;
-    FCJITlib = jitPoLibModule;
+    ThisAppLib = jitPoLibModule;
     Papa = papaparseModule;
 
     return {
@@ -131,13 +131,13 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         var today = new Date();
         var poDueDate = FCLib.addDaysToDate(
             today,
-            FCJITlib.Settings.Ui.Main.DEFAULT_PO_DUE_DATE_DAYS_FROM_TODAY
+            ThisAppLib.Settings.Ui.Main.DEFAULT_PO_DUE_DATE_DAYS_FROM_TODAY
         );
 
         var capturePODeliveryDueDate = assistant.addField({
-            id: FCJITlib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID,
+            id: ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID,
             type: serverWidget.FieldType.DATE,
-            label: FCJITlib.Settings.Ui.Fields.CAPTURE_PO_DELIVERY_DUE_DATE_LABEL,
+            label: ThisAppLib.Settings.Ui.Fields.CAPTURE_PO_DELIVERY_DUE_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         });
 
@@ -145,9 +145,9 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         capturePODeliveryDueDate.defaultValue = poDueDate;
 
         var captureSosStartDate = assistant.addField({
-            id: FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID,
+            id: ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID,
             type: serverWidget.FieldType.DATE,
-            label: FCJITlib.Settings.Ui.Fields.CAPTURE_SOS_START_DATE_LABEL,
+            label: ThisAppLib.Settings.Ui.Fields.CAPTURE_SOS_START_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         });
 
@@ -155,17 +155,17 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // captureSosStartDate.defaultValue = today;
 
         var captureSosEndDate = assistant.addField({
-            id: FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID,
+            id: ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID,
             type: serverWidget.FieldType.DATE,
-            label: FCJITlib.Settings.Ui.Fields.CAPTURE_SOS_END_DATE_LABEL,
+            label: ThisAppLib.Settings.Ui.Fields.CAPTURE_SOS_END_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         });
 
         // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
         var sendAllPosByDefault = assistant.addField({
-            id: FCJITlib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID,
+            id: ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID,
             type: serverWidget.FieldType.CHECKBOX,
-            label: FCJITlib.Settings.Ui.Fields.ENABLE_SEND_ALL_POS_BY_DEFAULT_LABEL,
+            label: ThisAppLib.Settings.Ui.Fields.ENABLE_SEND_ALL_POS_BY_DEFAULT_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         });
         sendAllPosByDefault.defaultValue = 'T';
@@ -175,23 +175,23 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
     function writeStep2InitialEdit(context, assistant) {
         // Get date parameters
         var persistentParams = {
-            [FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID]: context.request.parameters[FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
-            [FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]: context.request.parameters[FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
-            [FCJITlib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]: context.request.parameters[FCJITlib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
+            [ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
+            [ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
+            [ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
         };
         // var soStartDate = context.request.parameters[FCJITLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID];
         // var soEndDate = context.request.parameters[FCJITLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID];
-        var sendAllPosByDefault = context.request.parameters[FCJITlib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID];
+        var sendAllPosByDefault = context.request.parameters[ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID];
 
 
         var jitSOItemQueryResults = runFutureSOItemQuery(
             ['vendorentityid'],
-            persistentParams[FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
-            persistentParams[FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]
+            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
+            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]
         );
 
         // Build HTML tables to display the results
-        var displayFieldLookup = FCJITlib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
+        var displayFieldLookup = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
         var displayFieldIds = Object.keys(displayFieldLookup);
 
         // var draftPOHtml = '';
@@ -260,7 +260,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         }
 
 
-        FCJITlib.addPersistentParamsField(assistant, persistentParams);
+        FCLib.addPersistentParamsField(assistant, persistentParams);
 
         // // Add a hidden field to hold persistentParams
         // let hiddenPersistentParamsField = assistant.addField({
@@ -306,7 +306,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
     function writeStep3FinalReview(context, assistant) {
         var allParams = JSON.stringify(context.request.parameters);
-        var persistentParams = FCJITlib.getPersistentParams(context);
+        var persistentParams = FCLib.getPersistentParams(context);
 
 
         // Build dict of POs to create by examining all parameters:
@@ -325,9 +325,9 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
         var jitSOItemQueryResults = runFutureSOItemQuery(
             ['vendorid', 'itemid'],
-            persistentParams[FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
-            persistentParams[FCJITlib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
-            persistentParams[FCJITlib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
+            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
+            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
+            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
         );
 
 
@@ -395,7 +395,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
 
         let preformattedPODeliveryDate_1 = FCLib.getStandardDateString1(
-            persistentParams[FCJITlib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]
+            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]
         );
 
         // Create a lot number for these JIT POs. Lot number is based on PO delivery date
@@ -424,7 +424,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
                     [newOutputFields.poExternalId]: poExternalId,
                     [newOutputFields.poSequenceNumber]: poSequenceCounter,
                     // FIX: Do I need to format this date somehow?
-                    [newOutputFields.receiveByDate]: persistentParams[FCJITlib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
+                    [newOutputFields.receiveByDate]: persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
 
                     //NOTE/FIX?: Assuming that the query is structured such that vendorId > itemId is always unique
                     ...FCLib.pickFromObj(jitSOItemQueryResults[vendorId][itemId][0], ouputFieldsFromOrigQuery)
@@ -452,13 +452,13 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
 
         const poAcceptedCacheJsonFilename = FCLib.generateTimestampedFilename(
-            FCJITlib.Settings.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILENAME_PREFIX,
+            ThisAppLib.Settings.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILENAME_PREFIX,
             '.json',
             new Date()
         );
 
         const poRejectedCacheJsonFilename = FCLib.generateTimestampedFilename(
-            FCJITlib.Settings.JIT_PO_REJECTEDPOS_TEMPJSON_FILENAME_PREFIX,
+            ThisAppLib.Settings.JIT_PO_REJECTEDPOS_TEMPJSON_FILENAME_PREFIX,
             '.json',
             new Date()
         );
@@ -478,29 +478,29 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         );
 
         // Add the file ids to the persistent params
-        persistentParams[FCJITlib.Settings.Ui.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID] = poAcceptedCacheFileId;
-        persistentParams[FCJITlib.Settings.Ui.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID] = poRejectedCacheFileId;
+        persistentParams[ThisAppLib.Settings.Ui.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID] = poAcceptedCacheFileId;
+        persistentParams[ThisAppLib.Settings.Ui.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID] = poRejectedCacheFileId;
 
 
         // Build display of final include/exclude summary, along with changes from the original? 
         // Build a field group for POs accepted + POs rejected
         var poAcceptedFieldGroup = assistant.addFieldGroup({
-            id: FCJITlib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID,
-            label: FCJITlib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_LABEL
+            id: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID,
+            label: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_LABEL
         });
 
         var poRejectedFieldGroup = assistant.addFieldGroup({
-            id: FCJITlib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID,
-            label: FCJITlib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_LABEL
+            id: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID,
+            label: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_LABEL
         });
 
 
         // Add a field to display the POs accepted
         var posAcceptedDataField = assistant.addField({
-            id: FCJITlib.Settings.Ui.Fields.FINALREVIEW_POS_ACCEPTED_FIELD_ID,
+            id: ThisAppLib.Settings.Ui.Fields.FINALREVIEW_POS_ACCEPTED_FIELD_ID,
             type: serverWidget.FieldType.INLINEHTML,
-            label: FCJITlib.Settings.Ui.Fields.FINALREVIEW_POS_ACCEPTED_FIELD_LABEL,
-            container: FCJITlib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID,
+            label: ThisAppLib.Settings.Ui.Fields.FINALREVIEW_POS_ACCEPTED_FIELD_LABEL,
+            container: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID,
         });
 
         posAcceptedDataField.updateLayoutType({
@@ -512,10 +512,10 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
         // Add a field to display the POs rejected
         var posRejectedDataField = assistant.addField({
-            id: FCJITlib.Settings.Ui.Fields.FINALREVIEW_POS_REJECTED_FIELD_ID,
+            id: ThisAppLib.Settings.Ui.Fields.FINALREVIEW_POS_REJECTED_FIELD_ID,
             type: serverWidget.FieldType.INLINEHTML,
-            label: FCJITlib.Settings.Ui.Fields.FINALREVIEW_POS_REJECTED_FIELD_LABEL,
-            container: FCJITlib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID,
+            label: ThisAppLib.Settings.Ui.Fields.FINALREVIEW_POS_REJECTED_FIELD_LABEL,
+            container: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID,
         });
         posRejectedDataField.updateLayoutType({
             layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
@@ -542,7 +542,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         posRejectedDataField.defaultValue = posRejectedHtml ? posRejectedHtml : 'No POs rejected';
 
 
-        FCJITlib.addPersistentParamsField(assistant, persistentParams);
+        FCLib.addPersistentParamsField(assistant, persistentParams);
 
         // Create debug output on all variables
         // Create debug field
@@ -578,14 +578,14 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
     }
 
     function writeResult(context, assistant) {
-        var persistentParams = FCJITlib.getPersistentParams(context);
+        var persistentParams = FCLib.getPersistentParams(context);
 
         // Read in the accepted/rejected PO data from the cache JSON files
         let acceptedPoFileObj = file.load({
-            id: persistentParams[FCJITlib.Settings.Ui.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID]
+            id: persistentParams[ThisAppLib.Settings.Ui.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID]
         });
         let rejectedPoFileObj = file.load({
-            id: persistentParams[FCJITlib.Settings.Ui.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID]
+            id: persistentParams[ThisAppLib.Settings.Ui.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID]
         });
 
         let acceptedPoData = JSON.parse(acceptedPoFileObj.getContents());
@@ -605,7 +605,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
         // Create CSV file of accepted POs > session folder
         let poAcceptedCsvFilename =
-            FCJITlib.Settings.JIT_PO_ACCEPTEDPOS_CSV_FILENAME_PREFIX +
+            ThisAppLib.Settings.JIT_PO_ACCEPTEDPOS_CSV_FILENAME_PREFIX +
             curDateTimeStr +
             '.csv';
 
@@ -624,7 +624,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
         // Create CSV file of rejected POs > session folder
         let poRejectedCsvFilename =
-            FCJITlib.Settings.JIT_PO_REJECTEDPOS_CSV_FILENAME_PREFIX +
+            ThisAppLib.Settings.JIT_PO_REJECTEDPOS_CSV_FILENAME_PREFIX +
             curDateTimeStr +
             '.csv';
 
@@ -646,16 +646,20 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // Initiate n/task CSV Import using accepted POs CSV file
         let csvImportTask = task.create({
             taskType: task.TaskType.CSV_IMPORT,
+            // FIX: Add pointer to CSV import
         });
-        csvImportTask.mappingId = FCJITlib.Ids.CSVImportMappingsJIT_PO_IMPORT_ASSISTANT_CSVIMPORT;
+        csvImportTask.mappingId = ThisAppLib.Ids.CSVImportMappings.JIT_PO_IMPORT_ASSISTANT_CSVIMPORT;
         csvImportTask.importFile = f.load({ id: acceptedPoCsvFileId });
 
         if (false) { // FIX: Test whether any of the POs were marked as To Send
             // Set dependent task: send POs (MR script) using list of POs marked To Send from persistentParams
             let poSendTask = task.create({
                 taskType: task.TaskType.MAP_REDUCE,
-                scriptId: FCJITlib.Ids.Scripts.EMAIL_JIT_POS,
-                deploymentId: FCJITlib.Ids.Deployments.EMAIL_JIT_POS,
+                scriptId: ThisAppLib.Ids.Scripts.EMAIL_JIT_POS,
+                deploymentId: ThisAppLib.Ids.Deployments.EMAIL_JIT_POS,
+                parameters: {
+                    // FIX: Add in PO IDs to send
+                }
             });
 
             csvImportTask.addInboundDependency(poSendTask);
@@ -674,8 +678,8 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         const curDateTimeStr = FCLib.getStandardDateTimeString1(date);
         // const curDateTime = new Date();
         // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
-        var resultsFolderName = FCJITlib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
-        var resultsFolderObj = FCLib.createFolderInFileCabinet(resultsFolderName, FCJITlib.Ids.Folders.RESULTS);
+        var resultsFolderName = ThisAppLib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
+        var resultsFolderObj = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.Ids.Folders.RESULTS);
 
         return {
             sessionResultsFolderObj: resultsFolderObj,
@@ -684,17 +688,17 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
     function runFutureSOItemQuery(nestingKeys, soStartDate = null, soEndDate = null) {
         // Run query to get JIT items on future SOs within the date range specified
-        let queryText = FCJITlib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Query;
+        let queryText = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Query;
         let extraFilters = '';
 
         // Replace the date parameters in the query
         if (soStartDate) {
-            let startFilter = FCJITlib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Filters.soStartDate;
+            let startFilter = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Filters.soStartDate;
             extraFilters += startFilter.replace('@@SO_START_DATE@@', soStartDate) + '\n';
         }
 
         if (soEndDate) {
-            let endFilter = FCJITlib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Filters.soEndDate;
+            let endFilter = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Filters.soEndDate;
             extraFilters += endFilter.replace('@@SO_END_DATE@@', soEndDate) + '\n';
         }
 
@@ -713,7 +717,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
     function getNextAvailableLotNumber(lotPrefix) {
         let matchingLotsQuery = runConflictingLotNumberQuery(['lotsuffix']);
         let existingSuffixes = new Set(Object.keys(matchingLotsQuery));
-        let validSuffixes = FCJITlib.Settings.PurchaseOrder.VALID_PO_SUFFIXES;
+        let validSuffixes = ThisAppLib.Settings.PurchaseOrder.VALID_PO_SUFFIXES;
 
         // Get first valid suffix not present in existing suffixes set
         let nextSuffix = validSuffixes.find(suffix => !existingSuffixes.has(suffix));
@@ -722,8 +726,8 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
     }
 
     function runConflictingLotNumberQuery(nestingKeys, lotPrefix = '*') {
-        let queryText = FCJITlib.Queries.GET_POTENTIAL_CONFLICTING_LOT_NUMBERS.Query;
-        let lotPrefixParam = FCJITlib.Queries.GET_POTENTIAL_CONFLICTING_LOT_NUMBERS.Parameters.LotPrefix;
+        let queryText = ThisAppLib.Queries.GET_POTENTIAL_CONFLICTING_LOT_NUMBERS.Query;
+        let lotPrefixParam = ThisAppLib.Queries.GET_POTENTIAL_CONFLICTING_LOT_NUMBERS.Parameters.LotPrefix;
         queryText = queryText.replace(lotPrefixParam, lotPrefix);
         let queryResults = FCLib.sqlSelectAllRowsIntoNestedDict(
             queryText,
