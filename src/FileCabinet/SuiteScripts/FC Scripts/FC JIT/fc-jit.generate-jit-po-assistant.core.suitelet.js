@@ -4,7 +4,7 @@
 * @NModuleScope SameAccount
 */
 
-var modulePathJitPoUtilityLibrary = './fc-jit.send-jit-po-utility.library.module.js';
+var modulePathJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module.js';
 
 
 

@@ -22,7 +22,7 @@ var
 // stepSelectOptions;
 
 
-define(['N/file', 'N/https', 'N/log', 'N/ui/message', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/FC_MainLibrary', './FC_JITUpload_Library.js', '../Libraries/papaparse.min.js'], main);
+define(['N/file', 'N/https', 'N/log', 'N/ui/message', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/FC_MainLibrary', './fc-jit.update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
 
 
 function main(fileModule, httpsModule, logModule, messageModule, queryModule, recordModule, renderModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, fcJITUploadLibModule, papaparseModule) {
