@@ -10,7 +10,6 @@ var modulePathJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.
 
 var
     file,
-    https,
     log,
     page,
     query,
@@ -26,12 +25,11 @@ var
 // stepSelectOptions;
 
 
-define(['N/file', 'N/https', 'N/log', 'N/ui/message', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/FC_MainLibrary', modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
+define(['N/file', 'N/log', 'N/ui/message', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
 
 
 function main(fileModule, httpsModule, logModule, messageModule, queryModule, recordModule, renderModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, jitPoLibModule, papaparseModule) {
     file = fileModule;
-    https = httpsModule;
     log = logModule;
     message = messageModule;
     query = queryModule;
@@ -182,7 +180,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // var soStartDate = context.request.parameters[FCJITLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID];
         // var soEndDate = context.request.parameters[FCJITLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID];
         var sendAllPosByDefault = context.request.parameters[ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID];
-
+        
 
         var jitSOItemQueryResults = runFutureSOItemQuery(
             ['vendorentityid'],
@@ -190,9 +188,24 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
             persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]
         );
 
+        // DEBUG: Add a text field to the assistant to display query text
+        var queryText = assistant.addField({
+            id: 'custpage_query_text',
+            type: serverWidget.FieldType.INLINEHTML,
+            label: 'Query Text',
+        });
+        // queryText.defaultValue = '<pre>' + jitSOItemQueryResults + '</pre>\n';
+        // return;
+
+
         // Build HTML tables to display the results
-        var displayFieldLookup = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
-        var displayFieldIds = Object.keys(displayFieldLookup);
+        var queryFieldLookup = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
+        var queryFieldIds = Object.keys(queryFieldLookup);
+        var displayHeaderLookup = Object.keys(queryFieldLookup).reduce(
+            (acc, key) => {
+                acc[key] = queryFieldLookup[key].display;
+                return acc;
+            }, {});
 
         // var draftPOHtml = '';
         if (jitSOItemQueryResults) {
@@ -207,35 +220,48 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
                 const vendorId = jitSOItemQueryResults[vendorEntityId][0].vendorid;    //FIX: Need to get these variables to settings
 
-                // Build checkbox to enable/disable PO creation + sending for this vendor
-                let checkboxId = `custparam_cb_sendpo_${vendorId}`;
-                let checked = sendAllPosByDefault ? 'checked' : '';
-                let checkboxField = `<input type="checkbox" name="${checkboxId}" ${checked} />`;
+                // Build checkbox to enable/disable PO creation 
+                let poCreateCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID(vendorId);
+                let poCreateChecked = 'checked';
+                let poCreateCheckboxField = `
+                    <input type="checkbox" id= "${poCreateCheckboxId} name="${poCreateCheckboxId}" ${poCreateChecked} />
+                    <label for="${poCreateCheckboxId}">Create PO?</label>
+                    `;
+
+                // Build checkbox to enable/disable PO emailing
+                let poEmailCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID(vendorId);
+                let poEmailChecked = sendAllPosByDefault ? 'checked' : '';
+                let poEmailCheckboxField = `
+                    <input type="checkbox" name="${poEmailCheckboxId}" ${poEmailChecked} />
+                    <label for="${poEmailCheckboxId}">Email PO After Created?</label>
+                    `;
 
                 // Build long text memo field for this PO
-                let memoId = `custparam_cb_memo_${vendorId}`;
+                let memoId = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID(vendorId);
                 let memoField = `<input type="text" name="${memoId}" placeholder="Include a memo to the vendor" />`;
 
                 // Build specifications for final item qty textbox to inject into table
                 let itemQtyInputSpecs = {
                     htmlElem: 'input',
                     type: 'number',
-                    // targetColumn: 'totalqty',
-                    defaultValueField: 'totalqty',
-                    idPrefixPart1Str: 'custparam_num_finalqty',
+                    sourceValueFromField: 'totalbackordered',
+                    fieldDisplayName: 'Final PO Qty',
+                    idPrefixPart1Str: ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID('', ''),
                     idPrefixPart2Str: vendorId,
-                    idUniqueSuffixPart1Field: 'itemid',
+                    idUniqueSuffixSourceField: 'itemid',
                 };
 
                 let thisHTMLTable = FCLib.convertObjToHTMLTableStylized({
-                    fields: displayFieldIds,
+                    fields: queryFieldIds,
                     data: jitSOItemQueryResults[vendorEntityId],
-                    specialElems: {
-                        'totalqty': itemQtyInputSpecs
-                    },
+                    specialElems: [
+                        itemQtyInputSpecs
+                    ],
+                    headerNameMap: displayHeaderLookup,          // FIX: We don't need this + fields, just a single lookup object
                 });
 
-                vendorHtml = checkboxField + memoField + thisHTMLTable;
+                // Put it all together into a chunk of html representing this vendor
+                vendorHtml = `${poCreateCheckboxField}<br>${poEmailCheckboxField}<br>${memoField}<br>${thisHTMLTable}`;
 
                 // Build a Field Group to hold the data specific to this vendor
                 let fieldGroupId = `custpage_fg_${vendorId}`;
@@ -247,7 +273,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
                 // Build an inlinehtml field to hold the html, and assign it to the field group
                 let fieldId = `custpage_html_${vendorId}`;
-                let fieldLabel = `Vendor: ${vendorId}`;
+                let fieldLabel = `Vendor: ${vendorEntityId}`;
                 let field = assistant.addField({
                     id: fieldId,
                     type: serverWidget.FieldType.INLINEHTML,
@@ -260,6 +286,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         }
 
 
+        // Add a hidden field to hold persistentParams to be passed to next step
         FCLib.addPersistentParamsField(assistant, persistentParams);
 
         // // Add a hidden field to hold persistentParams
@@ -296,8 +323,8 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         debugPOHtml += '<pre>' + JSON.stringify(context.request.parameters, null, 2) + '</pre>\n\n';
         // debugPOHtml += '<pre>' + queryText + '</pre>\n\n';
         debugPOHtml += '<pre>' + JSON.stringify(jitSOItemQueryResults, null, 2) + '</pre>\n\n';
-        debugPOHtml += '<pre>' + JSON.stringify(displayFieldLookup, null, 2) + '</pre>\n\n';
-        debugPOHtml += '<pre>' + JSON.stringify(displayFieldIds, null, 2) + '</pre>\n\n';
+        debugPOHtml += '<pre>' + JSON.stringify(queryFieldLookup, null, 2) + '</pre>\n\n';
+        debugPOHtml += '<pre>' + JSON.stringify(queryFieldIds, null, 2) + '</pre>\n\n';
         debugPODataField.defaultValue = debugPOHtml;
 
         // Write the results to the context response
@@ -335,9 +362,10 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         let finalItemQuantities = {};
         let vendorsToInclude = {};
         let vendorsToExclude = {};
+        let vendorsToEmail = {};
 
         for (const [paramName, paramVal] of Object.entries(context.request.parameters)) {
-            if (paramName.startsWith('custparam_num_finalqty')) {
+            if (paramName.startsWith(ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID('', ''))) {
                 // Get the vendor id and item id from the param name
                 let vendorId = paramName.split('_')[3];
                 let itemId = paramName.split('_')[4];
@@ -345,17 +373,27 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
                 if (!finalItemQuantities[vendorId]) { finalItemQuantities[vendorId] = {}; }
                 finalItemQuantities[vendorId][itemId] = paramVal;
             }
-            else if (paramName.startsWith('custparam_cb_sendpo')) {
+            else if (paramName.startsWith(ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID(''))) {
                 let vendorId = paramName.split('_')[3];
 
                 if (paramVal == 'on' || paramVal == 'T' || paramVal == 'true') {
                     vendorsToInclude[vendorId] = true;
                 }
                 else {
-                    vendorsToExclude[vendorId] = true;
+                    vendorsToExclude[vendorId] = false;
                 }
             }
-            else if (paramName.startsWith('custparam_cb_memo')) {
+            else if (paramName.startsWith(ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID(''))) {
+                let vendorId = paramName.split('_')[3];
+
+                if (paramVal == 'on' || paramVal == 'T' || paramVal == 'true') {
+                    vendorsToEmail[vendorId] = true;
+                }
+                else {
+                    vendorsToEmail[vendorId] = false;
+                }
+            }
+            else if (paramName.startsWith(ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID(''))) {
                 let vendorId = paramName.split('_')[3];
 
                 vendorMemos[vendorId] = paramVal;
@@ -363,33 +401,35 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         }
 
         // FIX: Update this logic to present a nice table
-        let newOutputFields = {
-            finalQty: 'Final Item Qty',
-            lotNumber: 'Receipt Lot Number',
-            memo: 'PO Memo',
-            poExternalId: 'PO External ID',
-            poSequenceNumber: 'PO Sequence Counter',
-            receiveByDate: 'Receive By Date'
-        }
-        let ouputFieldsFromOrigQuery = [
-            // 'vendorid',
-            'vendorentityid',
-            'itemid',
-            'itemdisplayname',
-        ];
+        let newOutputFields = ThisAppLib.Settings.PoImportCsv.NewOutputFields;
 
-        let outputFields = [
+        let ouputFieldsFromOrigQuery = Object.keys(ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1).reduce(
+            (acc, fieldid) => {
+                if (ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[fieldid].includeInCsv)
+                    acc[fieldid] = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[fieldid].label;
+                return acc;
+            },
+            {}
+        );
+
+        //     // 'vendorid',
+        //     'vendorentityid',
+        //     'itemid',
+        //     'itemdisplayname',
+        // ];
+
+        let outputFieldHeaders = [
             ...Object.values(newOutputFields),
             ...ouputFieldsFromOrigQuery
         ];
 
         var poDataAccepted = {
-            fields: outputFields,
+            fields: outputFieldHeaders,
             data: []
         };
 
         var poDataRejected = {
-            fields: outputFields,
+            fields: outputFieldHeaders,
             data: []
         };
 
@@ -399,7 +439,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         );
 
         // Create a lot number for these JIT POs. Lot number is based on PO delivery date
-        let lotPrefix = `JIT${preformattedPODeliveryDate_1}`;
+        let lotPrefix = ThisAppLib.Settings.PurchaseOrder.GENERATE_LOT_NUMBER(preformattedPODeliveryDate_1);
         let lotNumber = getNextAvailableLotNumber(lotPrefix);
         let poSequenceCounter = 1;
 
@@ -416,8 +456,14 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
             for (let itemId in finalItemQuantities[vendorId]) {
                 let finalItemQty = finalItemQuantities[vendorId][itemId];
-                // Get all values from jitSOItemQueryResults[vendorId][itemId] using array of keys specified in outputFieldsFromOrigQuery
-                let row = {
+
+                // Build the row of data fields
+                // Two parts: 
+                //    1) Our "new" fields
+                //    2) Fields from the original query that we opted to include in the output (set in library file)
+
+                // First, build a key/value pair for each of our new fields
+                let newFieldValues = {
                     [newOutputFields.finalQty]: finalItemQty,
                     [newOutputFields.lotNumber]: lotNumber,
                     [newOutputFields.memo]: vendorMemos[vendorId],
@@ -425,12 +471,23 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
                     [newOutputFields.poSequenceNumber]: poSequenceCounter,
                     // FIX: Do I need to format this date somehow?
                     [newOutputFields.receiveByDate]: persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
-
-                    //NOTE/FIX?: Assuming that the query is structured such that vendorId > itemId is always unique
-                    ...FCLib.pickFromObj(jitSOItemQueryResults[vendorId][itemId][0], ouputFieldsFromOrigQuery)
+                    [newOutputFields.emailOnceCreated]: vendorsToEmail[vendorId] ? 'Yes' : 'No',
                 };
 
+                //NOTE/FIX?: Assuming that the query is structured such that vendorId > itemId is always unique
+                let origFieldValues = Object.keys(ouputFieldsFromOrigQuery).reduce(
+                    (acc, key) => {
+                        acc[ouputFieldsFromOrigQuery[key]] = jitSOItemQueryResults[vendorId][itemId][0][key];
+                        return acc;
+                    },
+                    {}
+                );
+
+
+                let row = { ...newFieldValues, ...origFieldValues };
+
                 // If the final item qty is > 0 AND the vendor is included, add to accepted POs
+                // Otherwise, add to rejected POs
                 if (finalItemQty > 0 && vendorsToInclude[vendorId]) {
                     poDataAccepted.data.push(row);
                 } else {
@@ -443,8 +500,14 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         }
 
         // Sort the accepted and rejected data by item id
-        poDataAccepted.data = FCLib.sortArrayOfObjsByKey(poDataAccepted.data, 'itemid');
-        poDataRejected.data = FCLib.sortArrayOfObjsByKey(poDataRejected.data, 'itemid');
+        poDataAccepted.data = FCLib.sortArrayOfObjsByKey(
+            poDataAccepted.data,
+            'itemid'
+        );
+        poDataRejected.data = FCLib.sortArrayOfObjsByKey(
+            poDataRejected.data,
+            'itemid'
+        );
 
 
         // Write PO accepted + rejected data to JSON files in _TEMPCACHE to pass to next stage
@@ -542,6 +605,30 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         posRejectedDataField.defaultValue = posRejectedHtml ? posRejectedHtml : 'No POs rejected';
 
 
+        // Build a reverse lookup table for the CSV headers > NS field id, and pass it to next step
+        //   The map/reduce script that builds the POs will use this to map the CSV headers to NS, just like
+        //    in the CSV import tool.
+        // let newFieldsReverseLookup = Object.keys(newOutputFields).reduce(
+        //     (acc, key) => {
+        //         acc[newOutputFields[key]] = key;
+        //         return acc;
+        //     },
+        //     {}
+        // );
+
+        // let origFieldsReverseLookup = Object.keys(ouputFieldsFromOrigQuery).reduce(
+        //     (acc, key) => {
+        //         acc[ouputFieldsFromOrigQuery[key]] = key;
+        //         return acc;
+        //     }
+        // )
+
+        // persistentParams[ThisAppLib.Ids.Parameters.PO_CSV_HEADER_TO_NS_REVERSE_LOOKUP_JSON] =
+        //     JSON.stringify(
+        //         { ...newFieldsReverseLookup, ...origFieldsReverseLookup }
+        //     );
+
+        // Add the persistent params to the assistant
         FCLib.addPersistentParamsField(assistant, persistentParams);
 
         // Create debug output on all variables
@@ -601,9 +688,10 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // return htmlOut;
 
         // Create session folder to store accepted/rejected PO data
-        let sessionFolderObj = createSessionSubfolder(context);
+        let sessionFolderId = createSessionSubfolder(context);
 
         // Create CSV file of accepted POs > session folder
+        const curDateTimeStr = FCLib.getStandardDateTimeString1(new Date());
         let poAcceptedCsvFilename =
             ThisAppLib.Settings.JIT_PO_ACCEPTEDPOS_CSV_FILENAME_PREFIX +
             curDateTimeStr +
@@ -619,7 +707,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
             'csv',
             poAcceptedCsvFilename,
             poAcceptedCsvContent,
-            sessionFolderObj
+            sessionFolderId
         );
 
         // Create CSV file of rejected POs > session folder
@@ -638,39 +726,75 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
             'csv',
             poRejectedCsvFilename,
             poRejectedCsvContent,
-            sessionFolderObj
+            sessionFolderId
         );
 
-        return;
+        let mrParams = {
+            [ThisAppLib.Ids.Parameters.JIT_PO_IMPORT_CSV_FILEID]: acceptedPoCsvFileId,
+            // [ThisAppLib.Ids.Parameters.PO_CSV_HEADER_TO_NS_REVERSE_LOOKUP_JSON]: csv,
+            // 'custscript_csv_fileid': itemUpdateCSVId,
+            // [FCUpdateJITAvailLib.Ids.Parameters.SUBTRACT_FUTURE_SOS_ON_UPDATE]: subtractFutureJITSOs
+        };
 
-        // Initiate n/task CSV Import using accepted POs CSV file
-        let csvImportTask = task.create({
-            taskType: task.TaskType.CSV_IMPORT,
-            // FIX: Add pointer to CSV import
+        let mrTask = task.create({
+            taskType: task.TaskType.MAP_REDUCE,
+            scriptId: ThisAppLib.Ids.Scripts.JIT_CREATE_POS_HELPER_MAPREDUCE,
+            deploymentId: ThisAppLib.Ids.Deployments.JIT_CREATE_POS_HELPER_MAPREDUCE,
+            params: mrParams
         });
-        csvImportTask.mappingId = ThisAppLib.Ids.CSVImportMappings.JIT_PO_IMPORT_ASSISTANT_CSVIMPORT;
-        csvImportTask.importFile = f.load({ id: acceptedPoCsvFileId });
 
-        if (false) { // FIX: Test whether any of the POs were marked as To Send
-            // Set dependent task: send POs (MR script) using list of POs marked To Send from persistentParams
-            let poSendTask = task.create({
-                taskType: task.TaskType.MAP_REDUCE,
-                scriptId: ThisAppLib.Ids.Scripts.EMAIL_JIT_POS,
-                deploymentId: ThisAppLib.Ids.Deployments.EMAIL_JIT_POS,
-                parameters: {
-                    // FIX: Add in PO IDs to send
-                }
-            });
+        // Submit the map/reduce task
+        let mrTaskId = mrTask.submit();
+        return mrTaskId;
 
-            csvImportTask.addInboundDependency(poSendTask);
-        }
 
-        csvImportTask.submit();
+        // var ssScriptTask = task.create({ 
+        //     taskType: task.TaskType.SCHEDULED_SCRIPT,
+        //     parameters: {
+        //         [ThisAppLib.Ids.Parameters.JIT_PO_IMPORT_CSV_FILEID]: acceptedPoCsvFileId,
+        //     }
+        // }); 
+
+        // ssScriptTask.scriptId = ThisAppLib.Ids.Scripts.JIT_PO_IMPORT_ASSISTANT_SCHEDULEDSCRIPT_HELPER_SCRIPTID;
+        // ssScriptTask.deploymentId = ThisAppLib.Ids.Deployments.JIT_PO_IMPORT_ASSISTANT_SCHEDULEDSCRIPT_HELPER_DEPLOYMENTID;
+
+        // // Initiate n/task CSV Import using accepted POs CSV file
+        // let csvImportTask = task.create({
+        //     taskType: task.TaskType.CSV_IMPORT,
+        //     // FIX: Add pointer to CSV import
+        // });
+        // csvImportTask.mappingId = ThisAppLib.Ids.CSVImportMappings.JIT_PO_IMPORT_ASSISTANT_CSVIMPORT;
+        // csvImportTask.importFile = f.load({ id: acceptedPoCsvFileId });
+
+        // if (false) { // FIX: Test whether any of the POs were marked as To Send
+        //     // Set dependent task: send POs (MR script) using list of POs marked To Send from persistentParams
+        //     let poSendTask = task.create({
+        //         taskType: task.TaskType.MAP_REDUCE,
+        //         scriptId: ThisAppLib.Ids.Scripts.EMAIL_JIT_POS,
+        //         deploymentId: ThisAppLib.Ids.Deployments.EMAIL_JIT_POS,
+        //         parameters: {
+        //             // FIX: Add in PO IDs to send
+        //         }
+        //     });
+
+        //     csvImportTask.addInboundDependency(poSendTask);
+        // }
+
+        // csvImportTask.submit();
+
+        // var scheduledScriptTaskId = ssScriptTask.submit();
+
+
+
+
+
+        return '<h3>DEBUG: Launching CSV import to create new POs!</h3>';
+
 
     }
 
     function writeCancel(context, assistant) {
-
+        return `You cancelled the JIT PO Import Assistant. Please revisit the URL to restart.`;
     }
 
 
@@ -679,11 +803,14 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // const curDateTime = new Date();
         // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
         var resultsFolderName = ThisAppLib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
-        var resultsFolderObj = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.Ids.Folders.RESULTS);
+        try {
+            var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.Ids.Folders.RESULTS);
+        }
+        catch (e) {
+            throw e;
+        }
 
-        return {
-            sessionResultsFolderObj: resultsFolderObj,
-        };
+        return resultsFolderId;
     }
 
     function runFutureSOItemQuery(nestingKeys, soStartDate = null, soEndDate = null) {
@@ -703,7 +830,11 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         }
 
         // Add the filters to the query
+        // FIX: Get thsis replacement string into settings
         queryText = queryText.replace('@@EXTRA_FILTERS@@', extraFilters);
+
+        // DEBUG
+        return queryText;
 
         // Use sqlSelectAllRowsIntoDict to get the results
         let queryResults = FCLib.sqlSelectAllRowsIntoNestedDict(

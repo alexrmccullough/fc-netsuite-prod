@@ -276,9 +276,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         var resultsFolderName = exports.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
         var resultsFolderObj = FCLib.createFolderInFileCabinet(resultsFolderName, exports.Ids.Folders.SESSION_RESULTS);
 
-        return {
-            sessionResultsFolderObj: resultsFolderObj,
-        };
+        return resultsFolderObj.id;
+        
+        // return {
+        //     sessionResultsFolderId: resultsFolderId,
+        // };
     }
 
 

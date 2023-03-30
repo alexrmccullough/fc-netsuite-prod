@@ -1,4 +1,4 @@
-var fcLibModulePath = '../Libraries/FC_MainLibrary.js';
+var fcLibModulePath = '../Libraries/fc-main.library.module.js';
 
 var query,
     task,
@@ -25,7 +25,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         Searches: {
             SHIPPING_LABEL_SS_MAIN_IDS: {
                 Id: 'customsearch_fc_shippinglabel_mainstatic',
-                InternalId: 2136,
+                // InternalId: 2136,
                 Filters: {
                     SOShipDate: {
                         name: 'shipdate',
@@ -169,7 +169,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             LabelRowsPerPage: 5,
             LabelColsPerPage: 2,
             Path: './fc-shipping-labels.generate-pdf.template8x11.main.xml',
-            FileId: 27457,
+            // FileId: 27457,    // PROD
+            FileId: 28770,
             Placeholders: {
                 Body: '<!--@@BODY_XML@@-->',
             }
@@ -178,14 +179,16 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             LabelRowsPerPage: 1,
             LabelColsPerPage: 1,
             Path: './fc-shipping-labels.generate-pdf.template2x4zebra.main.xml',
-            FileId: 27456,
+            // FileId: 27456,   // PROD
+            FileId: 28769,
             Placeholders: {
                 Body: '<!--@@BODY_XML@@-->',
             },
         },
         XMLTemplate2x4Label: {
             Path: './fc-shipping-labels.generate-pdf.template_general.label.xml',
-            FileId: 27455,
+            // FileId: 27455,     // PROD
+            FileId: 28768,
             Placeholders: {
                 Customer: '<!--@@ENTITYNAME@@-->',
                 SOShipDate: '<!--@@SHIPDATE@@-->',
@@ -403,7 +406,9 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 }
     
                 // FIX: This will probably fail if we have more than one partial-qty item
-                if (lotNumber) {
+                if (inExtras) {
+                    quantityRemaining = curLotQty;
+                } else if (lotNumber) {
                     quantityRemaining = lotQuantity;
                 } else {
                     quantityRemaining = soLineQuantity;
@@ -437,7 +442,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         [xmlLabelTemplateInfo.Placeholders.LabelQty]: thisLabelQty,
                         [xmlLabelTemplateInfo.Placeholders.LabelPos]: i,
                         [xmlLabelTemplateInfo.Placeholders.LineLabelCt]: lineLabelCount,
-                        [xmlLabelTemplateInfo.Placeholders.LotNumber]: lotNumber,
+                        [xmlLabelTemplateInfo.Placeholders.LotNumber]: lotNumber ? lotNumber : FCShipLabelLib.LabelFormatting.BLANK_LOT_STRING,
                         [xmlLabelTemplateInfo.Placeholders.Brand]: brand,
                         [xmlLabelTemplateInfo.Placeholders.ProductStub]: productStub,
                         [xmlLabelTemplateInfo.Placeholders.MasterCase]: masterCase,
@@ -499,13 +504,14 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
     
                 if (hasUnlottedRemainder) {
                     let newLine = { ...result };
-                    newLine.h
-                    newLine[requiredFields.LotNumber.nsSsFieldId] = FCShipLabelLib.LabelFormatting.BLANK_LOT_STRING;
+                    newLine[requiredFields.LotNumber.nsSsFieldId] = '';
                     newLine[addedFields.CurLotQty.fieldId] = result[requiredFields.TotalUnlottedQtyInLine.nsSsFieldId];
                     extras.push(newLine);
                 }
     
-                resultIdx += 1;
+                if (!inExtras) {
+                    resultIdx += 1;
+                }
     
             }
     
@@ -585,18 +591,23 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
     } = {}) {
 
         // Validate parameters
-        soShipStartDate = soShipStartDate ? new Date(soShipStartDate) : null;
-        soShipEndDate = soShipEndDate ? new Date(soShipEndDate) : null;
+        soShipStartDate = soShipStartDate ? 
+            FCLib.getStandardDisplayDateString1(new Date(soShipStartDate)) : 
+            null;
+        soShipEndDate = soShipEndDate ? 
+            FCLib.getStandardDisplayDateString1(new Date(soShipEndDate)) : 
+            null;
         if (itemIsJit !== null) {
-            if (itemIsJit === true || itemIsJit.match(/^(?:y(?:es)?|t(?:rue)?)$/i)) {
+            if (FCLib.looksLikeYes(itemIsJit)) {
                 itemIsJit = 'T';
-            } else if (itemIsJit === false || itemIsJit.match(/^(?:n(?:o)?|f(?:alse)?)$/i)) {
+            } else if (FCLib.looksLikeNo(itemIsJit)) {
                 itemIsJit = 'F';
             }
             else {
                 throw new Error('Invalid value for itemIsJit parameter. Must be boolean or string "T" or "F".');
             }
         }
+
 
         // Build filters
         let filters = [];

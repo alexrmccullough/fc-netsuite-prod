@@ -13,16 +13,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     email = emailModule;
 
     var exports = {
-        Form: {
-        },
-        Sublists: {
-        },
-        Searches: {
-        },
-        Urls: {
-        },
-        Lookups: {
-        },
         Queries: {
             POInfoQuery: {
                 SQL_IntExt: `
@@ -79,21 +69,24 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
 
     var Ids = {
         Scripts: {
+            FC_BULK_EMAIL_JIT_POS_MR: 'custscript_fc_bulk_email_jit_pos_mr',
         },
         Deployments: {
-        },
-        Searches: {
-
+            FC_BULK_EMAIL_JIT_POS_MR: 'custdeploy_fc_bulk_email_jit_pos_mr',
         },
         Fields: {
-        },
-        Sublists: {
         },
         Folders: {
         },
         Files: {
         },
         Parameters: {
+            POS_TO_EMAIL_EXTERNAL_IDS: 'custscript_fc_am_jitpo_pos_to_email_extids',
+            POS_TO_EMAIL_INTERNAL_IDS: 'custscript_fc_am_jitpo_pos_to_email_intids',
+            SHIPPING_LABEL_JSON_FILE_ID: 'custscript_fc_am_jitpo_shipping_label_json_file_id',
+            TARGET_SOS_START_DATE: 'custscript_fc_am_jitpo_target_sos_start_date',
+            TARGET_SOS_END_DATE: 'custscript_fc_am_jitpo_target_sos_end_date',
+            SESSION_OUTPUT_FOLDER_ID: 'custscript_fc_am_jitpo_session_output_folder_id',
         },
         CSVImportMappings: {
         }

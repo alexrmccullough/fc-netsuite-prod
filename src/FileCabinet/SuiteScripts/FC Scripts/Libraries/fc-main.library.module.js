@@ -2,16 +2,20 @@ var query,
     task,
     runtime,
     email,
-    search;
+    search,
+    serverWidget,
+    dayjs;
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/search'], main);
+define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/search', 'N/ui/serverWidget', './dayjs.min.js'], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule, searchModule) {
+function main(queryModule, taskModule, runtimeModule, emailModule, searchModule, serverWidgetModule, dayjsModule) {
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
     search = searchModule;
+    serverWidget = serverWidgetModule;
+    dayjs = dayjsModule;
 
     var exports = {
         Form: {
@@ -83,12 +87,25 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
             }
         },
         Folders: {
-            MAIN_TEMP_CACHE_FOLDER: 9114,
+            // MAIN_TEMP_CACHE_FOLDER: 9114,   // PROD
+            MAIN_TEMP_CACHE_FOLDER: 8605, // SB
         },
         Sublists: {
         }
     }
     exports.Ids = Ids;
+
+    var Settings = {
+        Ui: {
+            Parameters: {
+                HIDDEN_PERSISTENT_PARAMS_ID: 'custpage_hidden_persistent_params',
+            },
+            Fields: {
+                HIDDEN_PERSISTENT_PARAMS_LABEL: 'Hidden Persistent Params',
+            }
+        }
+    }
+    exports.Settings = Settings;
 
 
 
@@ -109,8 +126,21 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
             var paginatedRowEnd = 5000;
 
             do {
-                var paginatedSQL = 'SELECT * FROM ( SELECT ROWNUM AS ROWNUMBER, * FROM (' + sql + ' ) ) WHERE ( ROWNUMBER BETWEEN ' + paginatedRowBegin + ' AND ' + paginatedRowEnd + ')';
+                var paginatedSQL = `
+                    SELECT * 
+                    FROM ( 
+                        SELECT 
+                            ROWNUM AS ROWNUMBER, 
+                            * 
+                        FROM (${sql}) 
+                        ) 
+                    WHERE ( 
+                        ROWNUMBER BETWEEN ${paginatedRowBegin} AND ${paginatedRowEnd}
+                        )
+                    `;
+
                 var queryResults = query.runSuiteQL({ query: paginatedSQL, params: queryParams }).asMappedResults();
+                // var queryResults = query.runSuiteQL({ query: paginatedSQL }).asMappedResults();
                 rows = rows.concat(queryResults);
                 if (queryResults.length < 5000) { moreRows = false; }
                 paginatedRowBegin = paginatedRowBegin + 5000;
@@ -118,6 +148,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
 
         } catch (e) {
             log.error({ title: 'selectAllRows - error', details: { 'sql': sql, 'queryParams': queryParams, 'error': e } });
+            throw e;
         }
 
         return rows;
@@ -137,6 +168,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
 
         } catch (e) {
             log.error({ title: 'selectAllRows - error', details: { 'sql': sql, 'queryParams': queryParams, 'error': e } });
+            throw e;
         }
 
         return dict;
@@ -154,6 +186,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
 
         } catch (e) {
             log.error({ title: 'sqlSelectAllRowsIntoNestedDict - error', details: { 'sql': sql, 'queryParams': queryParams, 'error': e } });
+            throw e;
         }
 
         return dict;
@@ -189,6 +222,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
 
         } catch (e) {
             log.error({ title: 'createNestedDictFromObjArray - error', details: { 'params': [objArray, keys], 'error': e } });
+            throw e;
         }
 
         return dict;
@@ -224,11 +258,12 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
 
         // Save the record.
         var folderId = objRecord.save();
+        return folderId;
 
-        // Get the record.
-        let result = record.load({ type: record.Type.FOLDER, id: folderId, isDynamic: false });
+        // // Get the record.
+        // let result = record.load({ type: record.Type.FOLDER, id: folderId, isDynamic: false });
 
-        return result;
+        // return result;
     }
     exports.createFolderInFileCabinet = createFolderInFileCabinet;
 
@@ -251,6 +286,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
             fileObj.save();
         } catch (e) {
             log.error({ title: 'moveFileToFolder - error', details: { 'fileId': fileId, 'folderId': folderId, 'error': e } });
+            throw e;
         }
         return true;
     }
@@ -333,17 +369,47 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
         thElem = '<th>',
         tdElem = '<td>',
         tbodyTrElem = '<tr>',
-        specialElems = []
+        specialElems = [],
+        headerNameMap = {},
     } = {}) {
+        let tableHtml = '';
 
-        var tableHtml = '';
+        let internalFieldsWithMapping = [];
 
         if (data.length > 0) {
+            // Validate specialElems to ensure that source field is present
+            for (let specialElem of specialElems) {
+                const fieldId = specialElem.sourceValueFromField;
+                if (!fields.includes(fieldId)) {
+                    throw new Error(`convertObjToHTMLTable - specialElems.sourceFromField ${fieldId} not found in fields`);
+                }
+            }
+
+
+            // Map the header names to special headers, if provided
+            for (var i = 0; i < fields.length; i++) {
+                let mappedFieldName = fields[i];
+
+                if (fields[i] in headerNameMap) {
+                    mappedFieldName = headerNameMap[fields[i]];
+                }
+                // fields[i] = {
+                internalFieldsWithMapping.push({
+                    orig: fields[i],
+                    mapped: mappedFieldName
+                });
+            }
+
+
             var htmlHeader = '<thead>';
             htmlHeader += theadTrElem;
-
-            for (var i = 0; i < fields.length; i++) {
-                htmlHeader += thElem + fields[i] + '</th>';
+            // Add in Special Elements as first columns
+            for (let specialElem of specialElems) {
+                htmlHeader += thElem + specialElem.fieldDisplayName + '</th>';
+            }
+            // Now add in the rest of the fields
+            for (var i = 0; i < internalFieldsWithMapping.length; i++) {
+                htmlHeader += thElem + internalFieldsWithMapping[i].mapped + '</th>';
             }
 
             htmlHeader += '</tr></thead>';
@@ -352,26 +418,30 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
             for (var i = 0; i < data.length; i++) {
                 var row = data[i];
                 htmlBody += tbodyTrElem;
-                for (var j = 0; j < fields.length; j++) {
-                    let field = fields[j];
-                    let val = '';
-                    // Determine the value of what goes in here
-                    if (field in specialElems) {
-                        const elem = specialElems[field];
 
-                        // Build element id
-                        let elemId =
-                            `${elem.idPrefixPart1Str}_${elem.idPrefixPart2Str}_${row[elem.idUniqueSuffixPart1Field]}`;
+                // FIX: Combine this into single loop
 
-                        switch (elem.htmlElem) {
-                            case 'input':
-                                val = `<input type="${elem.type}" id="${elemId}" name="${elemId}" value="${row[elem.defaultValueField]}">`;
-                        }
+                // First add in Special Elements as first columns
+                for (let elem of specialElems) {
+                    const fieldId = elem.sourceFromField;
+                    const fieldDisplayName = elem.fieldDisplayName;
 
-                    } else {
-                        val = row[field];
+                    // Build element id
+                    let elemId =
+                        `${elem.idPrefixPart1Str}_${elem.idPrefixPart2Str}_${row[elem.idUniqueSuffixSourceField]}`;
+
+                    let val = null;
+                    switch (elem.htmlElem) {
+                        case 'input':
+                            val = `<input type="${elem.type}" id="${elemId}" name="${elemId}" value="${row[elem.sourceValueFromField]}">`;
                     }
-
+                    htmlBody += tdElem + val + '</td>';
+                }
+                
+                for (var k = 0; k < internalFieldsWithMapping.length; k++) {
+                    let thisField = internalFieldsWithMapping[k];
+                    let val = row[thisField.orig];
+        
                     htmlBody += tdElem + val + '</td>';
                 }
                 htmlBody += '</tr>';
@@ -391,7 +461,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
         data = [],
         headerBGColor = '#009879',
         headerTextColor = '#ffffff',
-        specialElems = []
+        specialElems = [],
+        headerNameMap = {},
     } = {}) {
 
         return exports.convertObjToHTMLTable({
@@ -404,7 +475,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
             thElem: `<th style="padding: 12px 15px">`,
             tdElem: `<td style="padding: 12px 15px">`,
             tbodyTrElem: `<tr style="border-bottom: 1px solid #dddddd">`,
-            specialElems: specialElems
+            specialElems: specialElems,
+            headerNameMap: headerNameMap,
         });
 
     }
@@ -482,6 +554,15 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
         return `${year}${month}${day}`;
     }
     exports.getStandardDateString1 = getStandardDateString1;
+
+    function getStandardDisplayDateString1(date) {
+        let dateObj = new Date(date);
+        let year = dateObj.getFullYear();
+        let month = dateObj.getMonth() + 1;
+        let day = dateObj.getDate();
+        return `${month}/${day}/${year}`;
+    }
+    exports.getStandardDisplayDateString1 = getStandardDisplayDateString1;
 
     function getStandardDateTimeString1(date) {
         let dateObj = new Date(date);
@@ -606,6 +687,19 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule)
         );
     }
     exports.getPersistentParams = getPersistentParams;
+
+
+    function looksLikeYes (val) {
+        if (val === true || val === 1) { return true; }
+        return val.match(/^(?:y(?:es)?|t(?:rue)?)$/i) !== null;
+    }
+    exports.looksLikeYes = looksLikeYes;
+
+    function looksLikeNo (val) {
+        if (val === false || val === 0) { return true; }
+        return val.match(/^(?:n(?:o)?|f(?:alse)?)$/i) !== null;
+    }
+    exports.looksLikeNo = looksLikeNo;
 
 
     // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {

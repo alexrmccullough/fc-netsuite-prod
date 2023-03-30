@@ -16,13 +16,13 @@ var
     scriptURL,
     url,
     FCLib,
-    FCJITUploadLib,
+    FCUpdateJITAvailLib,
     Papa;
 // assistant, 
 // stepSelectOptions;
 
 
-define(['N/file', 'N/https', 'N/log', 'N/ui/message', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/FC_MainLibrary', './fc-jit.update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
+define(['N/file', 'N/https', 'N/log', 'N/ui/message', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', './fc-jit.update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
 
 
 function main(fileModule, httpsModule, logModule, messageModule, queryModule, recordModule, renderModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, fcJITUploadLibModule, papaparseModule) {
@@ -37,7 +37,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
     serverWidget = serverWidgetModule;
     url = urlModule;
     FCLib = fcLibModule;
-    FCJITUploadLib = fcJITUploadLibModule;
+    FCUpdateJITAvailLib = fcJITUploadLibModule;
     Papa = papaparseModule;
 
     return {
@@ -92,51 +92,89 @@ function writeStepSelectOptions(context, assistant) {
 
     // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
     var subtractFutureSOsCheckbox = assistant.addField({
-        id: FCJITUploadLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID,
+        id: FCUpdateJITAvailLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID,
         type: serverWidget.FieldType.CHECKBOX,
-        label: FCJITUploadLib.Settings.Ui.Buttons.SUBTRACT_FUTURE_SOS_CHECKBOX_LABEL,
+        label: FCUpdateJITAvailLib.Settings.Ui.Buttons.SUBTRACT_FUTURE_SOS_CHECKBOX_LABEL,
         // container: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
     });
     subtractFutureSOsCheckbox.defaultValue = 'T';
 
     // Add a checkbox to switch on/off Reset all JIT
     var resetAllJITCheckbox = assistant.addField({
-        id: FCJITUploadLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID,
+        id: FCUpdateJITAvailLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID,
         type: serverWidget.FieldType.CHECKBOX,
-        label: FCJITUploadLib.Settings.Ui.Buttons.RESET_ALL_JIT_CHECKBOX_LABEL,
+        label: FCUpdateJITAvailLib.Settings.Ui.Buttons.RESET_ALL_JIT_CHECKBOX_LABEL,
         // container: FCJITUploadLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
     });
     resetAllJITCheckbox.defaultValue = 'T';
+
+
+    // Get the list of files currently in the Input folder and display
+    let sql = FCUpdateJITAvailLib.Queries.GET_ALL_CSV_FILES_IN_FOLDER_BY_ID;
+    let queryResults = FCLib. sqlSelectAllRows(sql, params = [FCUpdateJITAvailLib.Ids.Folders.INPUT]);
+    // let queryResults = query.runSuiteQL({ query: sql, params: [FCUpdateJITAvailLib.Ids.Folders.INPUT] });
+    // let files = queryResults.asMappedResults();
+
+    let tableHtml = ''
+    if (!queryResults || queryResults.length === 0) {
+        tableHtml = '<p>No csv files found in the Input folder.</p>';
+        log.debug({ title: 'parseJITCSVs - no files found', details: { 'folderId': folderId } });
+    }
+    else{
+        tableHtml += FCLib.convertObjToHTMLTableStylized({
+            fields: ['id', 'name', 'lastmodifieddate'],
+            data: queryResults,
+            headerNameMap: {
+                id: 'File ID',
+                name: 'File Name',
+                lastmodifieddate: 'Last Modified Date',
+            }
+        });
+    }
+
+    // Add a field group and an inlinehtml field to display the table of files
+    var fileTableFieldGroup = assistant.addFieldGroup({
+        id: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.FILE_TABLE_FIELD_GROUP_ID,
+        label: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.FILE_TABLE_FIELD_GROUP_LABEL
+    });
+
+    var fileTableField = assistant.addField({
+        id: FCUpdateJITAvailLib.Settings.Ui.Fields.FILE_TABLE_FIELD_ID,
+        type: serverWidget.FieldType.INLINEHTML,
+        label: FCUpdateJITAvailLib.Settings.Ui.Fields.FILE_TABLE_FIELD_LABEL,
+        container: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.FILE_TABLE_FIELD_GROUP_ID
+    });
+    fileTableField.defaultValue = tableHtml;
 
 }
 
 function writeStepReviewAndCommit(context, assistant) {
     var allParams = JSON.stringify(context.request.parameters);
     // Get parameters
-    var subtractFutureJITSOs = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID];
-    var resetAllJIT = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID];
+    var subtractFutureJITSOs = context.request.parameters[FCUpdateJITAvailLib.Settings.Ui.Parameters.SUBTRACT_FUTURE_SOS_CHECKBOX_ID];
+    var resetAllJIT = context.request.parameters[FCUpdateJITAvailLib.Settings.Ui.Parameters.RESET_ALL_JIT_CHECKBOX_ID];
 
     subtractFutureJITSOs = subtractFutureJITSOs == 'T' ? true : false;
     resetAllJIT = resetAllJIT == 'T' ? true : false;
 
     // Add a field group for the error results
     var errorResultsFieldGroup = assistant.addFieldGroup({
-        id: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_ID,
-        label: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_LABEL
+        id: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_ID,
+        label: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_LABEL
     });
 
     // Add a field group for the item update results
     var itemUpdateResultsFieldGroup = assistant.addFieldGroup({
-        id: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_ID,
-        label: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_LABEL
+        id: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_ID,
+        label: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_LABEL
     });
 
     // Add a field to display the results of the file validation
     var errorResultsField = assistant.addField({
-        id: FCJITUploadLib.Settings.Ui.Fields.ERROR_RESULTS_FIELD_ID,
+        id: FCUpdateJITAvailLib.Settings.Ui.Fields.ERROR_RESULTS_FIELD_ID,
         type: serverWidget.FieldType.INLINEHTML,
-        label: FCJITUploadLib.Settings.Ui.Fields.ERROR_RESULTS_FIELD_LABEL,
-        container: FCJITUploadLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_ID
+        label: FCUpdateJITAvailLib.Settings.Ui.Fields.ERROR_RESULTS_FIELD_LABEL,
+        container: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.ERROR_RESULTS_FIELD_GROUP_ID
     });
     errorResultsField.updateLayoutType({
         layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
@@ -147,10 +185,10 @@ function writeStepReviewAndCommit(context, assistant) {
 
     // Add a field to display the results of the item update
     var itemUpdateResultsField = assistant.addField({
-        id: FCJITUploadLib.Settings.Ui.Fields.ITEM_UPDATE_RESULTS_FIELD_ID,
+        id: FCUpdateJITAvailLib.Settings.Ui.Fields.ITEM_UPDATE_RESULTS_FIELD_ID,
         type: serverWidget.FieldType.INLINEHTML,
-        label: FCJITUploadLib.Settings.Ui.Fields.ITEM_UPDATE_RESULTS_FIELD_LABEL,
-        container: FCJITUploadLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_ID
+        label: FCUpdateJITAvailLib.Settings.Ui.Fields.ITEM_UPDATE_RESULTS_FIELD_LABEL,
+        container: FCUpdateJITAvailLib.Settings.Ui.FieldGroups.ITEM_UPDATE_RESULTS_FIELD_GROUP_ID
     });
     itemUpdateResultsField.updateLayoutType({
         layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
@@ -162,9 +200,9 @@ function writeStepReviewAndCommit(context, assistant) {
 
     // Add a hidden field to hold the ID of the JIT CSV upload file
     var itemUploadCSVIdField = assistant.addField({
-        id: FCJITUploadLib.Settings.Ui.Parameters.ITEM_UPLOAD_CSV_FIELD_ID,
+        id: FCUpdateJITAvailLib.Settings.Ui.Parameters.ITEM_UPLOAD_CSV_FIELD_ID,
         type: serverWidget.FieldType.INTEGER,
-        label: FCJITUploadLib.Settings.Ui.Fields.ITEM_UPLOAD_CSV_FIELD_LABEL
+        label: FCUpdateJITAvailLib.Settings.Ui.Fields.ITEM_UPLOAD_CSV_FIELD_LABEL
     });
     itemUploadCSVIdField.updateDisplayType({
         displayType: serverWidget.FieldDisplayType.HIDDEN
@@ -172,7 +210,7 @@ function writeStepReviewAndCommit(context, assistant) {
 
 
     uploadPreviewResults = loadUploadPreview(context, subtractFutureJITSOs, resetAllJIT);
-    uploadPreviewResults.errorHtml += uploadPreviewResults.debugOut;
+    // uploadPreviewResults.errorHtml += uploadPreviewResults.debugOut;
     uploadPreviewResults.errorHtml += uploadPreviewResults.uploadCSVFileId;
 
     errorResultsField.defaultValue = uploadPreviewResults.errorHtml;
@@ -185,7 +223,7 @@ function writeResult (context, assistant) {
     // Launch the MR task using the JIT CSV upload ID passed as a parameter
     // Display a message to the user that the task has been launched
     // Display a link to the task status page
-    let itemUploadCSVId = context.request.parameters[FCJITUploadLib.Settings.Ui.Parameters.ITEM_UPLOAD_CSV_FIELD_ID];
+    let itemUploadCSVId = context.request.parameters[FCUpdateJITAvailLib.Settings.Ui.Parameters.ITEM_UPLOAD_CSV_FIELD_ID];
 
     let mrTaskId = submitItemUpdateMRJob(
         context,
@@ -247,7 +285,7 @@ function ParsedFile({
         errorMsg = '' } = {}
     ) {
         let newError = {
-            [FCJITUploadLib.Settings.CSV_OUT_ERROR_FIELDNAME]: errorMsg
+            [FCUpdateJITAvailLib.Settings.CSV_OUT_ERROR_FIELDNAME]: errorMsg
         };
 
         if (origRow >= 0) {
@@ -265,7 +303,7 @@ function ParsedFile({
         lineData = {}
     } = {}) {
         // FIX: Not sure how best to key this
-        this.itemsToUpdate[lineData[FCJITUploadLib.Settings.ITEM_ID_FIELDNAME]] = jitStartQty;
+        this.itemsToUpdate[lineData[FCUpdateJITAvailLib.Settings.ITEM_ID_FIELDNAME]] = jitStartQty;
     }
 
     this.isErrorRow = function (row) {
@@ -278,7 +316,7 @@ function ParsedFile({
         }
 
         // Output fields = Error column + the original fields from the meta output
-        let outputFields = [FCJITUploadLib.Settings.CSV_OUT_ERROR_FIELDNAME];
+        let outputFields = [FCUpdateJITAvailLib.Settings.CSV_OUT_ERROR_FIELDNAME];
         outputFields.push(...this.parsingMeta.fields);
 
         // Sort the error output by original row number
@@ -286,7 +324,7 @@ function ParsedFile({
 
         // Add extra column headers to fit all __parsed_extra columns, if they exist
         let maxParsedExtra = 0;
-        let extrasColName = FCJITUploadLib.Settings.PAPAPARSE_EXTRA_COL_NAME;
+        let extrasColName = FCUpdateJITAvailLib.Settings.PAPAPARSE_EXTRA_COL_NAME;
         for (let errorLine of sortedErrorData) {
             if (extrasColName in errorLine) {
                 lineExtraCols = errorLine[extrasColName].length;
@@ -350,7 +388,7 @@ function ParsedFile({
 function parseJITCSVs(context, folderId) {
     var parsedFiles = [];
     try {
-        let sql = FCJITUploadLib.Queries.GET_ALL_CSV_FILES_IN_FOLDER_BY_ID;
+        let sql = FCUpdateJITAvailLib.Queries.GET_ALL_CSV_FILES_IN_FOLDER_BY_ID;
         let queryResults = query.runSuiteQL({ query: sql, params: [folderId] });
         let files = queryResults.asMappedResults();
         if (files.length == 0) {
@@ -396,7 +434,7 @@ function parseJITCSVs(context, folderId) {
 
 
 function getJITItemSnapshot(context) {
-    let sql = FCJITUploadLib.Queries.GET_JIT_ITEM_SNAPSHOT;
+    let sql = FCUpdateJITAvailLib.Queries.GET_JIT_ITEM_SNAPSHOT;
     let queryParams = new Array();
     let items = FCLib.sqlSelectAllRowsIntoDict(sql, 'itemname', queryParams);
     return items;
@@ -405,7 +443,7 @@ function getJITItemSnapshot(context) {
 
 
 function getJITItemsOnFutureSOs(context, itemIds) {
-    let sql = FCJITUploadLib.Queries.GET_JIT_ITEMS_ON_FUTURE_SOS;
+    let sql = FCUpdateJITAvailLib.Queries.GET_JIT_ITEMS_ON_FUTURE_SOS;
     // let queryParams = [itemIds];
     let items = FCLib.sqlSelectAllRowsIntoDict(sql, 'itemId');
     return items;
@@ -430,7 +468,7 @@ function validateCSVData(context, parsedFiles, nsItemData) {
 
         // Test whether file has all required fields
         // Error if file doesn't have all required fields
-        for (let reqField of FCJITUploadLib.Settings.REQUIRED_FIELD_NAMES) {
+        for (let reqField of FCUpdateJITAvailLib.Settings.REQUIRED_FIELD_NAMES) {
             if (!(thisFile.parsingMeta.fields.includes(reqField))) {
                 thisFile.addError({
                     origRow: -1,
@@ -469,8 +507,8 @@ function validateCSVData(context, parsedFiles, nsItemData) {
                 }
 
                 try {
-                    let itemId = curLine[FCJITUploadLib.Settings.ITEM_ID_FIELDNAME];
-                    let jitStartQty = curLine[FCJITUploadLib.Settings.JIT_START_QTY_FIELDNAME];
+                    let itemId = curLine[FCUpdateJITAvailLib.Settings.ITEM_ID_FIELDNAME];
+                    let jitStartQty = curLine[FCUpdateJITAvailLib.Settings.JIT_START_QTY_FIELDNAME];
 
                     // Skip if Item ID is not recognized
                     if (!(itemId in nsItemData)) {
@@ -492,7 +530,7 @@ function validateCSVData(context, parsedFiles, nsItemData) {
                     // Skip if invalid start qty
                     if (isNaN(jitStartQty)) {
                         throw new LineValidationError(
-                            `Invalid number in ${FCJITUploadLib.Settings.JIT_START_QTY_FIELDNAME}: ${jitStartQty}`
+                            `Invalid number in ${FCUpdateJITAvailLib.Settings.JIT_START_QTY_FIELDNAME}: ${jitStartQty}`
                         );
                     }
 
@@ -628,8 +666,8 @@ function buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot) 
         FCLib.Ids.Fields.Item.Name,
         FCLib.Ids.Fields.Item.ItemType,
         FCLib.Ids.Fields.Item.IsLotItem,
-        FCJITUploadLib.TempFields.ItemOldStartJITQty,
-        FCJITUploadLib.TempFields.ItemOldRemainingJITQty,
+        FCUpdateJITAvailLib.TempFields.ItemOldStartJITQty,
+        FCUpdateJITAvailLib.TempFields.ItemOldRemainingJITQty,
         FCLib.Ids.Fields.Item.StartJITQty,
         FCLib.Ids.Fields.Item.RemainingJITQty,
     ];
@@ -643,8 +681,8 @@ function buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot) 
             [FCLib.Ids.Fields.Item.Name]: itemId,
             [FCLib.Ids.Fields.Item.ItemType]: nsItemData.itemtype,
             [FCLib.Ids.Fields.Item.IsLotItem]: nsItemData.islotitem,
-            [FCJITUploadLib.TempFields.ItemOldStartJITQty]: nsItemData.startjitqty,
-            [FCJITUploadLib.TempFields.ItemOldRemainingJITQty]: nsItemData.remainjitqty,
+            [FCUpdateJITAvailLib.TempFields.ItemOldStartJITQty]: nsItemData.startjitqty,
+            [FCUpdateJITAvailLib.TempFields.ItemOldRemainingJITQty]: nsItemData.remainjitqty,
             [FCLib.Ids.Fields.Item.StartJITQty]: itemUpdateData.newJITStartQty,
             [FCLib.Ids.Fields.Item.RemainingJITQty]: itemUpdateData.newJITRemainingQty,
         });
@@ -680,7 +718,7 @@ function buildSuccessfulUploadsCSV(context, itemUpdateMaster, jitItemSnapshot, c
     // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
 
     var uploadFileName =
-        FCJITUploadLib.Settings.JIT_UPLOAD_UTILITY_CSV_FILENAME_PREFIX +
+        FCUpdateJITAvailLib.Settings.JIT_UPLOAD_UTILITY_CSV_FILENAME_PREFIX +
         curDateTimeStr +
         '.csv';
 
@@ -712,13 +750,13 @@ function createSessionSubfolder(context, date = new Date()) {
     const curDateTimeStr = FCLib.getStandardDateTimeString1(date);
     // const curDateTime = new Date();
     // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
-    var resultsFolderName = FCJITUploadLib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
-    var resultsFolder = FCLib.createFolderInFileCabinet(resultsFolderName, FCJITUploadLib.Ids.Folders.RESULTS);
-    var originalsFolder = FCLib.createFolderInFileCabinet(FCJITUploadLib.Settings.CSV_ORIGINALS_SUBFOLDER_NAME, resultsFolder.id);
+    var resultsFolderName = FCUpdateJITAvailLib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
+    var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, FCUpdateJITAvailLib.Ids.Folders.RESULTS);
+    var originalsFolderId = FCLib.createFolderInFileCabinet(FCUpdateJITAvailLib.Settings.CSV_ORIGINALS_SUBFOLDER_NAME, resultsFolder.id);
 
     return {
-        sessionResultsFolder: resultsFolder,
-        sessionOriginalsFolder: originalsFolder
+        sessionResultsFolderId: resultsFolderId,
+        sessionOriginalsFolderId: originalsFolderId
     };
 }
 
@@ -727,14 +765,15 @@ function createSessionSubfolder(context, date = new Date()) {
 function submitItemUpdateMRJob(context, itemUpdateCSVId) {
     // Launch a map/reduce job to update the items with the successully parsed csv data
     let mrParams = {
-        [FCJITUploadLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID]: itemUpdateCSVId,
-        // [FCJITUploadLib.Ids.Parameters.SUBTRACT_FUTURE_SOS_ON_UPDATE]: subtractFutureJITSOs
+        [FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID]: itemUpdateCSVId,
+        // 'custscript_csv_fileid': itemUpdateCSVId,
+        // [FCUpdateJITAvailLib.Ids.Parameters.SUBTRACT_FUTURE_SOS_ON_UPDATE]: subtractFutureJITSOs
     };
 
     let mrTask = task.create({
         taskType: task.TaskType.MAP_REDUCE,
-        scriptId: FCJITUploadLib.Ids.Scripts.MR_JIT_UPDATE,
-        deploymentId: FCJITUploadLib.Ids.Deployments.MR_JIT_UPDATE,
+        scriptId: FCUpdateJITAvailLib.Ids.Scripts.MR_JIT_UPDATE,
+        deploymentId: FCUpdateJITAvailLib.Ids.Deployments.MR_JIT_UPDATE,
         params: mrParams
     });
 
@@ -747,9 +786,9 @@ function submitItemUpdateMRJob(context, itemUpdateCSVId) {
 // function getRequestHandle(context) {
 function loadUploadPreview(context, subtractFutureJITSOs, resetAllJIT) {
     var debugOut = [];
-    debugOut.push(`loadUploadPreview / params: subtractFutureJITSOs: ${subtractFutureJITSOs}, resetAllJIT: ${resetAllJIT}`);
+    // debugOut.push(`loadUploadPreview / params: subtractFutureJITSOs: ${subtractFutureJITSOs}, resetAllJIT: ${resetAllJIT}`);
 
-    var parsedCSVs = parseJITCSVs(context, FCJITUploadLib.Ids.Folders.INPUT);
+    var parsedCSVs = parseJITCSVs(context, FCUpdateJITAvailLib.Ids.Folders.INPUT);
     if (!parsedCSVs) {
         return false;
     }
@@ -780,7 +819,7 @@ function loadUploadPreview(context, subtractFutureJITSOs, resetAllJIT) {
                 'csv',
                 errorTable.outputFileName,
                 errorTable.contents,
-                sessionSubfolder.sessionResultsFolder.id
+                sessionSubfolder.sessionResultsFolderId
             );
 
             // Build HTML for table
@@ -806,7 +845,7 @@ function loadUploadPreview(context, subtractFutureJITSOs, resetAllJIT) {
         context,
         itemUpdateMaster,
         jitItemSnapshot,
-        sessionSubfolder.sessionResultsFolder.id
+        sessionSubfolder.sessionResultsFolderId
     );
 
 
@@ -820,7 +859,7 @@ function loadUploadPreview(context, subtractFutureJITSOs, resetAllJIT) {
         FCLib.Ids.Fields.Item.Name,
         true
     );
-    debugOut.push(`loadUploadPreview / sortedData: ${JSON.stringify(sortedData)}`);
+    // debugOut.push(`loadUploadPreview / sortedData: ${JSON.stringify(sortedData)}`);
 
     itemUpdateHtml += FCLib.convertObjToHTMLTableStylized({
         fields: uploadCSVResults.uploadData.fields,
@@ -835,7 +874,7 @@ function loadUploadPreview(context, subtractFutureJITSOs, resetAllJIT) {
     // debugOut.push(`loadUploadPreview / itemUpdateHtml: ${itemUpdateHtml}`);
 
 
-    debugOut.push(`uploadCSVFileId: ${uploadCSVResults.csvFileId}`);
+    // debugOut.push(`uploadCSVFileId: ${uploadCSVResults.csvFileId}`);
 
     return {
         errorHtml: errorHtml,

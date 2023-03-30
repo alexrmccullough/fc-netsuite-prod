@@ -14,10 +14,10 @@ var
     task,
     file,
     FCLib,
-    FCJITUploadLib,
+    FCUpdateJITAvailLib,
     Papa;
 
-define(['N/runtime', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/FC_MainLibrary', './FC_JITUpload_Library.js', '../Libraries/papaparse.min.js'], main);
+define(['N/runtime', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/fc-main.library.module', './fc-jit.update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
 
 function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcJITUploadLibModule, papaParseModule) {
 
@@ -27,7 +27,7 @@ function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, 
     task = taskModule;
     file = fileModule;
     FCLib = fcMainLibModule;
-    FCJITUploadLib = fcJITUploadLibModule;
+    FCUpdateJITAvailLib = fcJITUploadLibModule;
     Papa = papaParseModule;
 
     return {
@@ -43,10 +43,15 @@ function getInputData(context) {
     var currentScript = runtime.getCurrentScript();
 
     let itemUpdateCSVFileId = currentScript.getParameter({
-        name: FCJITUploadLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID
+        name: FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID
+        // name: 'custscript_csv_fileid'
     });
 
+    // let itemUpdateCSVFileId2 = context.parameters[FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID];
+    log.debug({ title: 'getInputData - context', details: JSON.stringify(context)});
     log.debug({ title: 'getInputData', details: { itemUpdateCSVFileId: itemUpdateCSVFileId } });
+    log.debug({ title: 'getInputData - csv param name', details: FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID });
+    // log.debug({ title: 'getInputData', details: { itemUpdateCSVFileId2: itemUpdateCSVFileId2 } });
 
 
     // FIX?: Run query on future SOs at time of MR to reduce lag between launch and completion?

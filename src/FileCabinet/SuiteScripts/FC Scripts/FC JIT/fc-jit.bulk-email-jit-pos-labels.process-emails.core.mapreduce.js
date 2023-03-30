@@ -8,7 +8,7 @@
 */
 
 var modulePathJitPoUtilityLibrary = './fc-jit.send-jit-po-utility.library.module.js';
-var modulePathJitBulkEmailLibrary = './fc-jit.bulk-email-jit-pos-labels.library.module.js';
+var modulePathJitBulkEmailLibrary = './fc-jit.bulk-email-jit-pos-labels.process-emails.library.module.js';
 
 var
     runtime,
@@ -18,7 +18,7 @@ var
     file,
     FCLib,
     FCJITBulkEmailLib,
-    FCJITLib,
+    FCJITGenPoLib,
     Papa;
 
 
@@ -34,7 +34,7 @@ function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, 
     file = fileModule;
     FCLib = fcMainLibModule;
     FCJITBulkEmailLib = fcBulkEmailLibModule;
-    FCJITLib = fcJITPoLibModule;
+    FCJITGenPoLib = fcJITPoLibModule;
     Papa = papaParseModule;
 
     return {
@@ -83,7 +83,7 @@ function getInputData(context) {
     let poExternalIds = null;
 
     if (posToEmailInternalIdsRaw) {
-        poInternalIds = new Set(posToEmailInternalIdsRaw.split(','));
+        poInternalIds = new Set(posToEmailInternalIdsRaw.split(','));    // FIX: Change to JSON.parse
     }
     if (posToEmailExternalIdsRaw) {
         poExternalIds = new Set(posToEmailExternalIdsRaw.split(','));

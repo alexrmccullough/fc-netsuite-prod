@@ -60,7 +60,15 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                     Item.itemId
                 `,
 
-            GET_ALL_CSV_FILES_IN_FOLDER_BY_ID: `SELECT ID FROM File WHERE ( Folder = ? ) AND ( Name LIKE '%.csv' )`,
+            GET_ALL_CSV_FILES_IN_FOLDER_BY_ID: `
+                SELECT
+                    File.id, 
+                    File.name,
+                    File.lastmodifieddate
+                FROM 
+                    File 
+                WHERE ( Folder = ? ) AND ( Name LIKE '%.csv' )
+                `,
             
         }
     };
@@ -77,9 +85,14 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         Sublists: {
         },
         Folders: {
-            MAIN: 9115,
-            INPUT: 8142,
-            RESULTS: 8141,
+            // PROD
+            // INPUT: 8142,
+            // RESULTS: 8141,
+
+            INPUT: 8544,
+            RESULTS: 8546,
+            
+            
         },
         Files: {
 
@@ -107,6 +120,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                 JIT_UPLOAD_UTILITY_FORM_TITLE: 'JIT Upload Utility',
             },
             Fields: {
+                FILE_TABLE_FIELD_ID: 'custpage_file_table',
+                FILE_TABLE_FIELD_LABEL: 'Candidate CSV Files in Input Folder',
                 ERROR_RESULTS_FIELD_ID: 'custpage_error_results',
                 ERROR_RESULTS_FIELD_LABEL: 'Error Results',
                 ITEM_UPDATE_RESULTS_FIELD_ID: 'custpage_item_update_results',
@@ -117,6 +132,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
             FieldGroups: {
                 OPTIONS_FIELD_GROUP_ID: 'custpage_submit_fieldgroup',
                 OPTIONS_FIELD_GROUP_LABEL: 'Options',
+                FILE_TABLE_FIELD_GROUP_ID: 'custpage_file_table_fieldgroup',
+                FILE_TABLE_FIELD_GROUP_LABEL: 'Candidate CSV Files in Input Folder',
                 ERROR_RESULTS_FIELD_GROUP_ID: 'custpage_error_results_fieldgroup',
                 ERROR_RESULTS_FIELD_GROUP_LABEL: 'Error Results',
                 ITEM_UPDATE_RESULTS_FIELD_GROUP_ID: 'custpage_item_update_results_fieldgroup',
