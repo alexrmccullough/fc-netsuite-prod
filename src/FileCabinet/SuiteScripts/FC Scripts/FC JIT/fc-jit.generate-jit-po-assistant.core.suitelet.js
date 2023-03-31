@@ -25,13 +25,12 @@ var
 // stepSelectOptions;
 
 
-define(['N/file', 'N/log', 'N/ui/message', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
+define(['N/file', 'N/log', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
 
 
-function main(fileModule, httpsModule, logModule, messageModule, queryModule, recordModule, renderModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, jitPoLibModule, papaparseModule) {
+function main(fileModule, logModule, queryModule, recordModule, renderModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, jitPoLibModule, papaparseModule) {
     file = fileModule;
     log = logModule;
-    message = messageModule;
     query = queryModule;
     record = recordModule;
     render = renderModule;
@@ -221,15 +220,15 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
                 const vendorId = jitSOItemQueryResults[vendorEntityId][0].vendorid;    //FIX: Need to get these variables to settings
 
                 // Build checkbox to enable/disable PO creation 
-                let poCreateCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID(vendorId);
+                let poCreateCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID.build(vendorId);
                 let poCreateChecked = 'checked';
                 let poCreateCheckboxField = `
-                    <input type="checkbox" id= "${poCreateCheckboxId} name="${poCreateCheckboxId}" ${poCreateChecked} />
+                    <input type="checkbox" id="${poCreateCheckboxId}" name="${poCreateCheckboxId}" ${poCreateChecked} />
                     <label for="${poCreateCheckboxId}">Create PO?</label>
                     `;
 
                 // Build checkbox to enable/disable PO emailing
-                let poEmailCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID(vendorId);
+                let poEmailCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID.build(vendorId);
                 let poEmailChecked = sendAllPosByDefault ? 'checked' : '';
                 let poEmailCheckboxField = `
                     <input type="checkbox" name="${poEmailCheckboxId}" ${poEmailChecked} />
@@ -237,16 +236,16 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
                     `;
 
                 // Build long text memo field for this PO
-                let memoId = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID(vendorId);
+                let memoId = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID.build(vendorId);
                 let memoField = `<input type="text" name="${memoId}" placeholder="Include a memo to the vendor" />`;
 
                 // Build specifications for final item qty textbox to inject into table
                 let itemQtyInputSpecs = {
                     htmlElem: 'input',
                     type: 'number',
-                    sourceValueFromField: 'totalbackordered',
+                    valueSourceField: 'totalbackordered',
                     fieldDisplayName: 'Final PO Qty',
-                    idPrefixPart1Str: ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID('', ''),
+                    idPrefixPart1Str: ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID.build('', ''),
                     idPrefixPart2Str: vendorId,
                     idUniqueSuffixSourceField: 'itemid',
                 };
@@ -364,37 +363,43 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         let vendorsToExclude = {};
         let vendorsToEmail = {};
 
+        let fieldPrefixItemQty = ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID.build('', '');
+        let fieldPrefixCreatePO = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID.build('');
+        let fieldPrefixEmailPO = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID.build('');
+        let fieldPrefixMemo = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID.build('');
+
         for (const [paramName, paramVal] of Object.entries(context.request.parameters)) {
-            if (paramName.startsWith(ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID('', ''))) {
+            if (paramName.startsWith(fieldPrefixItemQty)) {
                 // Get the vendor id and item id from the param name
-                let vendorId = paramName.split('_')[3];
-                let itemId = paramName.split('_')[4];
+                let parsed = ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID.parse(paramName);
+                let vendorId = parsed.vendorId;
+                let itemId = parsed.itemId;
 
                 if (!finalItemQuantities[vendorId]) { finalItemQuantities[vendorId] = {}; }
                 finalItemQuantities[vendorId][itemId] = paramVal;
             }
-            else if (paramName.startsWith(ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID(''))) {
-                let vendorId = paramName.split('_')[3];
+            else if (paramName.startsWith(fieldPrefixCreatePO)) {
+                let vendorId = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID.parse(paramName)[1];
 
-                if (paramVal == 'on' || paramVal == 'T' || paramVal == 'true') {
+                if (paramVal == 'on' || FCLib.looksLikeYes(paramVal)) {
                     vendorsToInclude[vendorId] = true;
                 }
                 else {
                     vendorsToExclude[vendorId] = false;
                 }
             }
-            else if (paramName.startsWith(ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID(''))) {
-                let vendorId = paramName.split('_')[3];
+            else if (paramName.startsWith(fieldPrefixEmailPO)) {
+                let vendorId = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID.parse(paramName)[1];
 
-                if (paramVal == 'on' || paramVal == 'T' || paramVal == 'true') {
+                if (paramVal === 'on' || FCLib.looksLikeYes(paramVal)) {
                     vendorsToEmail[vendorId] = true;
                 }
                 else {
                     vendorsToEmail[vendorId] = false;
                 }
             }
-            else if (paramName.startsWith(ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID(''))) {
-                let vendorId = paramName.split('_')[3];
+            else if (paramName.startsWith(fieldPrefixMemo)) {
+                let vendorId = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID.parse(paramName)[1];
 
                 vendorMemos[vendorId] = paramVal;
             }
@@ -403,10 +408,14 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // FIX: Update this logic to present a nice table
         let newOutputFields = ThisAppLib.Settings.PoImportCsv.NewOutputFields;
 
+        let tempFieldSet1Keys = Object.keys(ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1);
+
         let ouputFieldsFromOrigQuery = Object.keys(ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1).reduce(
-            (acc, fieldid) => {
-                if (ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[fieldid].includeInCsv)
-                    acc[fieldid] = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[fieldid].label;
+            (acc, key) => {
+                let fieldInfo = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[key];
+                // if (ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[fieldid].includeInCsv)
+                if (fieldInfo.includeInCsv)
+                    acc[key] = fieldInfo.display;
                 return acc;
             },
             {}
@@ -420,7 +429,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
         let outputFieldHeaders = [
             ...Object.values(newOutputFields),
-            ...ouputFieldsFromOrigQuery
+            ...Object.values(ouputFieldsFromOrigQuery)
         ];
 
         var poDataAccepted = {
@@ -466,12 +475,13 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
                 let newFieldValues = {
                     [newOutputFields.finalQty]: finalItemQty,
                     [newOutputFields.lotNumber]: lotNumber,
+                    [newOutputFields.lotQuantity]: finalItemQty,
                     [newOutputFields.memo]: vendorMemos[vendorId],
                     [newOutputFields.poExternalId]: poExternalId,
                     [newOutputFields.poSequenceNumber]: poSequenceCounter,
                     // FIX: Do I need to format this date somehow?
                     [newOutputFields.receiveByDate]: persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
-                    [newOutputFields.emailOnceCreated]: vendorsToEmail[vendorId] ? 'Yes' : 'No',
+                    // [newOutputFields.emailOnceCreated]: vendorsToEmail[vendorId] ? 'Yes' : 'No',
                 };
 
                 //NOTE/FIX?: Assuming that the query is structured such that vendorId > itemId is always unique
@@ -833,8 +843,8 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // FIX: Get thsis replacement string into settings
         queryText = queryText.replace('@@EXTRA_FILTERS@@', extraFilters);
 
-        // DEBUG
-        return queryText;
+        // // DEBUG
+        // return queryText;
 
         // Use sqlSelectAllRowsIntoDict to get the results
         let queryResults = FCLib.sqlSelectAllRowsIntoNestedDict(

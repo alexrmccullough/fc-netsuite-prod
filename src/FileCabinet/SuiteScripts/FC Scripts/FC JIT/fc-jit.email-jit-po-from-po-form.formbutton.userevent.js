@@ -31,8 +31,9 @@ function main(runtimeModule, logModule, urlModule) {
 
 
                 // let suiteletUrl = `https://6668932.app.netsuite.com/app/site/hosting/scriptlet.nl?script=1455&deploy=1`;
-                let suiteletUrl = `https://debugger.na9.netsuite.com/app/site/hosting/scriptlet.nl?script=1455&deploy=1`;
-
+                // let suiteletUrl = `https://debugger.na9.netsuite.com/app/site/hosting/scriptlet.nl?script=1455&deploy=1`;
+                let suiteletUrl = `https://6668932-sb1.app.netsuite.com/app/site/hosting/scriptlet.nl?script=1457&deploy=1`;
+                
                 let params = buildParametersToPass(context, curRecord);
                 // params.status = poStatus;
 

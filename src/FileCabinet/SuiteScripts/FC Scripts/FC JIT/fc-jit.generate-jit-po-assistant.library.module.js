@@ -1,16 +1,18 @@
 var query,
     task,
     runtime,
-    dayjs;
+    dayjs,
+    FCLib;
 
 
-define(['N/query', 'N/task', 'N/runtime', '../Libraries/dayjs.min.js'], main);
+define(['N/query', 'N/task', 'N/runtime', '../Libraries/dayjs.min.js', '../Libraries/fc-main.library.module.js'], main);
 
-function main(queryModule, taskModule, runtimeModule, dayjsModule) {
+function main(queryModule, taskModule, runtimeModule, dayjsModule, fcLibModule) {
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     dayjs = dayjsModule;
+    FCLib = fcLibModule;
 
     var exports = {
         Queries: {
@@ -143,8 +145,8 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule) {
             JIT_CREATE_POS_HELPER_MAPREDUCE: 'customscript_fc_am_jit_mr_createpos',
         },
         Deployments: {
-            EMAIL_JIT_POS: 'customscript_fc_am_jit_mr_sendjitpos',
-            JIT_CREATE_POS_HELPER_MAPREDUCE: 'customscript_fc_am_jit_mr_createpos',
+            EMAIL_JIT_POS: 'customdeploy_fc_am_jit_mr_sendjitpos',
+            JIT_CREATE_POS_HELPER_MAPREDUCE: 'customdeploy_fc_am_jit_mr_createpos',
         },
         Fields: {
         },
@@ -219,11 +221,25 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule) {
                 POS_TO_EMAIL_EXTERNAL_IDS: 'custpage_pos_to_email_external_ids',
             },
             DynamicParameters: {
-                CREATE_PO_CHECKBOX_ID: (vendorid) => `custpage_create_po_${vendorid}`,
-                EMAIL_PO_CHECKBOX_ID: (vendorid) => `custpage_email_po_${vendorid}`,
-                PO_MEMO_FIELD_ID: (vendorid) => `custpage_po_memo_${vendorid}`,
-                ITEM_FINAL_QTY_FIELD_ID: (vendorid, itemid) =>
-                    ['custpage_item_final_qty', vendorid, itemid].filter(Boolean).join('_'),
+                CREATE_PO_CHECKBOX_ID: {
+                    build: (vendorid) => `custpage_create_po_${vendorid}`,
+                    parse: (param) => param.match(/^custpage_create_po_(.+)$/),
+                },
+                EMAIL_PO_CHECKBOX_ID: {
+                    build: (vendorid) => `custpage_email_po_${vendorid}`,
+                    parse: (param) => param.match(/^custpage_email_po_(.+)$/),
+                },
+                PO_MEMO_FIELD_ID: {
+                    build: (vendorid) => `custpage_po_memo_${vendorid}`,
+                    parse: (param) => param.match(/^custpage_po_memo_(.+)$/),
+                },
+                ITEM_FINAL_QTY_FIELD_ID: {
+                    build: (vendorid, itemid) => ['custpage_item_final_qty', vendorid, itemid].filter(Boolean).join('_'),
+                    parse: (param) => {
+                        let res = param.match(/^custpage_item_final_qty_([^_]+)_([^_]+)$/);
+                        return res ? { vendorId: res[1], itemId: res[2] } : null;
+                    }
+                },
             },
 
         },
@@ -232,11 +248,12 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule) {
             NewOutputFields: {
                 finalQty: 'Final Item Qty',
                 lotNumber: 'Receipt Lot Number',
+                lotQuantity: 'Receipt Lot Quantity',
                 memo: 'PO Memo',
                 poExternalId: 'PO External ID',
                 poSequenceNumber: 'PO Sequence Counter',
                 receiveByDate: 'Receive By Date',
-                emailOnceCreated: 'Email Once Created',
+                // emailOnceCreated: 'Email Once Created',
             },
 
         },
@@ -247,13 +264,18 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule) {
             [Settings.PoImportCsv.NewOutputFields.finalQty]: {
                 typeFunc: (value) => { return parseFloat(value) },
                 record: 'item',
-                nsFieldId: 'custbody_final_qty',
+                nsFieldId: 'quantity',
             },
 
             [Settings.PoImportCsv.NewOutputFields.lotNumber]: {
                 typeFunc: (value) => { return value.toString() },
                 record: 'inventorydetail',
-                nsFieldId: 'custcol_lot_number',
+                nsFieldId: 'receiptinventorynumber',
+            },
+            [Settings.PoImportCsv.NewOutputFields.lotQuantity]: {
+                typeFunc: (value) => { return parseFloat(value) },
+                record: 'inventorydetail',
+                nsFieldId: 'quantity',
             },
             [Settings.PoImportCsv.NewOutputFields.memo]: {
                 typeFunc: (value) => { return value.toString() },
@@ -269,9 +291,9 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule) {
                 typeFunc: (value) => { return value.toString() },
                 record: 'transaction',
                 nsFieldId: 'tranid',
-            } ,
+            },
             [Settings.PoImportCsv.NewOutputFields.receiveByDate]: {
-                typeFunc: (value) => { return value.toString() },
+                typeFunc: (value) => { return new Date(value) },
                 record: 'transaction',
                 nsFieldId: 'duedate',
                 formatFunc: (date) => { return dayjs(date).format('M/D/YYYY') },
@@ -280,32 +302,35 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule) {
             [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.iteminternalid.display]: {
                 typeFunc: (value) => { return value.toString() },
                 record: 'item',
-                nsFieldId: 'internalid',
+                nsFieldId: 'item',
             },
             // [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.display]: ,
             // [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.display]: ,
             [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.display]: {
                 typeFunc: (value) => { return value.toString() },
                 record: 'transaction',
-                nsFieldId: 'vendorid',
+                nsFieldId: 'entity',
             },
             // [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorentityid.display]: ,
 
         },
-        
-        CSVSpecialFields: {
-            [Settings.PoImportCsv.NewOutputFields.emailOnceCreated]: {
-                // valueFunc converts upper/lower case true/false/yes/no to boolean
-                valueFunc: (value) => FCLib.looksLikeYes(value),
-            },
-        },
-        
+
+        // CsvSpecialFields: {
+        //     [Settings.PoImportCsv.NewOutputFields.emailOnceCreated]: {
+        //         test: 'testvalue',
+        //         // valueFunc converts upper/lower case true/false/yes/no to boolean
+        //         // valueFunc: (value) => { return FCLib.looksLikeYes(value); },
+        //     },
+        // },
+
         Emails: {
             PoCreationSummary: {
+                Sender: '-5',
                 Subject: 'Generate JIT POs -- Process Summary',
-                Recipients: ['procurement@foodconnects.org'],
-                Cc: [''],
-                Bcc: [''],
+                // Recipients: ['procurement@foodconnects.org'],
+                Recipients: ['alex@foodconnects.org'],
+                Cc: [],
+                Bcc: [],
                 Body: {
                     Template: `
                         <p>{{posSucceededCount}} Purchase Orders successfully created.</p>
@@ -317,7 +342,7 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule) {
                         <h3>Failed POs</h3>
                         <ul>{{failedPoList}}</ul>
                         <br>
-                        Please use the <a href="">Bulk JIT PO Email Assistant</a> to the POs with shipping labels. 
+                        Please use the <a href="">Bulk JIT PO Email Assistant</a> to email the POs with shipping labels. 
                     `,
                     PlaceholderFuncs: {
                         posSucceededCount: (bodytext, value) => bodytext.replace('{{posSucceededCount}}', value),
@@ -325,21 +350,20 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule) {
                         successfulPoList: (bodytext, value) => bodytext.replace('{{successfulPoList}}', value),
                         failedPoList: (bodytext, value) => bodytext.replace('{{failedPoList}}', value),
                     },
-                    ReplaceAllPlaceholders: (bodytext, posSucceededCount, posFailedCount, successfulPoList, failedPoList) => {
-                        bodytext = Settings.Emails.PoCreationSummary.Body.PlaceholderFuncs.posSucceededCount(bodytext, posSucceededCount);
-                        bodytext = Settings.Emails.PoCreationSummary.Body.PlaceholderFuncs.posFailedCount(bodytext, posFailedCount);
-                        bodytext = Settings.Emails.PoCreationSummary.Body.PlaceholderFuncs.successfulPoList(bodytext, successfulPoList);
-                        bodytext = Settings.Emails.PoCreationSummary.Body.PlaceholderFuncs.failedPoList(bodytext, failedPoList);
-                        return bodytext;
-                    },
-
                 }
-                
-
             }
         }
     };
 
+    MRSettings.Emails.PoCreationSummary.Body.ReplaceAllPlaceholders = function
+        (posSucceededCount, posFailedCount, successfulPoList, failedPoList) {
+        let bodytext = MRSettings.Emails.PoCreationSummary.Body.Template;
+        bodytext = MRSettings.Emails.PoCreationSummary.Body.PlaceholderFuncs.posSucceededCount(bodytext, posSucceededCount);
+        bodytext = MRSettings.Emails.PoCreationSummary.Body.PlaceholderFuncs.posFailedCount(bodytext, posFailedCount);
+        bodytext = MRSettings.Emails.PoCreationSummary.Body.PlaceholderFuncs.successfulPoList(bodytext, successfulPoList);
+        bodytext = MRSettings.Emails.PoCreationSummary.Body.PlaceholderFuncs.failedPoList(bodytext, failedPoList);
+        return bodytext;
+    };
 
 
     function buildQueryGetItemInfoFromPO(poId) {

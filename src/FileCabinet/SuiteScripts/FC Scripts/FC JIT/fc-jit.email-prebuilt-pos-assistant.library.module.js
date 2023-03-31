@@ -4,47 +4,57 @@ var query,
     email;
 
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email'], main);
+define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', 'N/format'], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule) {
+function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetModule, formatModule) {
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
+    ui = serverWidgetModule;
+    format = formatModule;
 
     var exports = {
-        Form: {
-        },
-        Sublists: {
-        },
-        Searches: {
-        },
-        Urls: {
-        },
-        Lookups: {
-        },
         Queries: {
             GET_BASIC_UNSENT_PO_INFO: {
-                BuildQueryFunction: buildQueryGetBasicPOInfo,
+                BuildQueryFunction: buildQueryBasicUnsentJitPo,
                 Query: `
                     SELECT 
-                        Transaction.id AS tranid,
+                        Transaction.id AS pointernalid,
                         Transaction.entity as vendorid,
                         Vendor.companyName as vendorname,
-                        Transaction.tranDisplayName as trandisplayname,
-                        Transaction.dueDate as tranduedate,
-                
+                        Transaction.tranDisplayName as podisplayname,
+                        Transaction.dueDate as duedate,
+                        Transaction.externalid as poexternalid,
+                        Transaction.tranDate as transactiondate,
+                        SUM(TransactionLine.rate * TransactionLine.quantity) AS totalamount
+
                     FROM
                         Transaction
                     
                     LEFT OUTER JOIN Vendor ON Transaction.entity = Vendor.id
+                    LEFT OUTER JOIN TransactionLine ON TransactionLine.transaction = Transaction.id
                     LEFT OUTER JOIN Message ON Message.transaction = Transaction.id
                     
                     WHERE
                         Transaction.type = 'PurchOrd'
-                        '@@PO_ID_FILTER_1@@'
-                        '@@JIT_PO_UNSENT_FILTER_1@@'
-                        )
+                        AND Vendor.custentity_fc_zen_soft_com_vendor = 'T'
+                        @@PO_ID_FILTER_1@@
+                        @@JIT_PO_UNSENT_FILTER_1@@
+
+                        GROUP BY 
+                        Transaction.id,
+                        Transaction.entity,
+                        Vendor.companyName,
+                        Transaction.tranDisplayName,
+                        Transaction.dueDate,
+                        Transaction.externalid,
+                        Transaction.tranDate
+
+                        ORDER BY
+                            Transaction.tranDisplayName
+                        
+                        
                 `,
                 Filters: {
                     POIDS: {
@@ -56,23 +66,28 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                     },
                     JITPOUnsentOnly: {
                         QueryLinePlaceholders: {
-                            '@@JIT_PO_UNSENT_FILTER_1@@': `
-                            AND Vendor.custentity_fc_zen_soft_com_vendor = 'T'
-                            AND NOT EXISTS (
-                                SELECT 
-                                    Message.id	
-                                FROM
-                                    Message
-                                    WHERE
-                                    Message.transaction = Transaction.id AND Message.Emailed = 'T'
-                            `
+                            '@@JIT_PO_UNSENT_FILTER_1@@':
+                                `AND Vendor.custentity_fc_zen_soft_com_vendor = 'T'
+                                AND NOT EXISTS (
+                                    SELECT 
+                                        Message.id	
+                                    FROM
+                                        Message
+                                        WHERE
+                                        Message.transaction = Transaction.id AND Message.Emailed = 'T'
+                                )
+                                `
                         }
                     }
                 },
                 FieldSet1: {
-                    tranid: {
-                        fieldid: 'tranid',
+                    pointernalid: {
+                        fieldid: 'pointernalid',
                         label: 'PO Internal ID',
+                    },
+                    poexternalid: {
+                        fieldid: 'poexternalid',
+                        label: 'PO External ID',
                     },
                     vendorid: {
                         fieldid: 'vendorid',
@@ -82,19 +97,27 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                         fieldid: 'vendorname',
                         label: 'Vendor Name',
                     },
-                    trandisplayname: {
-                        fieldid: 'trandisplayname',
+                    podisplayname: {
+                        fieldid: 'podisplayname',
                         label: 'PO Name',
                     },
-                    tranduedate: {
-                        fieldid: 'tranduedate',
+                    duedate: {
+                        fieldid: 'duedate',
                         label: 'PO Due Date',
                     },
+                    transactiondate: {
+                        fieldid: 'transactiondate',
+                        label: 'PO Transaction Date',
+                    },
+                    totalamount: {
+                        fieldid: 'totalamount',
+                        label: 'PO Total Amount',
+                    }
                 },
             },
 
             GET_SUMMARIZED_ITEM_INFO_FROM_PO: {            /// Used in the Email JIT PO from PO Form script
-                BuildQueryFunction: buildQueryGetItemInfoFromPO,
+                BuildQueryFunction: buildQueryGetItemInfoFromPos,
                 Query: `
                     SELECT TransactionLine.uniquekey AS tranlineuniquekey,
                         -- Transaction.id AS tranid,
@@ -139,37 +162,17 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     };
 
     var Ids = {
-        Scripts: {
-        },
-        Deployments: {
-        },
-        Searches: {
-
-        },
-        Fields: {
-        },
-        Sublists: {
-        },
         Folders: {
-            MAIN: 9116,
-            SESSION_RESULTS: FIX,
-        },
-        Files: {
-
-        },
-        Parameters: {
+            MAIN: 8541,
+            SESSION_RESULTS: 8620,
         },
         CSVImportMappings: {
             JIT_PO_IMPORT_ASSISTANT_CSVIMPORT: -1
         }
-
     };
 
     var Settings = {
         SESSION_RESULTS_FOLDER_NAME_PREFIX: 'Email_Prebuilt_JIT_POs_',
-
-        PurchaseOrder: {
-        },
 
         Ui: {
             Main: {
@@ -185,6 +188,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                 FINALREVIEW_POS_REJECTED_FIELD_ID: 'custpage_finalreview_pos_rejected',
                 FINALREVIEW_POS_REJECTED_FIELD_LABEL: 'POs to Reject',
                 CAPTURE_PO_DELIVERY_DUE_DATE_LABEL: 'PO Delivery Due Date',
+                SELECT_PO_IDS_FINAL_LABEL: 'Select PO IDs',
             },
             FieldGroups: {
                 FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID: 'custpage_finalreview_pos_accepted_group',
@@ -192,15 +196,18 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                 FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID: 'custpage_finalreview_pos_rejected_group',
                 FINALREVIEW_POS_REJECTED_FIELD_GROUP_LABEL: 'POs to Reject',
             },
-            Buttons: {
-            },
             Parameters: {
                 INPUT_PREBUILT_PO_IDS: 'custpage_input_prebuilt_po_ids',
+                SELECT_PO_ID_CHECKBOX_ID: {
+                    prefix: 'custpage_selectpo_cb_',
+                    build: (poId) => { return 'custpage_selectpo_cb_' + poId; },
+                    looksLike: (val) => { return val.startsWith('custpage_selectpo_cb_'); },
+                },
                 LABEL_JSON_FILE_IDS: 'custpage_label_json_file_ids',
                 SELECT_PO_IDS_FINAL: 'custpage_select_po_ids_final',
                 CAPTURE_SOS_START_DATE_ID: 'custpage_capture_sos_start_date',
                 CAPTURE_SOS_END_DATE_ID: 'custpage_capture_sos_end_date',
-                ENABLE_SEND_ALL_POS_BY_DEFAULT_ID: 'custpage_enable_send_all_pos_by_default',
+                // ENABLE_SEND_ALL_POS_BY_DEFAULT_ID: 'custpage_enable_send_all_pos_by_default',
                 HIDDEN_PERSISTENT_PARAMS_ID: 'custpage_hidden_persistent_params',
                 JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_acceptedpos_tempjson_file',
                 JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_rejectedpos_tempjson_file',
@@ -208,49 +215,141 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
             },
             FieldDataFormat: {
                 PO_MULTISELECT_PO_FIELDS: ['tranduedate', 'vendorname', 'tranid', 'trandisplayname'],
-            }
+            },
+            Sublists: {
+                SELECT_POS: {
+                    Id: 'custpage_select_po_sublist',
+                    Label: 'Select POs',
+                    Fields: {
+                        Select: {
+                            Type: ui.FieldType.CHECKBOX,
+                            Label: 'Select',
+                            Id: 'custpage_select_po_sublist_field_select',
+                            DefaultValue: 'checked',
+                            DisplayType: serverWidget.FieldDisplayType.NORMAL,
+                        },
+                        PoInternalId: {
+                            Type: ui.FieldType.TEXT,
+                            Label: 'PO Internal ID',
+                            Id: 'custpage_select_po_sublist_field_po_internal_id',
+                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.pointernalid,
+                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                        },
+                        PoExternalId: {
+                            Type: ui.FieldType.TEXT,
+                            Label: 'PO External ID',
+                            Id: 'custpage_select_po_sublist_field_po_external_id',
+                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.poexternalid,
+                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                        },
+                        PoDisplayName: {
+                            Type: ui.FieldType.TEXT,
+                            Label: 'PO #',
+                            Id: 'custpage_select_po_sublist_field_po_displayname',
+                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.podisplayname,
+                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                        },
+                        TransactionDate: {
+                            Type: ui.FieldType.DATETIMETZ,
+                            Label: 'Created Date',
+                            Id: 'custpage_select_po_sublist_field_created_date',
+                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.transactiondate,
+                            TypeFunc: (val) => { 
+                                return format.format({
+                                    value: new Date(val),
+                                    type: format.Type.DATETIMETZ
+                                });
+                            },
+                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                        },
+                        DueDate: {
+                            Type: ui.FieldType.DATETIMETZ,
+                            Label: 'Due Date',
+                            Id: 'custpage_select_po_sublist_field_due_date',
+                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.duedate,
+                            TypeFunc: (val) => { 
+                                return format.format({
+                                    value: new Date(val),
+                                    type: format.Type.DATETIMETZ
+                                });
+                            },
+                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                        },
+                        VendorName: {
+                            Type: ui.FieldType.TEXT,
+                            Label: 'Vendor Name',
+                            Id: 'custpage_select_po_sublist_field_vendor_name',
+                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.vendorname,
+                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                        },
+                        TotalAmount: {
+                            Type: ui.FieldType.CURRENCY,
+                            Label: 'Total Amount',
+                            Id: 'custpage_select_po_sublist_field_total_amount',
+                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.totalamount,
+                            TypeFunc: (val) => { return parseFloat(val) },
+                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                        }
+
+                    },
+                },
+            },
         },
     };
 
     var TempFields = {
     }
 
-    function buildQueryBasicUnsentJITPO({
-        filterJitUnsent = true, 
+    function buildQueryBasicUnsentJitPo({
+        filterJitUnsent = true,
         poIds = null
     } = {}) {
         let sqlQuery = exports.Queries.GET_BASIC_UNSENT_PO_INFO.Query;
 
-        if (poIds !== null) {
-            filterJitUnsent = false;
-            poIdsStr = poIds.join(',');
+        // filterJitUnsent = false;
 
-            for (let queryPlaceholder in exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.POIDS.QueryLinePlaceholders) {
-                let filterText = exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.POIDS.QueryLinePlaceholders[queryPlaceholder].replace(
+        // Prepare filter varialbes
+        // First, filter query by specific PO IDs
+        let doFilterByPoIds = poIds !== null && poIds.length > 0;
+        let poIdsStr = poIds === null ? '' : poIds.join(',');
+
+        // Second, filter query by JIT PO Unsent Only
+        let doFilterByJitPoUnsentOnly = filterJitUnsent;
+
+        // Build the filter strings and insert into query
+        for (let queryPlaceholder in exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.POIDS.QueryLinePlaceholders) {
+            let filterText = '';
+
+            if (doFilterByPoIds) {
+                filterText = exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.POIDS.QueryLinePlaceholders[queryPlaceholder].replace(
                     exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.POIDS.ParamPlaceholder,
                     poIdsStr
                 );
-                sqlQuery = sqlQuery.replace(
-                    queryPlaceholder,
-                    filterText
-                );
             }
+            sqlQuery = sqlQuery.replace(
+                queryPlaceholder,
+                filterText
+            );
         }
 
-        if (filterJitUnsent) {
-            for (let queryPlaceholder in exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.JITPOUnsentOnly.QueryLinePlaceholders) {
-                let filterText = exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.POIDS.QueryLinePlaceholders[queryPlaceholder];
-                sqlQuery = sqlQuery.replace(
-                    queryPlaceholder,
-                    filterText
-                );
+        // Replace JIT PO Unsent Only
+        for (let queryPlaceholder in exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.JITPOUnsentOnly.QueryLinePlaceholders) {
+            let filterText = '';
+
+            if (doFilterByJitPoUnsentOnly) {
+                filterText = exports.Queries.GET_BASIC_UNSENT_PO_INFO.Filters.JITPOUnsentOnly.QueryLinePlaceholders[queryPlaceholder];
             }
+
+            sqlQuery = sqlQuery.replace(
+                queryPlaceholder,
+                filterText
+            );
         }
 
         return sqlQuery;
     }
 
-    function buildQueryGetItemInfoFromPOs(poIds = []) {
+    function buildQueryGetItemInfoFromPos(poIds = []) {
         let sqlQuery = exports.Queries.GET_ITEM_INFO_FROM_PO.Query;
         let poIdsStr = poIds.join(',');
 
@@ -277,10 +376,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         var resultsFolderObj = FCLib.createFolderInFileCabinet(resultsFolderName, exports.Ids.Folders.SESSION_RESULTS);
 
         return resultsFolderObj.id;
-        
-        // return {
-        //     sessionResultsFolderId: resultsFolderId,
-        // };
     }
 
 
@@ -288,10 +383,10 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     exports.Ids = Ids;
     exports.Settings = Settings;
     exports.TempFields = TempFields;
-    exports.buildQueryBasicUnsentJITPO = buildQueryBasicUnsentJITPO;
-    exports.buildQueryGetItemInfoFromPOs = buildQueryGetItemInfoFromPOs;
+    exports.buildQueryBasicUnsentJitPo = buildQueryBasicUnsentJitPo;
+    exports.buildQueryGetItemInfoFromPos = buildQueryGetItemInfoFromPos;
+    exports.createSessionSubfolder = createSessionSubfolder;
 
-    
 
     return exports;
 }

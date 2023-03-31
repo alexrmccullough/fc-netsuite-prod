@@ -371,6 +371,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         tbodyTrElem = '<tr>',
         specialElems = [],
         headerNameMap = {},
+        hideFields = {},
     } = {}) {
         let tableHtml = '';
 
@@ -379,7 +380,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         if (data.length > 0) {
             // Validate specialElems to ensure that source field is present
             for (let specialElem of specialElems) {
-                const fieldId = specialElem.sourceValueFromField;
+                const fieldId = specialElem.valueSourceField;
                 if (!fields.includes(fieldId)) {
                     throw new Error(`convertObjToHTMLTable - specialElems.sourceFromField ${fieldId} not found in fields`);
                 }
@@ -388,14 +389,19 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
 
             // Map the header names to special headers, if provided
             for (var i = 0; i < fields.length; i++) {
-                let mappedFieldName = fields[i];
+                let origFieldName = fields[i];
+                if (origFieldName in hideFields) {
+                    continue;
+                }
+
+                let mappedFieldName = origFieldName;
 
                 if (fields[i] in headerNameMap) {
-                    mappedFieldName = headerNameMap[fields[i]];
+                    mappedFieldName = headerNameMap[origFieldName];
                 }
                 // fields[i] = {
                 internalFieldsWithMapping.push({
-                    orig: fields[i],
+                    orig: origFieldName,
                     mapped: mappedFieldName
                 });
             }
@@ -430,16 +436,27 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                     let elemId =
                         `${elem.idPrefixPart1Str}_${elem.idPrefixPart2Str}_${row[elem.idUniqueSuffixSourceField]}`;
 
+                    let name = 'nameSourceField' in elem ? row[elem.nameSourceField] : elemId;
+                    let value = 'valueSourceField' in elem ? row[elem.valueSourceField] : '';
+                    let checked = 'checkedSourceField' in elem ? row[elem.checkedSourceField] : '';
+
+
                     let val = null;
                     switch (elem.htmlElem) {
                         case 'input':
-                            val = `<input type="${elem.type}" id="${elemId}" name="${elemId}" value="${row[elem.sourceValueFromField]}">`;
+                            val = `<input type="${elem.type}" id="${elemId}" name="${name}" value="${value}">`;
+                        case 'checkbox':
+                            val = `<input type="checkbox" id="${elemId}" name="${name}" value="${value}" ${checked}}>`;
                     }
                     htmlBody += tdElem + val + '</td>';
                 }
                 
                 for (var k = 0; k < internalFieldsWithMapping.length; k++) {
                     let thisField = internalFieldsWithMapping[k];
+                    if (thisField.orig in hideFields) {
+                        continue;
+                    }
+
                     let val = row[thisField.orig];
         
                     htmlBody += tdElem + val + '</td>';
@@ -463,6 +480,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         headerTextColor = '#ffffff',
         specialElems = [],
         headerNameMap = {},
+        hideFields = {},
     } = {}) {
 
         return exports.convertObjToHTMLTable({
@@ -477,6 +495,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             tbodyTrElem: `<tr style="border-bottom: 1px solid #dddddd">`,
             specialElems: specialElems,
             headerNameMap: headerNameMap,
+            hideFields: hideFields
         });
 
     }
@@ -532,8 +551,10 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
 
 
     function pickFromObj(obj, keys) {
+        log.debug({ title: 'map - in FCLib.pickFromObj', details: `obj: ${obj}, keys: ${keys}` });
+
         return keys.reduce((acc, key) => {
-            if (obj && Object.prototype.hasOwnProperty.call(obj, key)) {
+            if (obj && (key in obj)) {
                 acc[key] = obj[key];
             }
             return acc;
@@ -701,6 +722,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
     }
     exports.looksLikeNo = looksLikeNo;
 
+
+    function libConnectionTest() {
+        return 'Yep!';
+    }
+    exports.libConnectionTest = libConnectionTest;
 
     // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
     //     // Store the script ID of the script to submit

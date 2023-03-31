@@ -8,8 +8,10 @@
 				size: Letter;
 				margin:0;
 				padding:0;
-				padding-top: 0.5in;
+				padding-top: 0.45in;
+				padding-bottom: 0.4in;
 				padding-left: 0.1875in;
+				padding-right: 0.1875in;
 			}
 	
 			table, td {

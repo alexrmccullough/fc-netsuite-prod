@@ -24,7 +24,7 @@ var
 
 
 
-define(['N/runtime', 'N/email', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/FC_MainLibrary', modulePathJitBulkEmailLibrary, modulePathGenerateJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
+define(['N/runtime', 'N/email', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/fc-main.library.module.js', modulePathJitBulkEmailLibrary, modulePathGenerateJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
 
 function main(runtimeModule, emailModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcBulkEmailLibModule, fcGenerateJITPoLibModule, papaParseModule) {
 
@@ -49,30 +49,48 @@ function main(runtimeModule, emailModule, queryModule, recordModule, taskModule,
 
 
 function getInputData(context) {
-    // log.debug({ title: 'getInputData', details: { posToEmailExternalIdsRaw: posToEmailExternalIdsRaw } });
 
     var currentScript = runtime.getCurrentScript();
-
-    // Load the CSV file with the import data
-    // Convert it to an array of objects with keys matching the NS fields to be referenced when creating the POs
-    let jitPoImportCsvFileId = currentScript.getParameter({
+    var jitPoImportCsvFileId = currentScript.getParameter({
         name: FCJITGenPoLib.Ids.Parameters.JIT_PO_IMPORT_CSV_FILEID
     });
 
-    let curFile = file.load({ id: jitPoImportCsvFileId });
-    // let curFileContents = curFile.getContents();
+    if (!jitPoImportCsvFileId) {
+        throw 'No JIT PO Import CSV File ID was provided.';
+    }
 
-    let parsedFile = Papa.parse(
-        curFile.getContents(),
-        {
-            header: true,
-            dynamicTyping: false,
-            skipEmptyLines: 'greedy',
-        }
-    );
+    log.debug({ title: 'getInputData - jitPoImportCsvFileId', details: jitPoImportCsvFileId });
 
-    let rawHeaders = parsedFile.meta.fields;
-    let rows = parsedFile.data;
+    var rows;
+
+    try {
+        // Load the CSV file with the import data
+        // Convert it to an array of objects with keys matching the NS fields to be referenced when creating the POs
+
+
+        let curFile = file.load({ id: jitPoImportCsvFileId });
+        // let curFileContents = curFile.getContents();
+
+        let parsedFile = Papa.parse(
+            curFile.getContents(),
+            {
+                header: true,
+                dynamicTyping: false,
+                skipEmptyLines: 'greedy',
+            }
+        );
+
+        let rawHeaders = parsedFile.meta.fields;
+        rows = parsedFile.data;
+    } catch (e) {
+        log.error({ title: 'getInputData - error', details: e });
+        sendTotalFailureEmail(
+            `Failed in getInputData while trying to load the JIT PO Import CSV File with ID: ${jitPoImportCsvFileId}.
+            Error details: ${e}
+            `
+        );
+        throw e;
+    }
 
     return rows;
 }
@@ -81,27 +99,53 @@ function getInputData(context) {
 function map(context) {
     log.debug({ title: 'map - result', details: context });
 
-    let row = JSON.parse(context.value);
-
-    let poExternalId = row[FCJITGenPoLib.Settings.PoImportCsv.poExternalId];
-
-    let targetKeys = [
-        ...Object.keys(FCJITGenPoLib.MRSettings.CsvToNsFieldMap),
-        ...Object.keys(FCJITGenPoLib.Settings.CsvSpecialFields)
-    ];
-
-    let filteredRow = FCLib.pickFromObj(row, targetKeys);
-
-    // let sessionFolderId = row.sessionFolderId;
-
     try {
+        let row = JSON.parse(context.value);
+
+        log.debug({ title: 'map - row', details: row });
+
+        let poExternalId = row[FCJITGenPoLib.Settings.PoImportCsv.NewOutputFields.poExternalId];
+
+        log.debug({ title: 'map - poExternalId', details: poExternalId });
+        log.debug({ title: 'map - FCJITGenPoLib.MRSettings.CsvToNsFieldMap', details: FCJITGenPoLib.MRSettings.CsvToNsFieldMap });
+        // log.debug({ title: 'map - Settings.PoImportCsv.NewOutputFields.emailOnceCreated', details: FCJITGenPoLib.Settings.PoImportCsv.NewOutputFields.emailOnceCreated});
+        // log.debug({ title: 'map - FCJITGenPoLib.MRSettings.CsvSpecialFields', details: FCJITGenPoLib.MRSettings.CsvSpecialFields});
+        // log.debug({ title: 'map - FCJITGenPoLib.MRSettings.CsvSpecialFields parsed', details: JSON.parse(FCJITGenPoLib.MRSettings.CsvSpecialFields)});
+
+
+        let targetKeys = [
+            ...Object.keys(FCJITGenPoLib.MRSettings.CsvToNsFieldMap),
+            // ...Object.keys(FCJITGenPoLib.MRSettings.CsvSpecialFields)
+        ];
+
+        log.debug({ title: 'map - targetKeys', details: targetKeys });
+
+        let connected = FCLib.libConnectionTest();
+        log.debug({ title: 'map - connected', details: connected });
+
+
+        let filteredRow = FCLib.pickFromObj(row, targetKeys);
+
+        log.debug({ title: 'map - filteredRow', details: filteredRow });
+
+        // let sessionFolderId = row.sessionFolderId;
+
         context.write({
             key: poExternalId,
-            value: filteredRow
+            value: filteredRow,
+            success: true
         });
 
     } catch (e) {
+        context.write({
+            key: poExternalId,
+            value: filteredRow,
+            success: false,
+            errorMsg: e.message
+        });
         log.error({ title: 'map - error', details: { 'context': context, 'error': e } });
+
+        // FIX: Need to make sure the error makes it through to summarize
     }
 
 }
@@ -110,53 +154,76 @@ function map(context) {
 function reduce(context) {
     log.audit({ title: 'reduce - context', details: context });
 
-    let poExternalId = context.key;
-    let poItemRows = JSON.parse(context.values);
-
-    let poRecord = buildPoRecord(poItemRows);
-
-    let sendEmailHeader = FCJITGenPoLib.Settings.PoImportCsv.NewOutputFields.emailOnceCreated;
-
-    let sendEmailHeaderSetting = FCJITGenPoLib.Settings.CsvSpecialFields[
-        sendEmailHeader
-    ];
-
-    let sendEmail = sendEmailHeaderSetting.valueFunc(
-        poItemRows[0][sendEmailHeader]
-    );
-
+    var poRecord = null;
 
     try {
+        // First, check to see if there are any rows with error messages.
+        //  If so, reject the entire PO and include the error message with the summary. 
+        let failedRows = [];
+        for (let value of context.values) {
+            if (!value.success) {
+                failedRows.push(value);
+            }
+        }
+
+        if (failedRows.length > 0) {
+            let errorMsg = `Skipping this entire PO (${key}) because the following rows failed to parse:
+            ${JSON.stringify(failedRows)}.`;
+            throw new Error(errorMsg);
+        }
+
+        let poExternalId = context.key;
+
+        log.debug({ title: 'reduce - poExternalId', details: poExternalId });
+        // let poItemRows = [...JSON.parse(context.values)];
+        let poItemRows = context.values;
+        log.debug({ title: 'reduce - poItemRows', details: poItemRows });
+
+        poRecord = buildPoRecord(poItemRows);
+
+        log.debug({ title: 'reduce - poRecord', details: poRecord });
+
+        let out = {
+            key: context.key,
+            value: {
+                // poRecordId: poId,
+                poExternalId: context.key,
+                success: true,
+                // sendEmail: sendEmail
+            },
+        };
+        log.debug({ title: 'reduce - result out 1', details: out });
+
         let poId = poRecord.save({
             // enableSourcing: false,
             // ignoreMandatoryFields: false
         });
 
-        context.write({
-            key: context.key,
-            value: {
-                poRecordId: poId,
-                poExternalId: poExternalId,
-                success: true,
-                sendEmail: sendEmail
-            },
-        });
+        out.value.poRecordId = poId;
+
+        log.debug({ title: 'reduce - result out 2', details: out });
+
+
+        // log.debug({ title: 'reduce - result', details: `key: ${context.key}, value: ${context.value}`});
+
+        context.write(out);
 
 
     } catch (e) {
-        context.write({
+        log.error({ title: 'reduce - error', details: { 'context': context, 'error': e } });
+
+        let out = {
             key: context.key,
             value: {
                 poRecordId: null,
                 poExternalId: poExternalId,
                 success: false,
-                sendEmail: false,
+                // sendEmail: false,
                 errorMsg: e.message
             }
-        });
+        };
 
-        log.error({ title: 'reduce - error', details: { 'context': context, 'error': e } });
-
+        context.write(out);
     }
 
 }
@@ -166,10 +233,13 @@ function reduce(context) {
 
 function summarize(context) {
     log.audit({ title: 'summarize - context', details: context });
+    log.audit({ title: 'summarize - context JSON', details: JSON.stringify(context) });
+    log.audit({ title: 'summarize - context output JSON', details: JSON.stringify(context.output) })
+
     // Log details about the script's execution.
     log.audit({
         title: `Runtime stats`,
-        details: `Usage units consumed (${context.usage}), Concurrency (${context.concurrency}), Number of yields (${context.yields})`
+        details: `Time to completion (${context.seconds} seconds), Usage units consumed (${context.usage}), Concurrency (${context.concurrency}), Number of yields (${context.yields})`
     });
 
     // Two main steps:
@@ -182,8 +252,8 @@ function summarize(context) {
     let posFailed = {};
     let posToEmail = [];
 
-    for (const [key, valueRaw] of Object.entries(context.output)) {
-        let thisVal = JSON.parse(valueRaw);
+    context.output.iterator().each(function (key, value) {
+        let thisVal = JSON.parse(value);
         if (thisVal.success) {
             posSucceeded[thisVal.poExternalId] = thisVal;
             if (thisVal.sendEmail) {
@@ -194,8 +264,9 @@ function summarize(context) {
                 row: thisVal,
                 errorMsg: thisVal.errorMsg
             };
-        } 
-    }
+        }
+    });
+
 
     // Send the summary email to the user
     let emailBody = buildProcessSummaryEmail(
@@ -205,18 +276,18 @@ function summarize(context) {
     );
 
     email.send({
-        author: runtime.getCurrentUser().id,
-        recipients: FCJITGenPoLib.Settings.Emails.PoCreationSummary.Recipients,
-        cc: FCJITGenPoLib.Settings.Emails.PoCreationSummary.Cc,
-        bcc: FCJITGenPoLib.Settings.Emails.PoCreationSummary.Bcc,
+        author: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Sender,
+        recipients: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Recipients,
+        cc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Cc,
+        bcc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Bcc,
         body: emailBody,
-        subject: FCJITGenPoLib.Settings.Emails.PoCreationSummary.Subject,
+        subject: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Subject,
     });
 
 
     log.audit({
         title: 'Generated JIT POs - summary',
-        details: emailBody 
+        details: emailBody
     });
 
 
@@ -241,7 +312,23 @@ function summarize(context) {
 }
 
 
-function buildProcessSummaryEmail (
+function sendTotalFailureEmail (reason) {
+    let emailBody = 
+        `The JIT PO creation process failed to create any POs.
+        Reason specified: ${reason ? reason : 'No reason specified.'}`;
+
+    email.send({
+        author: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Sender,
+        recipients: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Recipients,
+        cc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Cc,
+        bcc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Bcc,
+        body: emailBody,
+        subject: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Subject,
+    });
+    return;
+}
+
+function buildProcessSummaryEmail(
     posSucceeded = {},
     posFailed = {},
     posToEmail = {},
@@ -266,7 +353,8 @@ function buildProcessSummaryEmail (
         }
     }
 
-    let emailBody = FCJITGenPoLib.Settings.Emails.PoCreationSummary.ReplaceAllPlaceholders(
+    let emailBody = FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Body.ReplaceAllPlaceholders(
+        // FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Body.Template,
         posSucceededCount,
         posFailedCount,
         posSucceededList,
@@ -277,21 +365,35 @@ function buildProcessSummaryEmail (
 }
 
 
-function buildPoRecord(csvRows) {
-    let poRecord = record.create({
+function buildPoRecord(csvRowsRaw) {
+    var csvRows = csvRowsRaw.map(JSON.parse);
+
+    log.debug({ title: 'csvrows: ', details: csvRows });
+    let firstRow = csvRows[0];
+
+    log.debug({ title: 'firstRow: ', details: firstRow });
+    var poRecord = record.create({
         type: record.Type.PURCHASE_ORDER,
         isDynamic: false
     });
 
+    log.debug({ title: 'poRecord', details: poRecord });
+
+    let keysInCsvDebug = Object.keys(csvRows[0]);
+    log.debug({ title: 'keysInCsvDebug', details: keysInCsvDebug });
 
     // Set the PO mainline fields
-    let poMainlineHeaders = FCJITGenPoLib.MRSettings.CsvToNsFieldMap.filter(
-        (header) => header.record === 'transaction'
+    // FIX;
+    var csvToNsFieldMapKeys = Object.keys(FCJITGenPoLib.MRSettings.CsvToNsFieldMap);
+    var poMainlineHeaders = csvToNsFieldMapKeys.filter(
+        (header) => { return FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].record === 'transaction' }
     );
 
+    log.debug({ title: 'poMainlineHeaders', details: poMainlineHeaders })
+
     for (let header of poMainlineHeaders) {
-        let nsFieldId = header.nsFieldId;
-        let typeFunc = csvRows[0][header].typeFunc;
+        let nsFieldId = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].nsFieldId;
+        let typeFunc = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].typeFunc;
         let nsValue = typeFunc(csvRows[0][header]);
 
         poRecord.setValue({
@@ -300,15 +402,22 @@ function buildPoRecord(csvRows) {
         });
     }
 
+    log.debug({ title: 'poRecord', details: poRecord });
+
+
     // Set the PO item + inventory detail fields
-    let poItemHeaders = FCJITGenPoLib.MRSettings.CsvToNsFieldMap.filter(
-        (header) => header.record === 'item'
+    let poItemHeaders = csvToNsFieldMapKeys.filter(
+        (header) => { return FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].record === 'item' }
     );
 
+    log.debug({ title: 'poItemHeaders', details: poItemHeaders });
+
     // FIX: Need to make sure we have an inventorydetail quantity field
-    let invDetailHeaders = FCJITGenPoLib.MRSettings.CsvToNsFieldMap.filter(
-        (header) => header.record === 'inventorydetail'
+    let invDetailHeaders = csvToNsFieldMapKeys.filter(
+        (header) => { return FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].record === 'inventorydetail' }
     );
+
+    log.debug({ title: 'invDetailHeaders', details: invDetailHeaders });
 
     for (let i = 0; i < csvRows.length; i++) {
         let row = csvRows[i];
@@ -322,13 +431,13 @@ function buildPoRecord(csvRows) {
 
         // Set the required item-level fields for the line
         for (let header of poItemHeaders) {
-            let nsFieldId = header.nsFieldId;
-            let typeFunc = row[header].typeFunc;
+            let nsFieldId = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].nsFieldId;
+            let typeFunc = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].typeFunc;
             let nsValue = typeFunc(row[header]);
 
             poRecord.setSublistValue({
                 sublistId: 'item',
-                fieldId: header.fieldId,
+                fieldId: nsFieldId,
                 line: i,
                 value: nsValue
             });
@@ -336,7 +445,7 @@ function buildPoRecord(csvRows) {
 
         if (invDetailHeaders && invDetailHeaders.length > 0) {
 
-            let invDetailSubrec = rec.getSublistSubrecord({
+            let invDetailSubrec = poRecord.getSublistSubrecord({
                 sublistId: 'item',
                 line: i,
                 fieldId: 'inventorydetail'
@@ -351,13 +460,13 @@ function buildPoRecord(csvRows) {
 
             // Set the required inventory detail-level fields for the line
             for (let header of invDetailHeaders) {
-                let nsFieldId = header.nsFieldId;
-                let typeFunc = row[header].typeFunc;
+                let nsFieldId = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].nsFieldId;
+                let typeFunc = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].typeFunc;
                 let nsValue = typeFunc(row[header]);
 
                 invDetailSubrec.setSublistValue({
                     sublistId: 'inventoryassignment',
-                    fieldId: header.fieldId,
+                    fieldId: nsFieldId,
                     line: i,
                     value: nsValue
                 });
