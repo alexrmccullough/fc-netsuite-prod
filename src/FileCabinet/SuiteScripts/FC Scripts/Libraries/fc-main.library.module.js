@@ -1,4 +1,5 @@
-var query,
+var record,
+    query,
     task,
     runtime,
     email,
@@ -6,9 +7,10 @@ var query,
     serverWidget,
     dayjs;
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/search', 'N/ui/serverWidget', './dayjs.min.js'], main);
+define(['N/record', 'N/query', 'N/task', 'N/runtime', 'N/email', 'N/search', 'N/ui/serverWidget', './dayjs.min.js'], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule, searchModule, serverWidgetModule, dayjsModule) {
+function main(recordModule, queryModule, taskModule, runtimeModule, emailModule, searchModule, serverWidgetModule, dayjsModule) {
+    record = recordModule;
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
@@ -244,7 +246,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         var objRecord = record.create(
             {
                 type: record.Type.FOLDER,
-                isDynamic: true
+                // isDynamic: true
             }
         );
 

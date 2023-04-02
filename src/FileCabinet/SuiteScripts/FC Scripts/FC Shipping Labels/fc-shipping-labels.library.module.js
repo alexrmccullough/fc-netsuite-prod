@@ -81,6 +81,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         nsSsTargetGetType: 'value',
                         recastValueFunc: null,
                     },
+                    ItemInternalId: {
+                        nsSsFieldId: 'item.internalid',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                    },
                     ItemName: {
                         nsSsFieldId: 'item.displayname',
                         nsSsTargetGetType: 'value',

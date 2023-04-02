@@ -108,17 +108,14 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule, fcLibModule) 
                 BuildQueryFunction: buildQueryGetItemInfoFromPO,
                 Query: `
                     SELECT TransactionLine.uniquekey AS tranlineuniquekey,
-                        -- Transaction.id AS tranid,
                         Item.id AS itemid,
                         ABS(SUM(TransactionLine.quantity)) AS itemquantity
                     FROM TransactionLine
                         JOIN Transaction ON Transaction.id = TransactionLine.transaction
                         LEFT OUTER JOIN Item ON Item.id = TransactionLine.item
                     WHERE TransactionLine.mainline = 'F'
-                        -- AND Item.custitem_soft_comit = 'T'
                         @@PO_ID_FILTER_1@@
                     GROUP BY TransactionLine.uniquekey,
-                        -- Transaction.id,
                         Item.id            
                 `,
                 Filters: {

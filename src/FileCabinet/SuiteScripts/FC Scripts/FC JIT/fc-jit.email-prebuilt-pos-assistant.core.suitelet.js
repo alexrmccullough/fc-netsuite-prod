@@ -4,9 +4,8 @@
 * @NModuleScope SameAccount
 */
 
-// var modulePathThisAppLibrary = './fc-jit.send-jit-po-utility.library.module.js';
 var modulePathThisAppLibrary = './fc-jit.email-prebuilt-pos-assistant.library.module.js';
-
+var modulePathShipLabelLibrary = '../FC Shipping Labels/fc-shipping-labels.library.module.js';
 
 var
     file,
@@ -18,16 +17,17 @@ var
     serverWidget,
     url,
     FCLib,
-    ThisAppLib;
+    ThisAppLib,
+    FCShipLabelLib;
 // Papa;
 // assistant, 
 // stepSelectOptions;
 
 
-define(['N/file', 'N/log', 'N/query', 'N/record', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathThisAppLibrary], main);
+define(['N/file', 'N/log', 'N/query', 'N/record', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathThisAppLibrary, modulePathShipLabelLibrary], main);
 
 
-function main(fileModule, logModule, queryModule, recordModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, thisAppLibModule) {
+function main(fileModule, logModule, queryModule, recordModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, thisAppLibModule, shipLabelModule) {
     file = fileModule;
     log = logModule;
     query = queryModule;
@@ -37,6 +37,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
     url = urlModule;
     FCLib = fcLibModule;
     ThisAppLib = thisAppLibModule;
+    FCShipLabelLib = shipLabelModule;
 
     return {
 
@@ -170,7 +171,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         // });
         // buildPoSelectREGULARLIST(context, poList, queryResults);
 
-        
+
         // Build an INLINEHTML field, create a PO table, and inject the HTML into the table
 
         let tableHtml = buildPoSelectHtmlList(context, queryResults);
@@ -220,7 +221,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
             [ThisAppLib.Settings.Ui.Parameters.SELECT_PO_IDS_FINAL]: poIdsSelected,
         };
 
-        
+
         // If no POs selected, write a simple message and return
         if (poIdsSelected.length == 0) {
             let noPosSelectedHtml = `
@@ -240,11 +241,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         }
 
 
-        // If we got here, then we have at least one PO to send
-        // Create a session folder to store data to be passed to PO sending script
-        let sessionFolder = ThisAppLib.createSessionSubfolder(context);
-
-
         // Build list of PO items counts
         //   Item Internal ID / Item Quantity
         //   Filter by:
@@ -256,55 +252,56 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         //  2. Run query/search for JIT label data
 
         // Run query on PO transactions for JIT items
-        let sqlQuery = ThisAppLib.buildQueryGetItemInfoFromPOs(poIdsSelected);
+        let sqlQuery = ThisAppLib.buildQueryGetItemInfoFromPos(poIdsSelected);
 
         debugHtml += `<pre>sqlQuery: ${sqlQuery}</pre><br><br>`;
 
         let nestingKeys = [
-            ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemid.fieldid
+            // ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemid.fieldid
+            ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorname.fieldid
         ];
 
         let queryResults = FCLib.sqlSelectAllRowsIntoNestedDict(
             sqlQuery,
-            nestingKeys              
+            nestingKeys
         );
 
         debugHtml += `<pre>queryResults: ${JSON.stringify(queryResults)}</pre><br><br>`;
 
-        // Get list of vendors returned from the PO query, to be used in the JIT label search
-        let vendorIds = new Set();
-        for (let result of Object.entries(queryResults)) {
-            vendorIds.add(
-                result[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorid.fieldid]
-            );
-        }
+        // Get list of vendor info returned from the PO query, to be used in the JIT label search
+        // Vendor info is a 2-elem array: [0] = vendor ids, [1] = vendor names
+        let vendorInfo = Object.values(queryResults).reduce(
+            (acc, poItem) => {
+                let vendorName = poItem[0][ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorname.fieldid];
+                let vendorId = poItem[0][ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorid.fieldid];
+
+                if (!(vendorName in acc)) {
+                    acc[vendorName] = vendorId;
+                }
+                return acc;
+            }, {}
+        );      // queryResults = 1:N map from item id > q result
+
+
+
 
         // Run query/search for labels, filtered by JIT items only
+        // FIX: Can we combine this savedsearch into the above query?
         let labelSearchParams = {
-            vendorInternalIds: [...vendorIds],
+            vendorInternalIds: Object.values(vendorInfo),
             itemIsJit: true,
-            soShipStartDate: ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID,
-            soShipEndDate: ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID,
+            soShipStartDate: params[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
+            soShipEndDate: params[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
         };
 
         let searchResults = FCShipLabelLib.runLotNumberedShippingLabelSearch(labelSearchParams);
         debugHtml += `<pre>searchResults: ${JSON.stringify(searchResults)}</pre><br><br>`;
 
+        // FIX: Add check here for empty search results? 
 
-        let labelJsonFileIds = {};
 
-        // Split label search results by vendor ID. Save one set of the label search results per vendor ID to a JSON file
-        for (let vendorId of vendorIds) {
-            let vendorLabelSearchResults = searchResults.filter(result => result.vendorid == vendorId);
 
-            let vendorLabelSearchResultsFile = sessionFolder.createFile({
-                name: `labelSearchResults_${vendorId}.json`,
-                fileType: file.Type.JSON,
-                contents: JSON.stringify(vendorLabelSearchResults)
-            });
 
-            labelJsonFileIds[vendorId] = vendorLabelSearchResultsFile.id;
-        }
 
         // Build dict of all items to display comparison between items/quantities that appear on 
         //   the PO vs the items/quantities that appear on the JIT label search
@@ -339,11 +336,15 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         // First, we need to build a dict of line item counts. The saved search returns lines with duplicate item counts because
         //   it's showing detail by lot number. 
         let lineCounts = {};
+        let lineUniqueKeyHeader = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.TransLineUniqueKey.nsSsFieldId;
+        let itemIdHeader = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.ItemInternalId.nsSsFieldId;
+        let lineQtyHeader = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.SOLineQuantity.nsSsFieldId;
+
 
         for (let labelSearchLine of searchResults.data) {
-            let lineUniqueKey = labelSearchLine[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.TransLineUniqueKey];
-            let itemId = labelSearchLine[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.ItemId];
-            let lineQty = labelSearchLine[FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.ItemQty];
+            let lineUniqueKey = labelSearchLine[lineUniqueKeyHeader];
+            let itemId = labelSearchLine[itemIdHeader];
+            let lineQty = labelSearchLine[lineQtyHeader];
 
             // Take the first instance of the unique line key / line qty combo
             if (!(lineUniqueKey in lineCounts)) {
@@ -360,7 +361,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         //   Add them into our comparison dict (itemInfo)
         for (let lineCount of Object.values(lineCounts)) {
             let itemId = lineCount.itemId;
-            let lineQty = lineCount.lineQty;
+            let lineQty = Number(lineCount.lineQty);
 
             if (!(itemId in itemInfo)) {
                 itemInfo[itemId] = {
@@ -378,7 +379,19 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
 
         debugHtml += `<pre>itemInfo: ${JSON.stringify(itemInfo)}</pre><br><br>`;
 
-        // Build table to display comparison
+        // FIX / Challenge: If we don't assume that there is a strict 1-1 relationship between item and vendor, 
+        //   then how do we display a summary of the PO item quantities against label item quantities?
+        //   We can't just use the PO item quantities because there may be multiple vendors for a given item.
+        //   We can't just use the label item quantities because there may be multiple items for a given vendor.
+
+        // FIX / Challenge: What if we don't assume 1-1 relationship between PO and vendor? In other words,
+        //   what if a vendor has multiple POs selected here? 
+
+        // The plan for now (2023.04.02): Break the items out by vendor. Inclue a column specifying the PO Number(s) 
+        //   in which the items appear, with counts (e.g. PO123 (5)).
+
+
+
         //  First, add itemId as field in every entry 
         for (let itemId of Object.keys(itemInfo)) {
             itemInfo[itemId][itemIdKey] = itemId;
@@ -386,17 +399,47 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
 
         var comparisonTableHtml = FCLib.convertObjToHTMLTableStylized({
             fields: [itemIdKey, poQtyKey, labelQtyKey],
-            data: itemInfo,
+            data: Object.values(itemInfo),
         });
 
 
         // Embed in an inlinehtml form field
-        let comparisonTableHtmlField = form.addField({
+        let comparisonTableHtmlField = assistant.addField({
             id: 'custpage_comptable_html_field',
             type: serverWidget.FieldType.INLINEHTML,
             label: 'Confirm PO vs Label Item Quantities'
         });
         comparisonTableHtmlField.defaultValue = comparisonTableHtml;
+
+
+        
+
+        // If we got here, then we have at least one PO to send
+        // Create a session folder to store data to be passed to PO sending script
+        
+        let labelJsonFileIds = {};
+        let vendorNameHeader = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.PreferredVendor.nsSsFieldId;
+
+        let sessionFolderId = ThisAppLib.createSessionSubfolder(context);
+
+        // Split label search results by vendor ID. Save one set of the label search results per vendor ID to a JSON file.
+        //    Plan: Send one email per vendor and include 1 to many POs in each email. 
+        //          Include a single label file for the combined items. 
+        //    FIX: The above assumes a 1-1 relationship between item and vendor. 
+
+        for (let vendorName of Object.keys(vendorInfo)) {
+            let vendorLabelSearchResults = searchResults.data.filter(result => result[vendorNameHeader] == vendorName);
+            let vendorId = vendorInfo[vendorName];
+
+            let vendorLabelSearchResultsFile = FCLib.writeFileToFileCabinet(
+                'json',
+                `labelSearchResults_${vendorId}.json`,
+                JSON.stringify(vendorLabelSearchResults),
+                sessionFolderId,
+            );
+
+            labelJsonFileIds[vendorId] = vendorLabelSearchResultsFile.id;
+        }
 
         var persistentParams = {
             [ThisAppLib.Settings.Ui.Parameters.SELECT_PO_IDS_FINAL]: poIdsSelected.join(','),
@@ -456,13 +499,13 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         let fieldDefs = ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields;
         let fieldHeaders = Object.keys(fieldDefs).map(key => fieldDefs[key].Label);
 
-        
+
         let selectCheckboxInputSpecs = {
             htmlElem: 'checkbox',
             valueSourceField: fieldDefs.PoInternalId.Label,
             checkedSourceField: fieldDefs.Select.Label,
             fieldDisplayName: 'Select',
-            idPrefixPart1Str: ThisAppLib.Settings.Ui.Parameters.SELECT_PO_ID_CHECKBOX_ID.prefix, 
+            idPrefixPart1Str: ThisAppLib.Settings.Ui.Parameters.SELECT_PO_ID_CHECKBOX_ID.prefix,
             idPrefixPart2Str: '',
             idUniqueSuffixSourceField: fieldDefs.PoInternalId.Label,
         };
@@ -487,8 +530,8 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
                     fieldVal = queryRow[fieldDef.UnsentPoQuerySource.fieldid];
                 }
 
-                if (fieldVal !== null && fieldVal !== undefined && fieldVal != '') { 
-                    if ('TypeFunc' in fieldDef){ fieldVal = fieldDef.TypeFunc(fieldVal); }
+                if (fieldVal !== null && fieldVal !== undefined && fieldVal != '') {
+                    if ('TypeFunc' in fieldDef) { fieldVal = fieldDef.TypeFunc(fieldVal); }
 
                     formattedRow[fieldLabel] = fieldVal;
                     // sublist.setSublistValue({

@@ -10,11 +10,11 @@
         }
 
         table, td {
-            border: 1px;
+            border: 0px;
         }
         
         .maintable {
-            border: 1px;
+            border:0px;
             margin:0;
             padding:0;
             

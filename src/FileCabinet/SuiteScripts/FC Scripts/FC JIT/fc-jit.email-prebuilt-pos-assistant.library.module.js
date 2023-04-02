@@ -1,10 +1,12 @@
 var query,
     task,
     runtime,
-    email;
+    email,
+    ui,
+    format;
 
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', 'N/format'], main);
+define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', 'N/format', 'N/record'], main);
 
 function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetModule, formatModule) {
     query = queryModule;
@@ -120,21 +122,28 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
                 BuildQueryFunction: buildQueryGetItemInfoFromPos,
                 Query: `
                     SELECT TransactionLine.uniquekey AS tranlineuniquekey,
-                        -- Transaction.id AS tranid,
-                        Item.id AS itemid,
+                        TransactionLine.item AS itemid,
+                        Transaction.entity AS vendorid,
+                        Transaction.tranDisplayName as podisplayname,
+                        Vendor.companyName as vendorname,
                         ABS(SUM(TransactionLine.quantity)) AS itemquantity
                     FROM TransactionLine
-                        JOIN Transaction ON Transaction.id = TransactionLine.transaction
-                        LEFT OUTER JOIN Item ON Item.id = TransactionLine.item
-                    WHERE TransactionLine.mainline = 'F'
-                        -- AND Item.custitem_soft_comit = 'T'
+                    LEFT OUTER JOIN Transaction ON Transaction.id = TransactionLine.transaction
+                    LEFT OUTER JOIN Vendor ON Transaction.entity = Vendor.id
+                    LEFT OUTER JOIN Item ON Item.id = TransactionLine.item
+                    WHERE 
+                        TransactionLine.mainline = 'F'
+                        AND Item.custitem_soft_comit = 'T'
                         @@PO_ID_FILTER_1@@
                     GROUP BY TransactionLine.uniquekey,
-                        -- Transaction.id,
-                        Item.id            
+                        TransactionLine.item,
+                        Transaction.entity,
+                        Transaction.tranDisplayName,
+                        Vendor.companyName
+
                 `,
                 Filters: {
-                    POIDS: {
+                    POIDs: {
                         ParamPlaceholder: '@@PO_IDS@@',
                         QueryLinePlaceholders: {
                             '@@PO_ID_FILTER_1@@': 'AND (Transaction.id IN (@@PO_IDS@@))',
@@ -152,6 +161,18 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
                     itemquantity: {
                         fieldid: 'itemquantity',
                         label: 'Item Quantity',
+                    },
+                    vendorid: {
+                        fieldid: 'vendorid',
+                        label: 'Vendor Internal ID',
+                    },
+                    vendorname: {
+                        fieldid: 'vendorname',
+                        label: 'Vendor Name',
+                    },
+                    podisplayname: {
+                        fieldid: 'podisplayname',
+                        label: 'PO Name',
                     },
                 },
                 Parameters: {
@@ -350,12 +371,12 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
     }
 
     function buildQueryGetItemInfoFromPos(poIds = []) {
-        let sqlQuery = exports.Queries.GET_ITEM_INFO_FROM_PO.Query;
+        let sqlQuery = exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.Query;
         let poIdsStr = poIds.join(',');
 
-        for (let queryPlaceholder in exports.Queries.GET_ITEM_INFO_FROM_PO.Filters.POID.QueryLinePlaceholders) {
-            let filterText = exports.Queries.GET_ITEM_INFO_FROM_PO.Filters.POID.QueryLinePlaceholders[queryPlaceholder].replace(
-                exports.Queries.GET_ITEM_INFO_FROM_PO.Filters.POID.ParamPlaceholder,
+        for (let queryPlaceholder in exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.Filters.POIDs.QueryLinePlaceholders) {
+            let filterText = exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.Filters.POIDs.QueryLinePlaceholders[queryPlaceholder].replace(
+                exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.Filters.POIDs.ParamPlaceholder,
                 poIdsStr
             );
             sqlQuery = sqlQuery.replace(
@@ -372,10 +393,10 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
         const curDateTimeStr = FCLib.getStandardDateTimeString1(date);
         // const curDateTime = new Date();
         // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
-        var resultsFolderName = exports.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
-        var resultsFolderObj = FCLib.createFolderInFileCabinet(resultsFolderName, exports.Ids.Folders.SESSION_RESULTS);
+        var resultsFolderName = Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
+        var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, exports.Ids.Folders.SESSION_RESULTS);
 
-        return resultsFolderObj.id;
+        return resultsFolderId;
     }
 
 
