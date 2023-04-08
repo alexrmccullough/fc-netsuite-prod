@@ -1,4 +1,7 @@
-var query;
+var query,
+    task,
+    runtime,
+    email;
 
 define(['N/query', 'N/task', 'N/runtime', 'N/email'], main);
 
@@ -24,8 +27,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                 SELECT
                     Item.itemId as itemname,
                     Item.id AS internalid,
-                    Item.itemtype AS itemtype,
-                    Item.isLotItem AS islotitem,
                     Item.custitem_soft_comit AS isjit,
                     Item.custitem_fc_zen_sft_comm_qty AS standingjitqty,
                     Item.custitem_fc_am_jit_start_qty AS startjitqty,
@@ -80,10 +81,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
         Deployments: {
             MR_JIT_UPDATE: 'customdeploy_fc_am_jit_mr_updateitemjit',
         },
-        Fields: {
-        },
-        Sublists: {
-        },
         Folders: {
             // PROD
             // INPUT: 8142,
@@ -91,11 +88,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
 
             INPUT: 8544,
             RESULTS: 8546,
-            
-            
-        },
-        Files: {
-
         },
         Parameters: {
             JIT_ITEM_UPDATE_CSV_FILEID: 'custscript_fc_am_jit_update_csv_fileid',
@@ -160,6 +152,28 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
     exports.Ids = Ids;
     exports.Settings = Settings;
     exports.TempFields = TempFields;
+
+
+    function submitItemUpdateMRJob(itemUpdateCSVId) {
+        // Launch a map/reduce job to update the items with the successully parsed csv data
+        let mrParams = {
+            [exports.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID]: itemUpdateCSVId,
+            // 'custscript_csv_fileid': itemUpdateCSVId,
+            // [FCUpdateJITAvailLib.Ids.Parameters.SUBTRACT_FUTURE_SOS_ON_UPDATE]: subtractFutureJITSOs
+        };
+    
+        let mrTask = task.create({
+            taskType: task.TaskType.MAP_REDUCE,
+            scriptId: exports.Ids.Scripts.MR_JIT_UPDATE,
+            deploymentId: exports.Ids.Deployments.MR_JIT_UPDATE,
+            params: mrParams
+        });
+    
+        // Submit the map/reduce task
+        let mrTaskId = mrTask.submit();
+        return mrTaskId;
+    }
+    exports.submitItemUpdateMRJob = submitItemUpdateMRJob;
 
     return exports;
 }

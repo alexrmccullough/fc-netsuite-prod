@@ -119,7 +119,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
                 }
             }
         }
-
     }
 
     function writeStep1SelectOptions(context, assistant) {
@@ -594,7 +593,8 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
     }
 
 
-
+    // FIX: This should be in FC LIB
+    //      We also use it in zero-jit-availability
     function buildPoSelectHtmlList(context, poQueryResults) {
         let fieldDefs = ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields;
         let fieldHeaders = Object.keys(fieldDefs).map(key => fieldDefs[key].Label);
@@ -611,7 +611,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         };
 
         // First, sort the list by PO ID
-        let sortField = ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields.PoDisplayName.UnsentPoQuerySource.fieldid;
+        let sortField = ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields.PoDisplayName.QuerySource.fieldid;
         let poQueryResultsSorted = FCLib.sortArrayOfObjsByKey(poQueryResults, sortField, true);
 
         let formattedRows = [];
@@ -626,8 +626,8 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
                 let fieldLabel = fieldDef.Label;
                 let fieldVal = ('DefaultValue' in fieldDef) ? fieldDef.DefaultValue : '';
 
-                if ('UnsentPoQuerySource' in fieldDef) {
-                    let lookupVal = queryRow[fieldDef.UnsentPoQuerySource.fieldid];
+                if ('QuerySource' in fieldDef) {
+                    let lookupVal = queryRow[fieldDef.QuerySource.fieldid];
                     if ((lookupVal !== null) && (lookupVal !== undefined) && (lookupVal != '')) {
                         fieldVal = lookupVal;
 

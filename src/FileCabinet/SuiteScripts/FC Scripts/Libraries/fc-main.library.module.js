@@ -404,7 +404,6 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                 }
             }
 
-
             // Map the header names to special headers, if provided
             for (var i = 0; i < fields.length; i++) {
                 let origFieldName = fields[i];
@@ -424,13 +423,14 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                 });
             }
 
-
             var htmlHeader = '<thead>';
             htmlHeader += theadTrElem;
+
             // Add in Special Elements as first columns
             for (let specialElem of specialElems) {
                 htmlHeader += thElem + specialElem.fieldDisplayName + '</th>';
             }
+
             // Now add in the rest of the fields
             for (var i = 0; i < internalFieldsWithMapping.length; i++) {
                 htmlHeader += thElem + internalFieldsWithMapping[i].mapped + '</th>';
@@ -475,13 +475,14 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                         case 'input':
                             val = `<input type="${elem.type}" id="${elemId}" name="${name}" value="${value}">`;
                         case 'checkbox':
-                            val = `<input type="checkbox" id="${elemId}" name="${name}" value="${value}" ${checked}}>`;
+                            val = `<input type="checkbox" id="${elemId}" name="${name}" value="${value}" ${checked}>`;
                     }
                     htmlBody += tdElem + val + '</td>';
                 }
                 
                 for (var k = 0; k < internalFieldsWithMapping.length; k++) {
                     let thisField = internalFieldsWithMapping[k];
+
                     if (thisField.orig in hideFields) {
                         continue;
                     }
@@ -492,6 +493,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                 }
                 htmlBody += '</tr>';
             }
+
             htmlBody += '</tbody>';
 
             tableHtml = tableElem + htmlHeader + htmlBody + '</table>';
@@ -762,6 +764,35 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     }
     exports.condenseSimplifyString = condenseSimplifyString;
 
+
+    function formatQueryRowsOnFieldDefs(fieldDefs, queryResultsRows){
+        let formattedRows = [];
+        for (let i = 0; i < queryResultsRows.length; i++) {
+            let queryRow = queryResultsRows[i];
+            let formattedRow = {};
+
+            for (let fieldDef of Object.values(fieldDefs)) {
+                let fieldLabel = fieldDef.Label;
+                let fieldVal = ('DefaultValue' in fieldDef) ? fieldDef.DefaultValue : '';
+
+                if ('QuerySource' in fieldDef) {
+                    let lookupVal = queryRow[fieldDef.QuerySource.fieldid];
+                    if ((lookupVal !== null) && (lookupVal !== undefined) && (lookupVal != '')) {
+                        fieldVal = lookupVal;
+
+                        if ('TypeFunc' in fieldDef) { fieldVal = fieldDef.TypeFunc(fieldVal); }
+
+                    }
+                }
+
+                formattedRow[fieldLabel] = fieldVal;
+
+            }
+            formattedRows.push(formattedRow);
+        }
+        return formattedRows;
+    }
+    exports.formatQueryRowsOnFieldDefs = formatQueryRowsOnFieldDefs;
 
 
     // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {

@@ -145,23 +145,15 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule, fcLibModule) 
             EMAIL_JIT_POS: 'customdeploy_fc_am_jit_mr_sendjitpos',
             JIT_CREATE_POS_HELPER_MAPREDUCE: 'customdeploy_fc_am_jit_mr_createpos',
         },
-        Fields: {
-        },
         Folders: {
             // MAIN: 9116,
             RESULTS: 8543, // SB
             CACHE: 8604  // SB
         },
-        Files: {
-
-        },
         Parameters: {
             JIT_PO_IMPORT_CSV_FILEID: 'custscript_fc_am_jitpo_import_csv_fileid',
             PO_CSV_HEADER_TO_NS_REVERSE_LOOKUP_JSON: 'custscript_fc_am_csvtons_reverselookup',
         },
-        // CSVImportMappings: {
-        //     JIT_PO_IMPORT_ASSISTANT_CSVIMPORT_SCRIPTID: 'custimport_fc_static_jit_po_assistant_2',
-        // },
     };
 
     var Settings = {

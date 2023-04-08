@@ -225,8 +225,7 @@ function writeResult (context, assistant) {
     // Display a link to the task status page
     let itemUploadCSVId = context.request.parameters[FCUpdateJITAvailLib.Settings.Ui.Parameters.ITEM_UPLOAD_CSV_FIELD_ID];
 
-    let mrTaskId = submitItemUpdateMRJob(
-        context,
+    let mrTaskId = FCUpdateJITAvailLib.submitItemUpdateMRJob(
         itemUploadCSVId
     );
 
@@ -664,8 +663,8 @@ function buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot) 
     var fields = [
         FCLib.Ids.Fields.Item.InternalId,
         FCLib.Ids.Fields.Item.Name,
-        FCLib.Ids.Fields.Item.ItemType,
-        FCLib.Ids.Fields.Item.IsLotItem,
+        // FCLib.Ids.Fields.Item.ItemType,
+        // FCLib.Ids.Fields.Item.IsLotItem,
         FCUpdateJITAvailLib.TempFields.ItemOldStartJITQty,
         FCUpdateJITAvailLib.TempFields.ItemOldRemainingJITQty,
         FCLib.Ids.Fields.Item.StartJITQty,
@@ -679,8 +678,8 @@ function buildSuccessfulUploadsData(context, itemUpdateMaster, jitItemSnapshot) 
         data.push({
             [FCLib.Ids.Fields.Item.InternalId]: nsItemData.internalid,
             [FCLib.Ids.Fields.Item.Name]: itemId,
-            [FCLib.Ids.Fields.Item.ItemType]: nsItemData.itemtype,
-            [FCLib.Ids.Fields.Item.IsLotItem]: nsItemData.islotitem,
+            // [FCLib.Ids.Fields.Item.ItemType]: nsItemData.itemtype,
+            // [FCLib.Ids.Fields.Item.IsLotItem]: nsItemData.islotitem,
             [FCUpdateJITAvailLib.TempFields.ItemOldStartJITQty]: nsItemData.startjitqty,
             [FCUpdateJITAvailLib.TempFields.ItemOldRemainingJITQty]: nsItemData.remainjitqty,
             [FCLib.Ids.Fields.Item.StartJITQty]: itemUpdateData.newJITStartQty,
@@ -758,28 +757,6 @@ function createSessionSubfolder(context, date = new Date()) {
         sessionResultsFolderId: resultsFolderId,
         sessionOriginalsFolderId: originalsFolderId
     };
-}
-
-
-
-function submitItemUpdateMRJob(context, itemUpdateCSVId) {
-    // Launch a map/reduce job to update the items with the successully parsed csv data
-    let mrParams = {
-        [FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID]: itemUpdateCSVId,
-        // 'custscript_csv_fileid': itemUpdateCSVId,
-        // [FCUpdateJITAvailLib.Ids.Parameters.SUBTRACT_FUTURE_SOS_ON_UPDATE]: subtractFutureJITSOs
-    };
-
-    let mrTask = task.create({
-        taskType: task.TaskType.MAP_REDUCE,
-        scriptId: FCUpdateJITAvailLib.Ids.Scripts.MR_JIT_UPDATE,
-        deploymentId: FCUpdateJITAvailLib.Ids.Deployments.MR_JIT_UPDATE,
-        params: mrParams
-    });
-
-    // Submit the map/reduce task
-    let mrTaskId = mrTask.submit();
-    return mrTaskId;
 }
 
 

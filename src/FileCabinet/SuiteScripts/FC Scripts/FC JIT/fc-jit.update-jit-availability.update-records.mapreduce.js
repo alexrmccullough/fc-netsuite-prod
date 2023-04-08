@@ -20,7 +20,6 @@ var
 define(['N/runtime', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/fc-main.library.module', './fc-jit.update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
 
 function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcJITUploadLibModule, papaParseModule) {
-
     runtime = runtimeModule;
     query = queryModule;
     record = recordModule;
@@ -48,7 +47,7 @@ function getInputData(context) {
     });
 
     // let itemUpdateCSVFileId2 = context.parameters[FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID];
-    log.debug({ title: 'getInputData - context', details: JSON.stringify(context)});
+    log.debug({ title: 'getInputData - context', details: JSON.stringify(context) });
     log.debug({ title: 'getInputData', details: { itemUpdateCSVFileId: itemUpdateCSVFileId } });
     log.debug({ title: 'getInputData - csv param name', details: FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID });
     // log.debug({ title: 'getInputData', details: { itemUpdateCSVFileId2: itemUpdateCSVFileId2 } });
@@ -68,6 +67,62 @@ function getInputData(context) {
             skipEmptyLines: 'greedy',
         }
     );
+
+    // In order to modify these Item records, we need to add the following fields to the data:
+    //      itemtype
+    //      islotitem
+
+    let missingRequiredFields = [];
+
+    if (!parsedFile.meta.fields.includes(FCLib.Ids.Fields.Item.ItemType)) {
+        missingRequiredFields.push(FCLib.Ids.Fields.Item.ItemType);
+    };
+
+    if (!parsedFile.meta.fields.includes(FCLib.Ids.Fields.Item.IsLotItem)) {
+        missingRequiredFields.push(FCLib.Ids.Fields.Item.IsLotItem);
+    };
+
+    if (missingRequiredFields.length > 0) {
+        let sqlSelectFields = missingRequiredFields.map((field) => {
+            return `Item.${field}`;
+        }).join(', ');
+
+        // Get at unique list of item internal ids from the data
+        let itemInternalIds = parsedFile.data.reduce(function (itemids, row) {
+            itemids.add(row[FCLib.Ids.Fields.Item.InternalId]);
+            return itemids;
+        }, new Set());
+
+        // Run a simple query filtered by the item ids to get the required fields. 
+        let sqlQuery = `
+            SELECT
+                Item.id,
+                ${sqlSelectFields}
+            FROM
+                Item
+            WHERE
+                Item.id IN (${[...itemInternalIds].join(',')})
+        `;
+
+        // Run the query
+        let queryResults = FCLib.sqlSelectAllRowsIntoDict(
+            sqlQuery,
+            FCLib.Ids.Fields.Item.InternalId,
+        );
+
+        // Add the missing field data into the parsedFile data
+        parsedFile.data.forEach((row) => {
+            let itemInternalId = row[FCLib.Ids.Fields.Item.InternalId];
+            let itemData = queryResults[itemInternalId];
+
+            if (itemData) {
+                missingRequiredFields.forEach((field) => {
+                    row[field] = itemData[field];
+                });
+            }
+        });
+
+    }
 
     return parsedFile.data;
 }
