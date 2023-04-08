@@ -7,10 +7,12 @@
       <feature required="true">ADVANCEDPRINTING</feature>
       <feature required="false">CRM</feature>
       <feature required="false">CREATESUITEBUNDLES</feature>
+      <feature required="true">SALESORDERS</feature>
     </features>
     <objects>
       <object>customsearch_fc_shippinglabel_mainstatic</object>
       <object>customsearch2144</object>
+      <object>customsearch2161</object>
     </objects>
   </dependencies>
 </manifest>

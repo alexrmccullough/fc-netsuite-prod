@@ -149,6 +149,17 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         nsSsTargetGetType: 'value',
                         recastValueFunc: null,
                         displayName: 'Is Last Lot of Line?',
+                    },
+                    IsOrganic: {
+                        nsSsFieldId: 'formulatext_1',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
+                        displayName: 'Is Organic?',
+                    },
+                    CustomerNoHierarchy: {
+                        nsSsFieldId: 'formulatext_2',
+                        nsSsTargetGetType: 'value',
+                        recastValueFunc: null,
                     }
 
                 },
@@ -208,8 +219,17 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 Brand: '<!--@@ITEMBRAND@@-->',
                 ProductStub: '<!--@@ITEMSTUB@@-->',
                 MasterCase: '<!--@@ITEMMASTERCASE@@-->',
+                OGTag: '<!--@@OG_TAG@@-->',
+                ShipToWidth: '<!--@@SHIPTO_WIDTH@@-->',
+
             }
         },
+        OrganicTagHtml: `
+            <div class="isorganic textpadding2pc">
+                <p>OG</p>
+            </div>
+        `,
+        ShipToWidthHtml: `style="width:69%;"`
     };
 
 
@@ -338,6 +358,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 [xmlLabelTemplateInfo.Placeholders.ProductStub],
                 [xmlLabelTemplateInfo.Placeholders.MasterCase],
                 [xmlLabelTemplateInfo.Placeholders.ItemDisplayName],
+                [xmlLabelTemplateInfo.Placeholders.OGTag],
+                [xmlLabelTemplateInfo.Placeholders.ShipToWidth],
             ];
             const labelPlaceholdersReplRegex = new RegExp(labelPlaceholders.join('|'), 'g');
     
@@ -392,7 +414,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 let soLineQuantity = result[requiredFields.SOLineQuantity.nsSsFieldId];
                 let lineUniqueDBKey = result[requiredFields.TransLineUniqueKey.nsSsFieldId];
                 let soNumber = result[requiredFields.SONumber.nsSsFieldId];
-                let customer = result[requiredFields.Customer.nsSsFieldId];
+                let customer = result[requiredFields.CustomerNoHierarchy.nsSsFieldId];
                 let route = result[requiredFields.Route.nsSsFieldId];
                 let itemId = result[requiredFields.ItemId.nsSsFieldId];
                 let itemName = result[requiredFields.ItemName.nsSsFieldId];
@@ -403,6 +425,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 let lotNumber = result[requiredFields.LotNumber.nsSsFieldId];
                 let lotQuantity = result[requiredFields.LotQuantity.nsSsFieldId];
                 let preferredVendor = result[requiredFields.PreferredVendor.nsSsFieldId];
+                let isOrganic = result[requiredFields.IsOrganic.nsSsFieldId];
                 let curLotQty = result[addedFields.CurLotQty.fieldId];
     
     
@@ -421,6 +444,15 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
     
                 let lineLabelCount = Math.ceil(quantityRemaining / qtyPerLabel);
                 let hasUnlottedRemainder = false;
+
+                let ogTagReplacement = FCLib.looksLikeYes(isOrganic) ? 
+                    Resources.OrganicTagHtml :
+                    '';
+
+                let shipToWidthReplacement = FCLib.looksLikeYes(isOrganic) ?
+                    Resources.ShipToWidthHtml :
+                    '';
+
     
     
                 for (let i = 1; i <= lineLabelCount; i++) {  // individual label
@@ -447,11 +479,13 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         [xmlLabelTemplateInfo.Placeholders.LabelQty]: thisLabelQty,
                         [xmlLabelTemplateInfo.Placeholders.LabelPos]: i,
                         [xmlLabelTemplateInfo.Placeholders.LineLabelCt]: lineLabelCount,
-                        [xmlLabelTemplateInfo.Placeholders.LotNumber]: lotNumber ? lotNumber : FCShipLabelLib.LabelFormatting.BLANK_LOT_STRING,
+                        [xmlLabelTemplateInfo.Placeholders.LotNumber]: lotNumber ? lotNumber : exports.LabelFormatting.BLANK_LOT_STRING,
                         [xmlLabelTemplateInfo.Placeholders.Brand]: brand,
                         [xmlLabelTemplateInfo.Placeholders.ProductStub]: productStub,
                         [xmlLabelTemplateInfo.Placeholders.MasterCase]: masterCase,
                         [xmlLabelTemplateInfo.Placeholders.ItemDisplayName]: itemName,
+                        [xmlLabelTemplateInfo.Placeholders.OGTag]: ogTagReplacement,
+                        [xmlLabelTemplateInfo.Placeholders.ShipToWidth]: shipToWidthReplacement,
                     };
     
                     let labelXml = xmlLabelTemplateInfo.Xml.replace(

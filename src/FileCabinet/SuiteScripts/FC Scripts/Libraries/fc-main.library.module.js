@@ -4,18 +4,20 @@ var record,
     runtime,
     email,
     search,
+    file,
     serverWidget,
     dayjs;
 
-define(['N/record', 'N/query', 'N/task', 'N/runtime', 'N/email', 'N/search', 'N/ui/serverWidget', './dayjs.min.js'], main);
+define(['N/record', 'N/query', 'N/task', 'N/runtime', 'N/email', 'N/search', 'N/file', 'N/ui/serverWidget', './dayjs.min.js'], main);
 
-function main(recordModule, queryModule, taskModule, runtimeModule, emailModule, searchModule, serverWidgetModule, dayjsModule) {
+function main(recordModule, queryModule, taskModule, runtimeModule, emailModule, searchModule, fileModule, serverWidgetModule, dayjsModule) {
     record = recordModule;
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
     search = searchModule;
+    file = fileModule;
     serverWidget = serverWidgetModule;
     dayjs = dayjsModule;
 
@@ -374,10 +376,24 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         specialElems = [],
         headerNameMap = {},
         hideFields = {},
+        trStyleFuncs = [],
     } = {}) {
         let tableHtml = '';
 
         let internalFieldsWithMapping = [];
+        let trStyleStr = '';
+
+        function addStylingToElem(elem, styleStr) {
+            if (styleStr) {
+                let curStyleTag = elem.match(/style="(.*?)"/);
+                if (curStyleTag) {
+                    elem = elem.replace(curStyleTag[1], `${curStyleTag[1]};${styleStr}`);
+                } else {
+                    elem = elem.replace('>', ` style="${styleStr}">`);
+                }
+            }
+            return elem;
+        }
 
         if (data.length > 0) {
             // Validate specialElems to ensure that source field is present
@@ -425,7 +441,18 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
             var htmlBody = '<tbody>';
             for (var i = 0; i < data.length; i++) {
                 var row = data[i];
-                htmlBody += tbodyTrElem;
+                let curTrElem = tbodyTrElem;
+
+                if (trStyleFuncs.length > 0) {
+                    trStyleDefs = [];
+                    for (var j = 0; j < trStyleFuncs.length; j++) {
+                        trStyleDefs.push(trStyleFuncs[j](row));
+                    }
+                    trStyleStr = trStyleDefs.join(';');
+                    curTrElem = addStylingToElem(curTrElem, trStyleStr);
+                }
+
+                htmlBody += curTrElem;
 
                 // FIX: Combine this into single loop
 
@@ -483,6 +510,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         specialElems = [],
         headerNameMap = {},
         hideFields = {},
+        trStyleFuncs = [],
     } = {}) {
 
         return exports.convertObjToHTMLTable({
@@ -497,7 +525,8 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
             tbodyTrElem: `<tr style="border-bottom: 1px solid #dddddd">`,
             specialElems: specialElems,
             headerNameMap: headerNameMap,
-            hideFields: hideFields
+            hideFields: hideFields,
+            trStyleFuncs: trStyleFuncs,
         });
 
     }
@@ -725,10 +754,15 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.looksLikeNo = looksLikeNo;
 
 
-    function libConnectionTest() {
-        return 'Yep!';
+    function condenseSimplifyString(str, toLower = true) {
+        str = str.replace(/[^a-zA-Z0-9]/g, '');
+        if (toLower) { str = str.toLowerCase(); }
+        return str;
+
     }
-    exports.libConnectionTest = libConnectionTest;
+    exports.condenseSimplifyString = condenseSimplifyString;
+
+
 
     // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
     //     // Store the script ID of the script to submit

@@ -121,25 +121,48 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
             GET_SUMMARIZED_ITEM_INFO_FROM_PO: {            /// Used in the Email JIT PO from PO Form script
                 BuildQueryFunction: buildQueryGetItemInfoFromPos,
                 Query: `
-                    SELECT TransactionLine.uniquekey AS tranlineuniquekey,
-                        TransactionLine.item AS itemid,
-                        Transaction.entity AS vendorid,
-                        Transaction.tranDisplayName as podisplayname,
-                        Vendor.companyName as vendorname,
-                        ABS(SUM(TransactionLine.quantity)) AS itemquantity
+                WITH SummaryByPO AS (
+                    SELECT Transaction.typeBasedDocumentNumber AS po_num,
+                            TransactionLine.item AS iteminternalid,
+                            Transaction.entity AS vendorid,
+                            Vendor.companyName as vendorname,
+                            Item.displayname as itemdisplayname,
+                            Item.itemid as itemname,
+                            Transaction.type,
+                            ABS(SUM(TransactionLine.quantity)) AS itemquantity
                     FROM TransactionLine
-                    LEFT OUTER JOIN Transaction ON Transaction.id = TransactionLine.transaction
-                    LEFT OUTER JOIN Vendor ON Transaction.entity = Vendor.id
-                    LEFT OUTER JOIN Item ON Item.id = TransactionLine.item
-                    WHERE 
-                        TransactionLine.mainline = 'F'
-                        AND Item.custitem_soft_comit = 'T'
-                        @@PO_ID_FILTER_1@@
-                    GROUP BY TransactionLine.uniquekey,
-                        TransactionLine.item,
-                        Transaction.entity,
-                        Transaction.tranDisplayName,
-                        Vendor.companyName
+                            LEFT OUTER JOIN Transaction ON Transaction.id = TransactionLine.transaction
+                            LEFT OUTER JOIN Vendor ON Transaction.entity = Vendor.id
+                            LEFT OUTER JOIN Item ON Item.id = TransactionLine.item
+                    WHERE TransactionLine.mainline = 'F'
+                            AND Transaction.type = 'PurchOrd'
+                            AND Item.custitem_soft_comit = 'T'
+                            @@PO_ID_FILTER_1@@
+                    GROUP BY Transaction.typeBasedDocumentNumber,
+                            TransactionLine.item,
+                            Transaction.entity,
+                            Vendor.companyName,
+                            Item.displayname,
+                            Item.itemid,
+                            Transaction.type
+                    )
+                SELECT 
+                        iteminternalid,
+                        itemname,
+                        vendorid,
+                        vendorname,
+                        itemdisplayname,
+                        SUM(itemquantity) as totalquantity,
+                        LISTAGG ('(' || itemquantity || ') in ' || po_num, ', ') WITHIN GROUP (ORDER BY po_num) as qtyperpodisplay
+                
+                FROM 
+                        SummaryByPO
+                GROUP BY 
+                        iteminternalid,
+                        itemname,
+                        vendorid,
+                        vendorname,
+                        itemdisplayname
 
                 `,
                 Filters: {
@@ -155,11 +178,19 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
 
                 FieldSet1: {
                     itemid: {
-                        fieldid: 'itemid',
+                        fieldid: 'iteminternalid',
                         label: 'Item ID',
                     },
+                    itemname: {
+                        fieldid: 'itemname',
+                        label: 'Item Name',
+                    },
+                    itemdisplayname: {
+                        fieldid: 'itemdisplayname',
+                        label: 'Item Display Name',
+                    },
                     itemquantity: {
-                        fieldid: 'itemquantity',
+                        fieldid: 'totalquantity',
                         label: 'Item Quantity',
                     },
                     vendorid: {
@@ -170,10 +201,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
                         fieldid: 'vendorname',
                         label: 'Vendor Name',
                     },
-                    podisplayname: {
-                        fieldid: 'podisplayname',
-                        label: 'PO Name',
-                    },
+                    qtyperpodisplay: {
+                        fieldid: 'qtyperpodisplay',
+                        label: 'Quantities per Unique PO',
+                    }
+                    
                 },
                 Parameters: {
 
@@ -189,7 +221,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
         },
         CSVImportMappings: {
             JIT_PO_IMPORT_ASSISTANT_CSVIMPORT: -1
-        }
+        },
     };
 
     var Settings = {

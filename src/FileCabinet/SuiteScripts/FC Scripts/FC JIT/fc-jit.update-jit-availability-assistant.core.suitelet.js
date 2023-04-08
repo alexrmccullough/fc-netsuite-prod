@@ -752,7 +752,7 @@ function createSessionSubfolder(context, date = new Date()) {
     // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
     var resultsFolderName = FCUpdateJITAvailLib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
     var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, FCUpdateJITAvailLib.Ids.Folders.RESULTS);
-    var originalsFolderId = FCLib.createFolderInFileCabinet(FCUpdateJITAvailLib.Settings.CSV_ORIGINALS_SUBFOLDER_NAME, resultsFolder.id);
+    var originalsFolderId = FCLib.createFolderInFileCabinet(FCUpdateJITAvailLib.Settings.CSV_ORIGINALS_SUBFOLDER_NAME, resultsFolderId);
 
     return {
         sessionResultsFolderId: resultsFolderId,

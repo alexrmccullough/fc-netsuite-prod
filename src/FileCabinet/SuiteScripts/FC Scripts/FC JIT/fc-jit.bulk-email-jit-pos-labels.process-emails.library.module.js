@@ -1,24 +1,20 @@
 var query,
-    task,
-    runtime,
-    email;
+    runtime;
 
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email'], main);
+define(['N/query', 'N/runtime'], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule) {
+function main(queryModule, runtimeModule, ) {
     query = queryModule;
-    task = taskModule;
     runtime = runtimeModule;
-    email = emailModule;
 
     var exports = {
         Queries: {
             POInfoQuery: {
                 SQL_IntExt: `
                     SELECT
-                        Transaction.id,
-                        Transaction.entity AS vendorid,
+                        Transaction.id as pointernalid,
+                        Transaction.entity AS vendorinternalid,
                         Transaction.email,
                         Transaction.duedate,
                         Transaction.tranid AS displayid
@@ -32,8 +28,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                     `,
                 SQL_Int: `
                     SELECT
-                        Transaction.id,
-                        Transaction.entity AS vendorid,
+                        Transaction.id as pointernalid,
+                        Transaction.entity AS vendorinternalid,
                         Transaction.email,
                         Transaction.duedate,
                         Transaction.tranid AS displayid
@@ -46,8 +42,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
                     `,
                 SQL_Ext: `
                     SELECT
-                        Transaction.id,
-                        Transaction.entity AS vendorid,
+                        Transaction.id as pointernalid,
+                        Transaction.entity AS vendorinternalid,
                         Transaction.email,
                         Transaction.duedate,
                         Transaction.tranid AS displayid
@@ -69,58 +65,79 @@ function main(queryModule, taskModule, runtimeModule, emailModule) {
 
     var Ids = {
         Scripts: {
-            FC_BULK_EMAIL_JIT_POS_MR: 'custscript_fc_bulk_email_jit_pos_mr',
+            FC_BULK_EMAIL_JIT_POS_MR: 'customscript_fc_am_procbulk_jit_po_email',
         },
         Deployments: {
-            FC_BULK_EMAIL_JIT_POS_MR: 'custdeploy_fc_bulk_email_jit_pos_mr',
-        },
-        Fields: {
-        },
-        Folders: {
-        },
-        Files: {
+            FC_BULK_EMAIL_JIT_POS_MR: 'customdeploy_fc_am_procbulk_jit_po_email',
         },
         Parameters: {
-            POS_TO_EMAIL_EXTERNAL_IDS: 'custscript_fc_am_jitpo_pos_to_email_extids',
-            POS_TO_EMAIL_INTERNAL_IDS: 'custscript_fc_am_jitpo_pos_to_email_intids',
-            SHIPPING_LABEL_JSON_FILE_ID: 'custscript_fc_am_jitpo_shipping_label_json_file_id',
-            TARGET_SOS_START_DATE: 'custscript_fc_am_jitpo_target_sos_start_date',
-            TARGET_SOS_END_DATE: 'custscript_fc_am_jitpo_target_sos_end_date',
-            SESSION_OUTPUT_FOLDER_ID: 'custscript_fc_am_jitpo_session_output_folder_id',
+            POS_TO_EMAIL_EXTERNAL_IDS: 'custscript_fc_am_pos_to_email_extids',
+            POS_TO_EMAIL_INTERNAL_IDS: 'custscript_fc_am_pos_to_email_intids',
+            SHIPPING_LABEL_JSON_FILE_IDS: 'custscript_fc_am_ship_label_json_fileids',
+            SESSION_OUTPUT_FOLDER_ID: 'custscript_fc_am_session_output_folderid',
         },
-        CSVImportMappings: {
-        }
 
     };
     exports.Ids = Ids;
 
 
-    var Content = {
-        JIT_PO_EMAIL_SUBJECT: {
-            Template: `Purchase Order {{poNumber}} for {{dueDate}} from Food Connects`,
-            Placeholders: {
-                DUEDATE: '{{dueDate}}',
-                PONUMBER: '{{poNumber}}'
-            }
-        },
-        
-        JIT_PO_EMAIL_BODY: {
-            Template: `
+    var Emails = {
+
+        JIT_PO_EMAIL: {
+            Subject: {
+                Template: `Purchase Order {{poNumber}} for {{dueDate}} from Food Connects`,
+                Placeholders: {
+                    DUEDATE: '{{dueDate}}',
+                    PONUMBER: '{{poNumber}}'
+                }
+            },
+            Body: {
+                Template: `
                 <p> Please find attached a Purchase Order from <strong>Food Connects</strong>, for pickup/delivery on {{dueDate}}. Shipping labels are attached in two formats: 1) 8x11' sheet labels for regular printers, 2) Single-roll 2x4' labels for label printers. </p>
                 <p> Please reach out to procurement@foodconnects.org ASAP with any questions you have.</p>
                 <p> Thank you! </p>
                 <p> Best, </p>
                 <p> The Procurement Team at Food Connects </p>
-            `,
-            Placeholders: {
-                DUEDATE: '{{dueDate}}'
-            }
-        
+                `,
+                Placeholders: {
+                    DUEDATE: '{{dueDate}}'
+                }
+            },
+            AuthorId: runtime.getCurrentUser().id,
+            // RecipientsEmails: [],
+            // CcEmails: [],
+            // BccEmails: [],
+        },
+
+        SUMMARIZE_EMAIL: {
+            Subject: {
+                Template: `Food Connects - JIT POs Summary -- Sent on {{TIMESTAMP}}`,
+                Placeholders: {
+                    TIMESTAMP: '{{TIMESTAMP}}'
+                }
+            },
+            Body: {
+                Template: `
+                     These JIT POs were successfully emailed: <br>
+                        {{POS_SENT}}
+                    
+                    These JIT POs failed to email: <br>
+                        {{POS_FAILED}}
+                `,
+                Placeholders: {
+                    POS_SENT: '{{POS_SENT}}',
+                    POS_FAILED: '{{POS_FAILED}}',
+                }
+            },
+            AuthorId: runtime.getCurrentUser().id,
+            RecipientsEmails: [],
+            CcEmails: [],
+            BccEmails: [],
+            Subject: 'Food Connects - JIT POs Summary',
+
         }
-
     };
-    exports.Content = Content;
-
+    exports.Emails = Emails;
 
 
 

@@ -1,10 +1,10 @@
-<advancedpdftemplate scriptid="custtmpl_fc_shippingticketconsolidated1">
+<advancedpdftemplate scriptid="custtmpl_fc_shippingticketconsolidated2">
   <description></description>
   <displaysourcecode>T</displaysourcecode>
   <isinactive>F</isinactive>
   <preferred>T</preferred>
   <printtype>SEARCH</printtype>
-  <savedsearch>[scriptid=customsearch2144]</savedsearch>
-  <title>FC | Shipping Ticket Consolidated 1</title>
+  <savedsearch>[scriptid=customsearch2161]</savedsearch>
+  <title>FC | Shipping Tickets Consolidated 2</title>
   <trantype>CUSTINVC</trantype>
 </advancedpdftemplate>

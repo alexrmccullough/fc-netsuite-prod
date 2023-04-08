@@ -7,35 +7,34 @@
 * @description 
 */
 
-var modulePathJitPoUtilityLibrary = './fc-jit.send-jit-po-utility.library.module.js';
+var modulePathJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module.js';
 var modulePathJitBulkEmailLibrary = './fc-jit.bulk-email-jit-pos-labels.process-emails.library.module.js';
+var modulePathShipLabelLibrary = '../FC Shipping Labels/fc-shipping-labels.library.module.js';
 
 var
     runtime,
     query,
-    record,
-    task,
     file,
     FCLib,
     FCJITBulkEmailLib,
     FCJITGenPoLib,
-    Papa;
+    dayjs;
 
 
 
-define(['N/runtime', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/FC_MainLibrary', modulePathJitBulkEmailLibrary, modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
+define(['N/runtime', 'N/query', 'N/render', 'N/file', '../Libraries/fc-main.library.module.js', modulePathJitBulkEmailLibrary, modulePathJitPoUtilityLibrary, modulePathShipLabelLibrary, '../Libraries/dayjs.min.js'], main);
 
-function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcBulkEmailLibModule, fcJITPoLibModule, papaParseModule) {
+function main(runtimeModule, queryModule, renderModule, fileModule, fcMainLibModule, fcBulkEmailLibModule, fcJITPoLibModule, fcShipLabelLibModule, dayjsModule) {
 
     runtime = runtimeModule;
     query = queryModule;
-    record = recordModule;
-    task = taskModule;
+    render = renderModule;
     file = fileModule;
     FCLib = fcMainLibModule;
     FCJITBulkEmailLib = fcBulkEmailLibModule;
     FCJITGenPoLib = fcJITPoLibModule;
-    Papa = papaParseModule;
+    FCShipLabelLib = fcShipLabelLibModule;
+    dayjs = dayjsModule;
 
     return {
         getInputData: getInputData,
@@ -52,69 +51,88 @@ function getInputData(context) {
 
     var currentScript = runtime.getCurrentScript();
 
-    let posToEmailExternalIdsRaw = currentScript.getParameter({
-        name: FCJITBulkEmailLib.Ids.Parameters.POS_TO_EMAIL_EXTERNAL_IDS
-    });
+    log.debug({ title: 'getInputData - currentScript', details: { currentScript: currentScript } });
+    let paramNameInternalIds = FCJITBulkEmailLib.Ids.Parameters.POS_TO_EMAIL_INTERNAL_IDS;
+    let paramNameExternalIds = FCJITBulkEmailLib.Ids.Parameters.POS_TO_EMAIL_EXTERNAL_IDS;
+    let paramNameShippingLabelJsonFileIds = FCJITBulkEmailLib.Ids.Parameters.SHIPPING_LABEL_JSON_FILE_IDS;
+
+    log.debug({ title: 'getInputData - paramNameInternalIds', details: { paramNameInternalIds: paramNameInternalIds } });
+    log.debug({ title: 'getInputData - paramNameExternalIds', details: { paramNameExternalIds: paramNameExternalIds } });
+    log.debug({ title: 'getInputData - paramNameShippingLabelJsonFileIds', details: { paramNameShippingLabelJsonFileIds: paramNameShippingLabelJsonFileIds } });
+
 
     let posToEmailInternalIdsRaw = currentScript.getParameter({
-        name: FCJITBulkEmailLib.Ids.Parameters.POS_TO_EMAIL_INTERNAL_IDS
+        name:paramNameInternalIds
     });
+    posToEmailInternalIdsRaw = JSON.parse(posToEmailInternalIdsRaw);
 
-    let shippingLabelJsonFileId = currentScript.getParameter({
-        name: FCJITBulkEmailLib.Ids.Parameters.SHIPPING_LABEL_JSON_FILE_ID
-    });
+    log.debug({ title: 'getInputData - posToEmailInternalIdsRaw', details: { posToEmailInternalIdsRaw: posToEmailInternalIdsRaw } });
 
-    let targetSosStartDate = currentScript.getParameter({
-        name: FCJITBulkEmailLib.Ids.Parameters.TARGET_SOS_START_DATE
+    let shippingLabelJsonFileIds = currentScript.getParameter({
+        name: paramNameShippingLabelJsonFileIds
     });
+    shippingLabelJsonFileIds = JSON.parse(shippingLabelJsonFileIds);
 
-    let targetSosEndDate = currentScript.getParameter({
-        name: FCJITBulkEmailLib.Ids.Parameters.TARGET_SOS_END_DATE
-    });
-
-    let sessionOutputFolderId = currentScript.getParameter({
-        name: FCJITBulkEmailLib.Ids.Parameters.SESSION_OUTPUT_FOLDER_ID
-    });
+    log.debug({ title: 'getInputData - shippingLabelJsonFileIds', details: { shippingLabelJsonFileIds: shippingLabelJsonFileIds } });
 
     // Accepting both internal and external IDs for POs to email.
     //    We will use both lists, if provided. But first we have to eliminate duplicates. 
     //    Build a single list of internal IDs to use for sending.posToEmailInternalIdsRaw
     let poInternalIds = null;
-    let poExternalIds = null;
 
     if (posToEmailInternalIdsRaw) {
-        poInternalIds = new Set(posToEmailInternalIdsRaw.split(','));    // FIX: Change to JSON.parse
+        poInternalIds = new Set(posToEmailInternalIdsRaw);    // FIX: Change to JSON.parse
     }
-    if (posToEmailExternalIdsRaw) {
-        poExternalIds = new Set(posToEmailExternalIdsRaw.split(','));
+
+    log.debug({ title: 'getInputData - poInternalIds', details: { poInternalIds: poInternalIds } })
+
+    // Validate requirements:
+    //   Required: 
+    //      - At least one of posToEmailInternalIdsRaw or posToEmailExternalIdsRaw
+    //      - shippingLabelJsonFileId
+    //   Optional: 
+    //      - sessionOutputFolderId
+    if (!shippingLabelJsonFileIds) {
+        throw new Error('Missing required parameter: shippingLabelJsonFileId');
+    }
+    if (!poInternalIds) {
+        throw new Error('Missing required parameter: posToEmailInternalIdsRaw or posToEmailExternalIdsRaw');
     }
 
     // If we have a list of PO external IDs, we need to convert them to internal IDs
     let sqlQuery = FCJITBulkEmailLib.buildPOInfoQuery({
         poInternalIds: Array.from(poInternalIds),
-        poExternalIds: Array.from(poExternalIds),
+        // poExternalIds: Array.from(poExternalIds),
     });
 
+    log.debug({ title: 'getInputData - sqlQuery', details: { sqlQuery: sqlQuery } }
+    )
     let queryResults = FCLib.sqlSelectAllRows(sqlQuery);
 
-    // queryResults.forEach(function (row) {
-    //     uniquePOInternalIds.add(row.id);
-    // });
+    log.debug({ title: 'getInputData - queryResults', details: { queryResults: queryResults } })
 
-
-    // If we don't have a shipping label JSON file ID, run a search/query generate that data
-    // FIX: DO LATER
 
     // We will pass rows of the following format to the map function:
     //    { id: 123, vendorid: 123, email: alex.mccullough@gmail, shippingLabelJsonFileId: 456 }
     //    Note that the shipping label JSON file ID is the same for all rows.
     let rows = [];
     for (let result of queryResults) {
+        // We can associate an email with only one PO, so rather than send multiple POs in a single email,
+        //    we will send multiple emails, one per PO. We will attach the shipping label to the first matching PO 
+        //    we encounter, and not to subsequent POs for that vendor. 
+        let shippingLabelFileId = null;
+        if (result.vendorinternalid in shippingLabelJsonFileIds) {
+            shippingLabelFileId = shippingLabelJsonFileIds[result.vendorinternalid];
+            delete shippingLabelJsonFileIds[result.vendorinternalid];  
+        }
+
         rows.push({
-            id: result.id,
-            vendorid: result.vendorid,
+            poId: result.pointernalid,
+            vendorid: result.vendorinternalid,
             email: result.email,
-            shippingLabelJsonFileId: shippingLabelJsonFileId,
+            shippingLabelJsonFileId: shippingLabelFileId,
+            dueDate: result.duedate,
+            displayId: result.displayid,
             // sessionFolderId: sessionOutputFolderId,
         });
     }
@@ -124,20 +142,19 @@ function getInputData(context) {
 
 
 function map(context) {
+    // For now, assume PO Internal Ids, no external Ids
     log.debug({ title: 'map - result', details: context });
 
-    let row = JSON.parse(context.value);
-    let poInternalId = row.poInternalId;
-    let shippingLabelJsonFileId = row.shippingLabelJsonFileId;
+    let thisPoInfo = JSON.parse(context.value);
+    let poInternalId = thisPoInfo.poId;
+    // let vendorInternalId = row.vendorId;
+    // let poInternalId = row.poId;
     // let sessionFolderId = row.sessionFolderId;
 
     try {
         context.write({
             key: poInternalId,
-            value: {
-                shippingLabelJsonFileId: shippingLabelJsonFileId,
-                // sessionFolderId: sessionFolderId,
-            }
+            value: thisPoInfo
         });
 
     } catch (e) {
@@ -151,31 +168,30 @@ function reduce(context) {
     log.audit({ title: 'reduce - context', details: context });
     try {
         let poInternalId = context.key;
-        let emailInfo = context.values[0];
-        let shippingLabelJsonFileId = emailInfo.shippingLabelJsonFileId;        // Assuming a single value per poInternalId
-        // let sessionFolderId = context.values[0].sessionFolderId;                        // Assuming a single value per poInternalId
+        let thisPoInfo = JSON.parse(context.values[0]);
 
-        let shippingLabelJson = JSON.parse(FCLib.getTextFileContents(shippingLabelJsonFileId));
-        let poShippingLabelInfo = (poInternalId in shippingLabelJson) ? shippingLabelJson[poInternalId] : null;
 
-        // Generate the PO PDF file
-        let poPdf = render.transaction({
-            entityId: poInternalId,
-            printMode: render.PrintMode.PDF
-        });
+        let shippingLabelJsonFileId = thisPoInfo.shippingLabelJsonFileId;        // Assuming a single value per poInternalId
 
+        let shippingLabelData = null;
         let shippingLabelPdf_1 = null;
         let shippingLabelPdf_2 = null;
 
-        if (poShippingLabelInfo) {
+        if (shippingLabelJsonFileId) {
+            let jsonContents = FCLib.getTextFileContents(shippingLabelJsonFileId);
+            shippingLabelData = JSON.parse(jsonContents);
+            shippingLabelSearchResults = {
+                data: shippingLabelData
+            };
+
             // Generate and save the shipping label PDF file
             let shippingLabelPdfXml_1 = FCShipLabelLib.generateShippingLabelXmlFromSearchResults(
-                poShippingLabelInfo,
+                shippingLabelSearchResults,
                 'PDF_AVERY_8X11'
             );
 
             let shippingLabelPdfXml_2 = FCShipLabelLib.generateShippingLabelXmlFromSearchResults(
-                poShippingLabelInfo,
+                shippingLabelSearchResults,
                 'PDF_ZEBRA_2X4'
             );
 
@@ -188,51 +204,80 @@ function reduce(context) {
             });
         }
 
+
+        // Generate the PO PDF file
+        let poPdf = render.transaction({
+            entityId: Number(poInternalId),
+            printMode: render.PrintMode.PDF
+        });
+
+
         // Send email
+        let emailRecipients = thisPoInfo.email.split(/[,;]+/).map(email => email.trim());
+        let formattedDueDate = dayjs(thisPoInfo.dueDate).format('M/D/YYYY');
+
+        log.debug({ title: 'reduce - emailRecipients', details: emailRecipients });
+        log.debug({ title: 'reduce - formattedDueDate', details: formattedDueDate })
+
+
         // Build email subject
-        let emailSubject = FCJITBulkEmailLib.Content.JIT_PO_EMAIL_SUBJECT.Template;
+        let emailSubject = FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Template;
         emailSubject = emailSubject.replace(
-            FCJITBulkEmailLib.Content.JIT_PO_EMAIL_SUBJECT.Placeholders.PONUMBER,
-            emailInfo.displayid
+            FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Placeholders.PONUMBER,
+            thisPoInfo.displayId
+        ).replace(
+            FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Placeholders.DUEDATE,
+            formattedDueDate
         );
+
+        log.debug({ title: 'reduce - emailSubject', details: emailSubject });
 
         // Build email body
         // FIX: Add detail
-        let emailBody = FCJITBulkEmailLib.Content.JIT_PO_EMAIL_BODY.Template;
+        let emailBody = FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Body.Template;
         emailBody = emailBody.replace(
-            FCJITBulkEmailLib.Content.JIT_PO_EMAIL_BODY.Placeholders.DUEDATE,
-            emailInfo.duedate
+            FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Body.Placeholders.DUEDATE,
+            formattedDueDate
         );
         // emailBody = emailBody.replace(JIT_PO_EMAIL_BODY.Placeholders.INSTRUCTIONS, emailInfo.instructions);
+        log.debug({ title: 'reduce - emailBody', details: emailBody });
 
-        let attachments = [poPdf];
-        if (poShippingLabelInfo) {
-            attachments.push(shippingLabelPdf_1);
-            attachments.push(shippingLabelPdf_2);
-        }
+
+        let emailAttachments = [poPdf];
+        if (shippingLabelPdf_1) { emailAttachments.push(shippingLabelPdf_1); }
+        if (shippingLabelPdf_2) { emailAttachments.push(shippingLabelPdf_2); }
+
+        log.debug({ title: 'reduce - emailAttachments', details: emailAttachments });
+
 
         email.send({
-            author: runtime.getCurrentUser().id,
-            recipients: emailInfo.email,
+            author: FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.AuthorId,
+            recipients: emailRecipients,
             // cc: ,
             // bcc: ,
             body: emailBody,
             subject: emailSubject,
-            attachments: attachments,
+            attachments: emailAttachments,
             relatedRecords: {
                 transactionId: poInternalId,
-                entityId: emailInfo.vendorid
+                entityId: thisPoInfo.vendorId
             },
             // replyTo: ,
         });
 
         context.write({
             key: context.key,
-            value: emailInfo
+            value: thisPoInfo,
+            success: true,
         });
 
     } catch (e) {
-        log.error({ title: 'reduce - error', details: { 'context': context, 'error': e } });
+        log.error({ title: 'reduce - error', details: { 'context': context, 'error': e.message } });
+        context.write({
+            key: context.key,
+            value: thisPoInfo,
+            success: false,
+        });
     }
 
 
@@ -255,17 +300,53 @@ function summarize(context) {
         details: context.yields
     });
 
-    var posSent = [];
+    var posSuccessful = [];
+    var posFailed = [];
 
     context.output.iterator().each(function (key, value) {
-        let thisVal = JSON.parse(value);
-        posSent.push(thisVal.displayid);
+        let thisPo = JSON.parse(value);
+        if (thisPo.success === true) { posSuccessful.push(thisPo); }
+        else { posFailed.push(thisPo); }
+
         return true;
     });
 
+
+    // Assemble summary email and send to user
+    let emailBody = FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Body.Template;
+    let successfulPoNames = posSuccessful.map(po => po.displayId).join(', ');
+    let failedPoNames = posFailed.map(po => po.displayId).join(', ');
+
+    emailBody = emailBody.replace(
+        FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Body.Placeholders.POS_SENT,
+        successfulPoNames
+    ).replace(
+        FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Body.Placeholders.POS_FAILED,
+        failedPoNames
+    );
+
+    let emailSubject = FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Subject.Template;
+    emailSubject = emailSubject.replace(
+        FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Subject.Placeholders.TIMESTAMP,
+        dayjs().format('M/D/YYYY h:mm A')
+    );
+
+
+    email.send({
+        author: FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.AuthorId,
+        recipients: FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.RecipientsEmails,
+        cc: FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.CcEmails,
+        bcc: FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.BccEmails,
+        body: emailBody,
+        subject: emailSubject,
+    });
+
+
     log.audit({
         title: 'JIT Purchase Orders sent',
-        details: `Sent ${posSent.length} Purchase Orders. PO IDs: ${posSent.join(', ')}`
+        details: `Sent ${posSuccessful.length} Purchase Orders. PO IDs: ${posSent.join(', ')}. <br>
+             Failed to send ${posFailed.length} Purchase Orders. PO IDs: ${posFailed.join(', ')}
+             `
     });
 }
 

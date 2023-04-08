@@ -1,10 +1,10 @@
-<advancedpdftemplate scriptid="custtmpl_fc_shippinglabels6">
+<advancedpdftemplate scriptid="custtmpl_fc_shippinglabelszebra2">
   <description></description>
   <displaysourcecode>T</displaysourcecode>
   <isinactive>F</isinactive>
-  <preferred>T</preferred>
+  <preferred>F</preferred>
   <printtype>SEARCH</printtype>
   <savedsearch>[scriptid=customsearch_fc_shippinglabel_mainstatic]</savedsearch>
-  <title>FC | Shipping Labels 6</title>
+  <title>FC | Shipping Labels Zebra 2</title>
   <trantype>CUSTINVC</trantype>
 </advancedpdftemplate>

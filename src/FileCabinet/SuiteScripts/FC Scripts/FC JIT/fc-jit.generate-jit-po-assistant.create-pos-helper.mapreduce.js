@@ -120,10 +120,6 @@ function map(context) {
 
         log.debug({ title: 'map - targetKeys', details: targetKeys });
 
-        let connected = FCLib.libConnectionTest();
-        log.debug({ title: 'map - connected', details: connected });
-
-
         let filteredRow = FCLib.pickFromObj(row, targetKeys);
 
         log.debug({ title: 'map - filteredRow', details: filteredRow });

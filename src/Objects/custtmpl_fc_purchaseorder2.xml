@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_purchaseorder2" standard="STDTMPLPURCHORD">
+  <description></description>
+  <displaysourcecode>T</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>TRANSACTION</printtype>
+  <title>FC AM | Purchase Order 2</title>
+  <trantype>PURCHORD</trantype>
+</advancedpdftemplate>

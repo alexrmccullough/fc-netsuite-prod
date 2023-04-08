@@ -1,5 +1,5 @@
 
-require(['N/record'], function (record) {
+require(['N/record', '../Libraries/fc-main.library.module.js'], function (record, FCLib) {
 
 
     var exports = {

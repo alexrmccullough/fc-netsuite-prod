@@ -1,0 +1,254 @@
+<?xml version="1.0"?><!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<pdf>
+<head>
+    <macrolist>
+    </macrolist>
+    <style type="text/css">* {
+		}
+		body{
+			font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+		}
+		table {
+			font-size: 9pt;
+			table-layout: fixed;
+			}
+
+		.darkmode {
+			background-color: black;
+			color: white;
+		}
+
+		p {
+		}
+
+		th {
+			font-weight: bold;
+			font-size: 8pt;
+			vertical-align: middle;
+            padding: 5px 6px 3px;
+            background-color: #e3e3e3;
+			color: #333333;
+		}
+		td {
+            padding: 4px 6px;
+			border: 0px;
+        }
+		td p { align:left }
+		b {
+			font-weight: bold;
+			color: #333333;
+		}
+
+
+
+		table.body td {
+			padding-top: 2px;
+		}
+		
+		table.header td {
+			padding: 0;
+			font-size: 10pt;
+		}
+		table.footer td {
+			padding: 0;
+			font-size: 8pt;
+		}
+
+
+		table.itemtable th {
+			padding-bottom: 10px;
+			padding-top: 10px;
+		}
+
+		table.itemtable tr {
+			border-bottom: 1px solid #333333;
+		}
+
+		table.itemtable th.quantity {
+			width: 10%;
+		}
+
+		table.itemtable th.iteminfo {
+			width: 70%;
+		}
+
+		table.itemtable th.sodetails {
+			width: 20%;
+			align: right;
+		}
+
+		table.itemtable td.quantity {
+			align: right; 
+			vertical-align:middle; 
+			font-weight: bold; 
+			font-size: 11pt;
+			width: 10%;
+		}
+
+		table.itemtable td.iteminfo {
+			align: left; 
+			vertical-align:middle; 
+			width: 70%;
+		}
+
+		table.itemtable td.sodetails {
+			align: right; 
+			vertical-align:middle; 
+			width: 20%;
+		}
+
+		td.addressheader {
+			font-size: 8pt;
+			padding-top: 6px;
+			padding-bottom: 2px;
+		}
+		td.address {
+			padding-top: 0;
+		}
+
+		td.sectiontotal_title {
+			font-weight: 500;
+			font-size: 13pt;
+			width: 80%;
+			align: right;
+			text-align: right;
+			
+		}
+
+		td.sectiontotal_value {
+			font-weight: 500;
+			font-size: 13pt;
+			align:left; 
+			text-align: left;
+		}
+
+		th.grandtotal_title {
+			font-weight: 500;
+			font-size: 18pt;
+			width: 80%;
+			align: right;
+			text-align: right;
+		}
+
+		th.grandtotal_value {
+			font-weight: 500;
+			font-size: 18pt;
+			align:left; 
+			text-align: left;
+		}
+
+		span.customername {
+			font-size: 28pt;
+			align: right;
+			text-align: right;
+		}
+		span.routename {
+			font-size: 18pt;
+			align: right;
+			text-align: right;
+		}
+		span.shipdate {
+			font-size: 18pt;
+			align: right;
+			text-align: right;
+		}
+		span.number {
+			font-size: 16pt;
+		}
+		span.itemname {
+			font-weight: bold;
+			line-height: 150%;
+		}
+		hr {
+			width: 100%;
+			color: #d3d3d3;
+			background-color: #d3d3d3;
+			height: 1px;
+		}
+</style>
+</head>
+<#assign last_shipmentid = ''>
+<#assign last_frozen = ''>
+<#assign record_counter = 1>
+<body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt" padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
+
+<#assign sectionqtycounter = 0>
+<#assign grandtotalcounter = 0>
+
+<#list results as result>
+
+<#if (record_counter > 1)>
+	<#if ((result.formulatext_1 != last_shipmentid) || (result.formulatext != last_frozen))>
+		<tr>
+			<td class="sectiontotal_title" colspan="2">Section Total: </td>
+			<td class="sectiontotal_value">${sectionqtycounter}</td>
+		</tr>
+
+		</table>
+	</#if>
+	<#if (result.formulatext_1 != last_shipmentid)>
+	<table style="width: 100%; margin-top: 0px;">
+		<thead>
+			<tr>
+				<th class="grandtotal_title">GRAND TOTAL: </th>
+				<th class="grandtotal_value">${grandtotalcounter}</th>
+			</tr>
+		</thead>
+	</table>
+
+		<pbr></pbr>
+	</#if>
+</#if>
+<#if (result.formulatext_1 != last_shipmentid)>
+	<#assign grandtotalcounter = 0>
+	<table class="header" style="width: 100%;">
+		<tr>
+			<td rowspan="2" colspan="2"><#if companyInformation.logoUrl?length != 0><img src="${companyInformation.logoUrl}" style="float: left; margin: 7px; height: 75px; width 90px;"/></#if></td>
+			<td align="right" colspan="3" text-align="right"><span class="customername">${result.entity}</span></td>
+		</tr>
+		<tr>
+			<td align="right" colspan="3" text-align="right"><span class="routename">${result.custbody_rd_so_route}</span></td>
+		</tr>
+		<tr>
+			<td colspan="2"></td>
+			<td align="right" colspan="3" text-align="right"><span class="shipdate">${result.shipdate}</span></td>
+		</tr>
+		<tr>
+			<td colspan="5" style="padding-top:6px; font-weight: bold;">Ship To: ${result.shipaddress}</td>
+		</tr>		
+	</table>
+</#if>
+<#if (result.formulatext_1 != last_shipmentid) || (result.formulatext != last_frozen)>
+	<#assign sectionqtycounter = 0>
+	<table class="darkmode" style="width: 100%; margin-top: 10px; margin-bottom: 0px;">
+		<tr>
+			<td style="width: 15%; font-weight: 700">${result.formulatext} </td>
+		</tr>
+	</table>
+	<table class="itemtable" style="width: 100%; margin-top: 0px;">
+		<thead>
+			<tr>
+				<th class="quantity">Quantity</th>
+				<th class="iteminfo">Item Name</th>
+				<th class="sodetails">SO Detail</th>
+			</tr>
+		</thead>
+</#if>
+
+
+<tr>
+	<td class="quantity">${result.quantity}</td>
+	<td class="iteminfo"><span class="itemname">${result.itemid}</span><br/>${result.displayname}</td>
+	<td class="sodetails">${result.formulatext_2}</td>
+</tr>
+
+<#assign sectionqtycounter = sectionqtycounter + result.quantity>
+<#assign grandtotalcounter = grandtotalcounter + result.quantity>
+
+<#assign last_shipmentid = result.formulatext_1>
+<#assign last_frozen = result.formulatext>
+<#assign record_counter++>
+</#list>
+</table>
+</body>
+</pdf>

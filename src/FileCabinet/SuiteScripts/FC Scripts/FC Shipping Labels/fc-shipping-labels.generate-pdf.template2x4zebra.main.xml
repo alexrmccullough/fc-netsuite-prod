@@ -77,19 +77,24 @@
             font-weight: 600;
             vertical-align: top;
             font-size: 13;
-
-            
         }
-        .labelframe .row1 .itemposition{
+        .labelframe .row1 .isorganic{
+            margin:0;
             position:absolute;
-            right:0;
-            bottom:0;
-            left:80%;
-            text-align: right;
+            left: 87%;
+            top: 0%;
+            width: 13%;
+            height:100%;
+            align: center;
+            text-align: center;
+            vertical-align:middle;
             white-space: nowrap;
-            background-color: white;
-            z-index:10;
-            padding-right:1%
+            background-color: black;
+            color: white;
+            padding:5px;
+            font-weight: 800;
+            font-size:18;
+
 
         }
         .labelframe .row2 {
@@ -247,6 +252,8 @@
             text-align:left;
             overflow:hidden;
             background-color: #D3D3D3;
+            overflow-wrap: break-word;
+            white-space: nowrap;
 
         }
 

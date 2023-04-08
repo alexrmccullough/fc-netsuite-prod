@@ -85,21 +85,26 @@
             font-weight: 600;
             vertical-align: top;
             font-size: 13;
-
-            
         }
-        .labelframe .row1 .itemposition{
+
+        .labelframe .row1 .isorganic{
+            margin:0;
             position:absolute;
-            right:0;
-            bottom:0;
-            left:80%;
-            text-align: right;
+            left: 87%;
+            top: 0%;
+            width: 13%;
+            height:100%;
+            align: center;
+            text-align: center;
+            vertical-align:middle;
             white-space: nowrap;
-            background-color: white;
-            z-index:10;
-            padding-right:1%
-
+            background-color: black;
+            color: white;
+            padding:5px;
+            font-weight: 800;
+            font-size:18;
         }
+
         .labelframe .row2 {
             height:15%;
             width:100%;
@@ -122,7 +127,6 @@
             width:24%;
             height:100%;
             font-weight: 600;
-
         }
 
         .labelframe .row2 .route-title{
@@ -255,6 +259,8 @@
             text-align:left;
             overflow:hidden;
             background-color: #D3D3D3;
+            overflow-wrap: break-word;
+            white-space: nowrap;
 
         }
 
@@ -370,7 +376,7 @@
         <@openRow counter></@openRow>
 
         <@writeLabel 
-            customer=result.entity 
+            customer=result.formulatext_2
             shipDate=result.shipdate
             route=result.custbody_rd_so_route
             itemId=result.itemid
@@ -382,7 +388,9 @@
             itemMasterCase=result.custitem_fc_mastercase
             labelQty=qtyforthislabel 
             labelPos=i
-            totalLabelCt=numberoflabels>
+            totalLabelCt=numberoflabels
+            isOrganic=result.formulatext_1
+            >
         </@writeLabel>
         
         <@closeRow
@@ -416,7 +424,7 @@
                 <@openRow counter></@openRow>
 
                 <@writeLabel 
-                    customer=result.entity 
+                    customer=result.formulatext_2 
                     shipDate=result.shipdate
                     route=result.custbody_rd_so_route
                     itemId=result.itemid
@@ -428,7 +436,9 @@
                     itemMasterCase=result.custitem_fc_mastercase
                     labelQty=qtyforthislabel 
                     labelPos=j
-                    totalLabelCt=numberoflabels>
+                    totalLabelCt=numberoflabels
+                    isOrganic=result.formulatext_1
+                    >
                 </@writeLabel>
                 
                 <@closeRow
@@ -507,6 +517,7 @@
     labelQty="" 
     labelPos="" 
     totalLabelCt=""
+    isOrganic=""
     >
 <td>
     <div class="labelframe">
@@ -515,9 +526,19 @@
             <div class="shipto-title textpadding2pc">
                 <p>Ship To:</p>
             </div>
-            <div class="shipto-value textpadding2pc">
+
+            <#if ((isOrganic == "T") || (isOrganic == "True"))>
+                <div class="shipto-value textpadding2pc" style="width:69%;">
                     <p>${customer}</p>
-            </div>
+                </div>
+                <div class="isorganic textpadding2pc">
+                    <p>OG</p>
+                </div>
+            <#else>
+                <div class="shipto-value textpadding2pc">
+                    <p>${customer}</p>
+                </div>
+            </#if>
         </div>
 
         <div class="row2">

@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_salesorder_2" standard="STDTMPLSALESORD">
+  <description></description>
+  <displaysourcecode>T</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>TRANSACTION</printtype>
+  <title>FC AM | Sales Order 2</title>
+  <trantype>SALESORD</trantype>
+</advancedpdftemplate>
