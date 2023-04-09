@@ -146,6 +146,12 @@ function writeStepSelectOptions(context, assistant) {
     });
     fileTableField.defaultValue = tableHtml;
 
+    // var testFileUploadField = assistant.addField({
+    //     id: 'custpage_test_file_upload',
+    //     type: serverWidget.FieldType.FILE,
+    //     label: 'Test File Upload'
+    // });
+
 }
 
 function writeStepReviewAndCommit(context, assistant) {

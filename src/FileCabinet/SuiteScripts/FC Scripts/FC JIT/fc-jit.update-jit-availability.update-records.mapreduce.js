@@ -96,12 +96,12 @@ function getInputData(context) {
         // Run a simple query filtered by the item ids to get the required fields. 
         let sqlQuery = `
             SELECT
-                Item.id,
+                Item.${FCLib.Ids.Fields.Item.InternalId},
                 ${sqlSelectFields}
             FROM
                 Item
             WHERE
-                Item.id IN (${[...itemInternalIds].join(',')})
+                Item.${FCLib.Ids.Fields.Item.InternalId} IN (${[...itemInternalIds].join(',')})
         `;
 
         // Run the query
