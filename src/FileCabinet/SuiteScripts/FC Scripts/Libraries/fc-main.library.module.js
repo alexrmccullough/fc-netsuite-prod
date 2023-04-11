@@ -81,6 +81,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
             Item: {
                 InternalId: 'id',
                 Name: 'itemid',
+                DisplayName: 'displayName',
                 ItemType: 'itemtype',
                 IsLotItem: 'islotitem',
                 IsJIT: 'custitem_soft_comit',
@@ -88,6 +89,28 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                 StartJITQty: 'custitem_fc_am_jit_start_qty',
                 RemainingJITQty: 'custitem_fc_am_jit_remaining',
                 JITProducers: 'custitem_fc_zen_jit_producers',
+            },
+            File: {
+                InternalId: 'id',
+                Name: 'name',
+                LastModifiedDate: 'lastmodifieddate'
+            },
+            ItemVendor: {
+                VendorInternalId: 'vendor',
+                PreferredVendor: 'preferredVendor'
+            },
+            Vendor: {
+                InternalId: 'id',
+                CompanyName: 'companyname',
+            },
+            Transaction: {
+                InternalId: 'id',
+                EntityInternalId: 'entity',
+                DisplayName: 'tranDisplayName',
+                DueDate: 'dueDate',
+                ExternalId: 'externalid',
+                MainDate: 'tranDate',
+
             }
         },
         Folders: {
@@ -100,6 +123,10 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.Ids = Ids;
 
     var Settings = {
+        PapaParse: {
+            EXTRAS_COL_NAME: '__parsed_extra'
+
+        },
         Ui: {
             Parameters: {
                 HIDDEN_PERSISTENT_PARAMS_ID: 'custpage_hidden_persistent_params',
@@ -350,8 +377,24 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         });
         return sortedArr;
     }
-
     exports.sortArrayOfObjsByKey = sortArrayOfObjsByKey;
+
+
+    function sortArrayOfObjsByKeys(arr, keys = [], ascending = true) {
+        var sortedArr = arr.sort(function (a, b) {
+            for (let key of keys) {
+                if (a[key] < b[key]) {
+                    return ascending ? -1 : 1;
+                }
+                if (a[key] > b[key]) {
+                    return ascending ? 1 : -1;
+                }
+            }
+            return 0;
+        });
+        return sortedArr;
+    }
+    exports.sortArrayOfObjsByKeys = sortArrayOfObjsByKeys;
 
 
     function stripBomFirstChar(str) {
@@ -737,20 +780,22 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
 
     function getPersistentParams(context) {
         return JSON.parse(
-            context.request.parameters[ThisAppLib.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID]
+            context.request.parameters[exports.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID]
         );
     }
     exports.getPersistentParams = getPersistentParams;
 
 
     function looksLikeYes (val) {
-        if (val === true || val === 1) { return true; }
+        if (val === true || ((typeof val == 'number') && (val !== 0))) { return true; }
+        if (val === false || val === 0) { return false; }
         return val.match(/^(?:y(?:es)?|t(?:rue)?)$/i) !== null;
     }
     exports.looksLikeYes = looksLikeYes;
 
     function looksLikeNo (val) {
         if (val === false || val === 0) { return true; }
+        if (val === true || ((typeof val == 'number') && (val !== 0))) { return false; }
         return val.match(/^(?:n(?:o)?|f(?:alse)?)$/i) !== null;
     }
     exports.looksLikeNo = looksLikeNo;

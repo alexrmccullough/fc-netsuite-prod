@@ -14,7 +14,7 @@ var
     task,
     file,
     FCLib,
-    FCUpdateJITAvailLib,
+    ThisAppLib,
     Papa;
 
 define(['N/runtime', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/fc-main.library.module', './fc-jit.update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
@@ -26,7 +26,7 @@ function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, 
     task = taskModule;
     file = fileModule;
     FCLib = fcMainLibModule;
-    FCUpdateJITAvailLib = fcJITUploadLibModule;
+    ThisAppLib = fcJITUploadLibModule;
     Papa = papaParseModule;
 
     return {
@@ -42,14 +42,14 @@ function getInputData(context) {
     var currentScript = runtime.getCurrentScript();
 
     let itemUpdateCSVFileId = currentScript.getParameter({
-        name: FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID
+        name: ThisAppLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID
         // name: 'custscript_csv_fileid'
     });
 
     // let itemUpdateCSVFileId2 = context.parameters[FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID];
     log.debug({ title: 'getInputData - context', details: JSON.stringify(context) });
     log.debug({ title: 'getInputData', details: { itemUpdateCSVFileId: itemUpdateCSVFileId } });
-    log.debug({ title: 'getInputData - csv param name', details: FCUpdateJITAvailLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID });
+    log.debug({ title: 'getInputData - csv param name', details: ThisAppLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID });
     // log.debug({ title: 'getInputData', details: { itemUpdateCSVFileId2: itemUpdateCSVFileId2 } });
 
 
