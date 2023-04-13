@@ -151,31 +151,35 @@ function reduce(context) {
     log.audit({ title: 'reduce - context', details: context });
 
     var poRecord = null;
+    var poExternalId;
 
     try {
         // First, check to see if there are any rows with error messages.
         //  If so, reject the entire PO and include the error message with the summary. 
-        let failedRows = [];
-        for (let value of context.values) {
-            if (!value.success) {
-                failedRows.push(value);
-            }
-        }
+        // let failedRows = [];
+        // for (let value of context.values) {
+        //     if (!value.success) {
+        //         failedRows.push(value);
+        //     }
+        // }
 
-        if (failedRows.length > 0) {
-            let errorMsg = `Skipping this entire PO (${key}) because the following rows failed to parse:
-            ${JSON.stringify(failedRows)}.`;
-            throw new Error(errorMsg);
-        }
+        // if (failedRows.length > 0) {
+        //     let errorMsg = `Skipping this entire PO (${key}) because the following rows failed to parse:
+        //     ${JSON.stringify(failedRows)}.`;
+        //     throw new Error(errorMsg);
+        // }
 
-        let poExternalId = context.key;
+        poExternalId = context.key;
 
         log.debug({ title: 'reduce - poExternalId', details: poExternalId });
         // let poItemRows = [...JSON.parse(context.values)];
-        let poItemRows = context.values;
-        log.debug({ title: 'reduce - poItemRows', details: poItemRows });
+        let poItemRowsRaw = context.values;
+        log.debug({ title: 'reduce - poItemRows', details: poItemRowsRaw });
 
-        poRecord = buildPoRecord(poItemRows);
+        let poItemRowsParsed = poItemRowsRaw.map(JSON.parse);
+
+
+        poRecord = FCJITGenPoLib.buildPoRecord(poItemRowsParsed);
 
         log.debug({ title: 'reduce - poRecord', details: poRecord });
 
@@ -190,10 +194,7 @@ function reduce(context) {
         };
         log.debug({ title: 'reduce - result out 1', details: out });
 
-        let poId = poRecord.save({
-            // enableSourcing: false,
-            // ignoreMandatoryFields: false
-        });
+        let poId = poRecord.save();
 
         out.value.poRecordId = poId;
 
@@ -223,6 +224,83 @@ function reduce(context) {
     }
 
 }
+
+// function reduce(context) {
+//     log.audit({ title: 'reduce - context', details: context });
+
+//     var poRecord = null;
+
+//     try {
+//         // First, check to see if there are any rows with error messages.
+//         //  If so, reject the entire PO and include the error message with the summary. 
+//         let failedRows = [];
+//         for (let row of context.values) {
+//             if (!row.success) {
+//                 failedRows.push(row);
+//             }
+//         }
+
+//         if (failedRows.length > 0) {
+//             let errorMsg = `Skipping this entire PO (${key}) because the following rows failed to parse:
+//             ${JSON.stringify(failedRows)}.`;
+//             throw new Error(errorMsg);
+//         }
+
+//         let poExternalId = context.key;
+
+//         log.debug({ title: 'reduce - poExternalId', details: poExternalId });
+//         // let poItemRows = [...JSON.parse(context.values)];
+//         let poItemRows = context.values;
+//         log.debug({ title: 'reduce - poItemRows', details: poItemRows });
+
+//         poRecord = FCJITGenPoLib.buildPoRecord(poItemRows);
+
+//         log.debug({ title: 'reduce - poRecord', details: poRecord });
+
+//         let out = {
+//             key: context.key,
+//             value: {
+//                 // poRecordId: poId,
+//                 poExternalId: context.key,
+//                 success: true,
+//                 // sendEmail: sendEmail
+//             },
+//         };
+//         log.debug({ title: 'reduce - result out 1', details: out });
+
+//         let poId = poRecord.save({
+//             // enableSourcing: false,
+//             // ignoreMandatoryFields: false
+//         });
+
+//         out.value.poRecordId = poId;
+
+//         log.debug({ title: 'reduce - result out 2', details: out });
+
+
+//         // log.debug({ title: 'reduce - result', details: `key: ${context.key}, value: ${context.value}`});
+
+//         context.write(out);
+
+
+//     } catch (e) {
+//         log.error({ title: 'reduce - error', details: { 'context': context, 'error': e } });
+
+//         let out = {
+//             key: context.key,
+//             value: {
+//                 poRecordId: null,
+//                 poExternalId: poExternalId,
+//                 success: false,
+//                 // sendEmail: false,
+//                 errorMsg: e.message
+//             }
+//         };
+
+//         context.write(out);
+//     }
+
+// }
 
 
 
@@ -360,117 +438,5 @@ function buildProcessSummaryEmail(
     return emailBody;
 }
 
-
-function buildPoRecord(csvRowsRaw) {
-    var csvRows = csvRowsRaw.map(JSON.parse);
-
-    log.debug({ title: 'csvrows: ', details: csvRows });
-    let firstRow = csvRows[0];
-
-    log.debug({ title: 'firstRow: ', details: firstRow });
-    var poRecord = record.create({
-        type: record.Type.PURCHASE_ORDER,
-        isDynamic: false
-    });
-
-    log.debug({ title: 'poRecord', details: poRecord });
-
-    let keysInCsvDebug = Object.keys(csvRows[0]);
-    log.debug({ title: 'keysInCsvDebug', details: keysInCsvDebug });
-
-    // Set the PO mainline fields
-    // FIX;
-    var csvToNsFieldMapKeys = Object.keys(FCJITGenPoLib.MRSettings.CsvToNsFieldMap);
-    var poMainlineHeaders = csvToNsFieldMapKeys.filter(
-        (header) => { return FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].record === 'transaction' }
-    );
-
-    log.debug({ title: 'poMainlineHeaders', details: poMainlineHeaders })
-
-    for (let header of poMainlineHeaders) {
-        let nsFieldId = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].nsFieldId;
-        let typeFunc = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].typeFunc;
-        let nsValue = typeFunc(csvRows[0][header]);
-
-        poRecord.setValue({
-            fieldId: nsFieldId,
-            value: nsValue
-        });
-    }
-
-    log.debug({ title: 'poRecord', details: poRecord });
-
-
-    // Set the PO item + inventory detail fields
-    let poItemHeaders = csvToNsFieldMapKeys.filter(
-        (header) => { return FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].record === 'item' }
-    );
-
-    log.debug({ title: 'poItemHeaders', details: poItemHeaders });
-
-    // FIX: Need to make sure we have an inventorydetail quantity field
-    let invDetailHeaders = csvToNsFieldMapKeys.filter(
-        (header) => { return FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].record === 'inventorydetail' }
-    );
-
-    log.debug({ title: 'invDetailHeaders', details: invDetailHeaders });
-
-    for (let i = 0; i < csvRows.length; i++) {
-        let row = csvRows[i];
-
-        // Insert a line in the item sublist.
-        poRecord.insertLine({
-            sublistId: 'item',
-            line: i
-        });
-
-
-        // Set the required item-level fields for the line
-        for (let header of poItemHeaders) {
-            let nsFieldId = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].nsFieldId;
-            let typeFunc = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].typeFunc;
-            let nsValue = typeFunc(row[header]);
-
-            poRecord.setSublistValue({
-                sublistId: 'item',
-                fieldId: nsFieldId,
-                line: i,
-                value: nsValue
-            });
-        }
-
-        if (invDetailHeaders && invDetailHeaders.length > 0) {
-
-            let invDetailSubrec = poRecord.getSublistSubrecord({
-                sublistId: 'item',
-                line: i,
-                fieldId: 'inventorydetail'
-            });
-
-            // Insert a line in the subrecord's inventory assignment sublist.
-            invDetailSubrec.insertLine({
-                sublistId: 'inventoryassignment',
-                line: 0
-            });
-
-
-            // Set the required inventory detail-level fields for the line
-            for (let header of invDetailHeaders) {
-                let nsFieldId = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].nsFieldId;
-                let typeFunc = FCJITGenPoLib.MRSettings.CsvToNsFieldMap[header].typeFunc;
-                let nsValue = typeFunc(row[header]);
-
-                invDetailSubrec.setSublistValue({
-                    sublistId: 'inventoryassignment',
-                    fieldId: nsFieldId,
-                    line: i,
-                    value: nsValue
-                });
-            }
-        }
-    }
-
-    return poRecord;
-}
 
 

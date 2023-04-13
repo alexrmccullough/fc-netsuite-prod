@@ -1,5 +1,5 @@
 debugger;
-require(['SuiteScripts\/FC Scripts\/Miscellaneous/fc-misc.general-lot-mgmt.library.module'], function (FCLotMgmtLib) {
+require(['SuiteScripts/FC Scripts/Miscellaneous/fc-misc.general-lot-mgmt.library.module'], function (FCLotMgmtLib) {
 
     try {
         var soInternalId = 5334;

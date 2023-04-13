@@ -30,14 +30,6 @@ function main(recordModule, queryModule, searchModule, runtimeModule, fcMainLib,
     dayjs = dayjsModule;
     FCLotMgmtLib = fcLotMgmtLibModule;
 
-    // function beforeLoad(context) {
-    // }
-
-    // function beforeSubmit(context) {
-
-    // }
-
-
     // Sales Order:Pending Approval	SalesOrd:A
     // Sales Order:Pending Fulfillment	SalesOrd:B
     // Sales Order:Cancelled	SalesOrd:C
@@ -52,35 +44,64 @@ function main(recordModule, queryModule, searchModule, runtimeModule, fcMainLib,
         //     fieldId: 'status'
         // });
 
-        if ((context.type != context.UserEventType.CREATE) && (context.type != context.UserEventType.EDIT)) {
-            return;
+
+        // Other action types we need to handle
+        //     APPROVE --- do this instead of CREATE?
+        //     CANCEL  -- can cancel confirmed/committed orders
+        //     COPY   -- do we need to do anything? or will create catch this? 
+        //     XEDIT 
+        //     REJECT??
+        // 
+
+        log.debug({ title: 'context.type', details: context.type });
+
+        let contexttype = context.type;         // Debugging
+
+        if ((context.type == context.UserEventType.CREATE) ||
+            (context.type == context.UserEventType.APPROVE)) {
+            FCLotMgmtLib.doAssignSOLotNumbers(context.newRecord);
         }
 
-        doUpdateJitAvailabilities(context);
-        // FCLotMgmtLib.doAssignSOLotNumbers(context.newRecord);
-        // FIX: ADD SO DELETE LOGIC 
+        // }
+
+        // if ((context.type == context.UserEventType.CREATE) ||
+        //     (context.type == context.UserEventType.EDIT) ||
+        //     (context.type == context.UserEventType.XEDIT) ||
+        //     (context.type == context.UserEventType.APPROVE) ||
+        //     (context.type == context.UserEventType.DELETE) ||
+        //     (context.type == context.UserEventType.CANCEL)) {
+
+        //     let type = context.type;
+        //     doUpdateJitAvailabilities(
+        //         context.oldRecord,
+        //         context.newRecord,
+        //     );
+        // }
 
 
         return true;
     }
 
     function afterSubmit(context) {
-        if ((context.type != context.UserEventType.CREATE) && (context.type != context.UserEventType.EDIT)) {
-            return;
+
+        if ((context.type == context.UserEventType.CREATE) ||
+            (context.type == context.UserEventType.EDIT) ||
+            (context.type == context.UserEventType.XEDIT) ||
+            (context.type == context.UserEventType.APPROVE) ||
+            (context.type == context.UserEventType.DELETE) ||
+            (context.type == context.UserEventType.CANCEL)) {
+
+            let type = context.type;
+            doUpdateJitAvailabilities(
+                context,
+                context.oldRecord,
+                context.newRecord,
+            );
         }
 
-        let thisRec = record.load({
-            type: context.newRecord.type,
-            id: context.newRecord.id,
-            isDynamic: true
-        });
-
-        FCLotMgmtLib.doAssignSOLotNumbers(thisRec);
-
-        thisRec.save();
-        
-        // FIX: ADD SO DELETE LOGIC
     }
+
+
 
     return {
         // beforeSubmit: beforeSubmit,
@@ -89,20 +110,37 @@ function main(recordModule, queryModule, searchModule, runtimeModule, fcMainLib,
 
 }
 
-function doUpdateJitAvailabilities(context) {
+function doUpdateJitAvailabilities(context, oldRecord = null, newRecord = null) {
     let jitSOItemInfo = {};
 
-    let oldRecord = null;
-    let oldLineCount = 0;
+    let oldRecStatus = null;
+    let newRecStatus = null;
 
-    if (context.type == context.UserEventType.EDIT) {
-        oldRecord = context.oldRecord;
-        oldLineCount = oldRecord.getLineCount({ sublistId: 'item' });
+    // Compare the approval status before/after
+    //     - If the status has changed from Pending Approval to Pending Fulfillment,
+    //     then we need to CONSUME JIT.
+    //     - If the status has changed from Pending Fulfillment to Pending Approval,
+    //     then we need to RELEASE JIT.
+    // Statuses of interest:
+    //      Sales Order:Pending Approval	SalesOrd:A
+    //      Sales Order:Pending Fulfillment	SalesOrd:B
+    let oldApprovalStatus = oldRecord ? oldRecord.getValue({ fieldId: 'status' }) : null;
+    let newApprovalStatus = newRecord ? newRecord.getValue({ fieldId: 'status' }) : null;
 
+    if ((oldApprovalStatus == 'A') && (newApprovalStatus == 'B')) {
+        oldRecord = null;
+    }
+    else if (
+        (context.type == context.UserEventType.DELETE) ||
+        (context.type == context.UserEventType.CANCEL) ||
+        (oldApprovalStatus == 'B') && (newApprovalStatus == 'A')
+        ) {
+        newRecord = null;
     }
 
-    const newRecord = context.newRecord;
-    const newLineCount = newRecord.getLineCount({ sublistId: 'item' });
+
+    let oldLineCount = oldRecord ? oldRecord.getLineCount({ sublistId: 'item' }) : 0;
+    let newLineCount = newRecord ? newRecord.getLineCount({ sublistId: 'item' }) : 0;
 
     var itemBeforeAfter = {
         befores: {
@@ -121,7 +159,7 @@ function doUpdateJitAvailabilities(context) {
         // 'item': '',
         'quantity': 0,
         // 'quantityavailable': 0,
-        // 'quantitybackordered': 0,
+        'backordered': 0,
         // 'quantitybilled': 0,
         // 'quantitycommitted': 0,
         // 'quantityfulfilled': 0,
@@ -132,6 +170,7 @@ function doUpdateJitAvailabilities(context) {
 
     let allItemIds = new Set();
 
+
     for (let i in itemBeforeAfter) {
         let rec = itemBeforeAfter[i].rec;
         let lineCt = itemBeforeAfter[i].lineCt;
@@ -141,9 +180,22 @@ function doUpdateJitAvailabilities(context) {
             continue;
         }
 
+        let sublistFields = rec.getSublistFields({
+            sublistId: 'item'
+        });
+
+        log.debug({ title: 'sublistFields', details: sublistFields });
+
+
         for (let j = 0; j < lineCt; j++) {
-            let curItemId = rec.getSublistValue({ sublistId: 'item', fieldId: 'item', line: j });
-            let curItemIsJit = rec.getSublistValue({ sublistId: 'item', fieldId: 'custcol3', line: j });
+            let curItemId = rec.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'item', line: j
+            });
+            let curItemIsJit = rec.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcol3', line: j            // FIX: PROD
+            });
 
             if (FCLib.looksLikeNo(curItemIsJit)) {
                 continue;
@@ -156,7 +208,10 @@ function doUpdateJitAvailabilities(context) {
             }
 
             for (let k in itemSublistFieldsToGet) {
-                let val = rec.getSublistValue({ sublistId: 'item', fieldId: k, line: j });
+                let val = rec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: k, line: j
+                });
                 if (val) {
                     items[curItemId][k] += val;
                 }
@@ -182,9 +237,11 @@ function doUpdateJitAvailabilities(context) {
 
         if (itemBefore) {
             qtyBefore = itemBefore.quantity;
+            // qtyBefore = itemBefore.quantitybackordered;
         }
         if (itemAfter) {
             qtyAfter = itemAfter.quantity;
+            // qtyAfter = itemAfter.quantitybackordered;
         }
 
         let soJitDiff = qtyAfter - qtyBefore;
@@ -266,7 +323,8 @@ function runItemQuery(itemIds) {
                 ) AS LocationTotals ON item.id = LocationTotals.item		
 
             WHERE
-            Item.custitem_soft_comit = 'T' AND Item.id IN (${itemIdFilter})
+                Item.custitem_soft_comit = 'T' 
+                AND Item.id IN (${itemIdFilter})
         `;
 
     var queryParams = new Array();

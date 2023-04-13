@@ -1,14 +1,16 @@
 var query,
+    record,
     task,
     runtime,
     dayjs,
     FCLib;
 
 
-define(['N/query', 'N/task', 'N/runtime', '../Libraries/dayjs.min.js', '../Libraries/fc-main.library.module.js'], main);
+define(['N/query', 'N/record', 'N/task', 'N/runtime', '../Libraries/dayjs.min.js', '../Libraries/fc-main.library.module.js'], main);
 
-function main(queryModule, taskModule, runtimeModule, dayjsModule, fcLibModule) {
+function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule, fcLibModule) {
     query = queryModule;
+    record = recordModule;
     task = taskModule;
     runtime = runtimeModule;
     dayjs = dayjsModule;
@@ -54,7 +56,7 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule, fcLibModule) 
                         includeInCsv: false,
                     },
                     totalqty: {
-                        display: 'Total On-Order',
+                        display: 'Total Demand',
                         poGenField: null,
                         includeInCsv: false,
                     },
@@ -379,6 +381,191 @@ function main(queryModule, taskModule, runtimeModule, dayjsModule, fcLibModule) 
     exports.Settings = Settings;
     exports.MRSettings = MRSettings;
     exports.buildQueryGetItemInfoFromPO = buildQueryGetItemInfoFromPO;
+
+
+
+
+    function buildPoRecord(csvRows) {
+        // var csvRows = csvRowsRaw.map(JSON.parse);
+        const dynamic = true;
+
+        log.debug({ title: 'csvrows: ', details: csvRows });
+        let firstRow = csvRows[0];
+
+        log.debug({ title: 'firstRow: ', details: firstRow });
+        var poRecord = record.create({
+            type: record.Type.PURCHASE_ORDER,
+            isDynamic: dynamic
+        });
+
+
+
+        log.debug({ title: 'poRecord', details: poRecord });
+
+        let keysInCsvDebug = Object.keys(csvRows[0]);
+        log.debug({ title: 'keysInCsvDebug', details: keysInCsvDebug });
+
+        // Set the PO mainline fields
+        // FIX;
+        var csvToNsFieldMapKeys = Object.keys(MRSettings.CsvToNsFieldMap);
+        var poMainlineHeaders = csvToNsFieldMapKeys.filter(
+            (header) => { return MRSettings.CsvToNsFieldMap[header].record === 'transaction' }
+        );
+
+        log.debug({ title: 'poMainlineHeaders', details: poMainlineHeaders })
+
+        for (let header of poMainlineHeaders) {
+            let nsFieldId = MRSettings.CsvToNsFieldMap[header].nsFieldId;
+            let typeFunc = MRSettings.CsvToNsFieldMap[header].typeFunc;
+            let nsValue = typeFunc(csvRows[0][header]);
+
+            poRecord.setValue({
+                fieldId: nsFieldId,
+                value: nsValue
+            });
+        }
+
+        log.debug({ title: 'poRecord', details: poRecord });
+
+
+        // Set the PO item + inventory detail fields
+        let poItemHeaders = csvToNsFieldMapKeys.filter(
+            (header) => { return MRSettings.CsvToNsFieldMap[header].record === 'item' }
+        );
+
+        log.debug({ title: 'poItemHeaders', details: poItemHeaders });
+
+        // FIX: Need to make sure we have an inventorydetail quantity field
+        let invDetailHeaders = csvToNsFieldMapKeys.filter(
+            (header) => { return MRSettings.CsvToNsFieldMap[header].record === 'inventorydetail' }
+        );
+
+        log.debug({ title: 'invDetailHeaders', details: invDetailHeaders });
+
+        for (let i = 0; i < csvRows.length; i++) {
+            let row = csvRows[i];
+
+            // Insert a line in the item sublist.
+            if (dynamic) {
+                log.debug({ title: 'about to insert new item line', details: 'i: ' + i });
+                poRecord.selectNewLine({
+                    sublistId: 'item'
+                });
+            }
+            else {
+                poRecord.insertLine({
+                    sublistId: 'item',
+                    line: i
+                });
+            }
+
+            // Set the required item-level fields for the line
+            for (let header of poItemHeaders) {
+                let nsFieldId = MRSettings.CsvToNsFieldMap[header].nsFieldId;
+                let typeFunc = MRSettings.CsvToNsFieldMap[header].typeFunc;
+                let nsValue = typeFunc(row[header]);
+
+                if (dynamic) {
+                    log.debug({ title: 'setting current sublist value', details: 'i: ' + i });
+                    poRecord.setCurrentSublistValue({
+                        sublistId: 'item',
+                        fieldId: nsFieldId,
+                        value: nsValue
+                    });
+                }
+
+                else {
+                    poRecord.setSublistValue({
+                        sublistId: 'item',
+                        fieldId: nsFieldId,
+                        line: i,
+                        value: nsValue
+                    });
+                }
+            }
+
+            if (invDetailHeaders && invDetailHeaders.length > 0) {
+
+                if (dynamic) {
+                    log.debug({ title: 'getting current sublist subrecord', details: 'i: ' + i });
+                    invDetailSubrec = poRecord.getCurrentSublistSubrecord({
+                        sublistId: 'item',
+                        fieldId: 'inventorydetail'
+                    });
+                }
+                else {
+                    let invDetailSubrec = poRecord.getSublistSubrecord({
+                        sublistId: 'item',
+                        line: i,
+                        fieldId: 'inventorydetail'
+                    });
+                }
+
+                // Insert a line in the subrecord's inventory assignment sublist.
+                if (dynamic) {
+                    log.debug({ title: 'about to insert new inv detail line', details: 'i: ' + i });
+                    invDetailSubrec.selectNewLine({
+                        sublistId: 'inventoryassignment'
+                    });
+                }
+                else {
+                    invDetailSubrec.insertLine({
+                        sublistId: 'inventoryassignment',
+                        line: 0
+                    });
+                }
+
+
+                // Set the required inventory detail-level fields for the line
+                for (let header of invDetailHeaders) {
+                    let nsFieldId = MRSettings.CsvToNsFieldMap[header].nsFieldId;
+                    let typeFunc = MRSettings.CsvToNsFieldMap[header].typeFunc;
+                    let nsValue = typeFunc(row[header]);
+
+                    if (dynamic) {
+                        log.debug({ title: 'setting current inv assignment sublist value', details: 'i: ' + i });
+                        invDetailSubrec.setCurrentSublistValue({
+                            sublistId: 'inventoryassignment',
+                            fieldId: nsFieldId,
+                            value: nsValue
+                        });
+                    }
+                    else {
+                        invDetailSubrec.setSublistValue({
+                            sublistId: 'inventoryassignment',
+                            fieldId: nsFieldId,
+                            line: i,
+                            value: nsValue
+                        });
+                    }
+                }
+
+                // Commit the line to the inventory assignment sublist.
+
+                if (dynamic) {
+                    log.debug({ title: 'about to save invDetailSubrec lines', details: invDetailSubrec });
+
+                    invDetailSubrec.commitLine({
+                        sublistId: 'inventoryassignment'
+                    });
+                }
+            }
+
+            // Commit the line to the item sublist.
+            if (dynamic) {
+                log.debug({ title: 'about to save poRecord item line', details: poRecord });
+                poRecord.commitLine({
+                    sublistId: 'item'
+                });
+            }
+        }
+
+        log.debug({ title: 'returning new poRecord', details: poRecord });
+
+        return poRecord;
+    }
+    exports.buildPoRecord = buildPoRecord;
+
 
     return exports;
 }

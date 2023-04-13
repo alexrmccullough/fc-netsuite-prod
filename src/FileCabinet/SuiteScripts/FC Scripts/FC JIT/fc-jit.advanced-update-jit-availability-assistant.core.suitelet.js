@@ -366,7 +366,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         successfulResultsField.defaultValue = successHtml;
 
         // Pass the successful items CSV file ID to the next step as a param
-        itemUploadCSVIdField.defaultValue = successfulItemsCsvFileId;
+        successItemCSVIdField.defaultValue = successfulItemsCsvFileId;
 
 
         function buildParseSuccessCsvString(
@@ -471,7 +471,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
         // PICK UP HERE
 
-        let table1ActionRbSpecs = {
+        let table1ActionRbSpecsCol1 = {
             htmlElem: 'radio',
             valueSourceField: fieldDefs.VendorId.Label,
             checkedSourceField: fieldDefs.Select.Label,
@@ -481,6 +481,28 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
             idUniqueSuffixSourceField: fieldDefs.VendorId.Label,
         };
 
+        let table1ActionRbSpecsCol2 = {
+            htmlElem: 'radio',
+            valueSourceField: fieldDefs.VendorId.Label,
+            checkedSourceField: fieldDefs.Select.Label,
+            fieldDisplayName: fieldDefs.Select.Label,
+            idPrefixPart1Str: ThisAppLib.Settings.Ui.Step3.Parameters.TABLE1_ACTION_RADIOBUTTON.prefix,
+            idPrefixPart2Str: '',
+            idUniqueSuffixSourceField: fieldDefs.VendorId.Label,
+        };
+        
+        let table1ActionRbSpecsCol3 = {
+            htmlElem: 'radio',
+            valueSourceField: fieldDefs.VendorId.Label,
+            checkedSourceField: fieldDefs.Select.Label,
+            fieldDisplayName: fieldDefs.Select.Label,
+            idPrefixPart1Str: ThisAppLib.Settings.Ui.Step3.Parameters.TABLE1_ACTION_RADIOBUTTON.prefix,
+            idPrefixPart2Str: '',
+            idUniqueSuffixSourceField: fieldDefs.VendorId.Label,
+        };
+
+
+        // 
 
 
 

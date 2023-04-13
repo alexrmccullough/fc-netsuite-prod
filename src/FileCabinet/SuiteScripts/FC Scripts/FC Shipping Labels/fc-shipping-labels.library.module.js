@@ -145,19 +145,19 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         displayName: 'Lotted Qty Completed So Far',
                     },
                     IsLastLotOfLine: {
-                        nsSsFieldId: 'formulatext',
+                        nsSsFieldId: 'formulatext_1',
                         nsSsTargetGetType: 'value',
                         recastValueFunc: null,
-                        displayName: 'Is Last Lot of Line?',
+                        displayName: 'Is Last Lot of Line?',    
                     },
                     IsOrganic: {
-                        nsSsFieldId: 'formulatext_1',
+                        nsSsFieldId: 'formulatext_2',
                         nsSsTargetGetType: 'value',
                         recastValueFunc: null,
                         displayName: 'Is Organic?',
                     },
                     CustomerNoHierarchy: {
-                        nsSsFieldId: 'formulatext_2',
+                        nsSsFieldId: 'formulatext_3',
                         nsSsTargetGetType: 'value',
                         recastValueFunc: null,
                     }

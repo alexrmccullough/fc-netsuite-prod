@@ -517,8 +517,11 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                     switch (elem.htmlElem) {
                         case 'input':
                             val = `<input type="${elem.type}" id="${elemId}" name="${name}" value="${value}">`;
+                            break;
                         case 'checkbox':
                             val = `<input type="checkbox" id="${elemId}" name="${name}" value="${value}" ${checked}>`;
+                            break;
+                        
                     }
                     htmlBody += tdElem + val + '</td>';
                 }
@@ -563,10 +566,10 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
             data: data,
             headerBGColor: headerBGColor,
             headerTextColor: headerTextColor,
-            tableElem: `<table style="border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)">`,
+            tableElem: `<table style="border-collapse: collapse; margin: 15px 0; font-size: 1.2em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)">`,
             theadTrElem: `<tr style="background-color: ${headerBGColor}; color: ${headerTextColor}; text-align: left">`,
-            thElem: `<th style="padding: 12px 15px">`,
-            tdElem: `<td style="padding: 12px 15px">`,
+            thElem: `<th style="padding: 8px 11px">`,
+            tdElem: `<td style="padding: 8px 11px">`,
             tbodyTrElem: `<tr style="border-bottom: 1px solid #dddddd">`,
             specialElems: specialElems,
             headerNameMap: headerNameMap,
@@ -643,7 +646,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     }
     exports.generateRandomNumberXDigits = generateRandomNumberXDigits;
 
-    function getStandardDateString1(date) {
+    function getStandardDateString1(date = new Date()) {
         let dateObj = new Date(date);
         let year = dateObj.getFullYear();
         let month = dateObj.getMonth() + 1;
@@ -652,7 +655,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     }
     exports.getStandardDateString1 = getStandardDateString1;
 
-    function getStandardDisplayDateString1(date) {
+    function getStandardDisplayDateString1(date = new Date()) {
         let dateObj = new Date(date);
         let year = dateObj.getFullYear();
         let month = dateObj.getMonth() + 1;
@@ -661,7 +664,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     }
     exports.getStandardDisplayDateString1 = getStandardDisplayDateString1;
 
-    function getStandardDateTimeString1(date) {
+    function getStandardDateTimeString1(date = new Date()) {
         let dateObj = new Date(date);
         let year = dateObj.getFullYear();
         let month = dateObj.getMonth() + 1;

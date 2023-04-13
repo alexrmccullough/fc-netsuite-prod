@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_invoice1" standard="STDTMPLEMPTY">
+  <description></description>
+  <displaysourcecode>T</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>TRANSACTION</printtype>
+  <title>FC AM | Invoice 1</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

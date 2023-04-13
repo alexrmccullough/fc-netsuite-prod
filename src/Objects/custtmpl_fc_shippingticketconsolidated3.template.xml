@@ -175,6 +175,8 @@
 </style>
 </head>
 <#assign last_shipmentid = ''>
+<#assign last_sectionid = ''>
+
 <#assign last_frozen = ''>
 <#assign record_counter = 1>
 <body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt" padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
@@ -185,7 +187,7 @@
 <#list results as result>
 
 <#if (record_counter > 1)>
-	<#if ((result.formulatext_1 != last_shipmentid) || (result.formulatext != last_frozen))>
+	<#if (result.formulatext_1 != last_sectionid)>
 		<tr>
 			<td class="sectiontotal_title" colspan="2">Section Total: </td>
 			<td class="sectiontotal_value">${sectionqtycounter}</td>
@@ -193,7 +195,7 @@
 
 		</table>
 	</#if>
-	<#if (result.formulatext_1 != last_shipmentid)>
+	<#if (result.formulatext_2 != last_shipmentid)>
 	<table style="width: 100%; margin-top: 0px;">
 		<thead>
 			<tr>
@@ -206,7 +208,7 @@
 		<pbr></pbr>
 	</#if>
 </#if>
-<#if (result.formulatext_1 != last_shipmentid)>
+<#if (result.formulatext_2 != last_shipmentid)>
 	<#assign grandtotalcounter = 0>
 	<table class="header" style="width: 100%;">
 		<tr>
@@ -230,11 +232,11 @@
 		</tr>		
 	</table>
 </#if>
-<#if (result.formulatext_1 != last_shipmentid) || (result.formulatext != last_frozen)>
+<#if (result.formulatext_1 != last_sectionid)>
 	<#assign sectionqtycounter = 0>
 	<table class="darkmode" style="width: 100%; margin-top: 10px; margin-bottom: 0px;">
 		<tr>
-			<td style="width: 15%; font-weight: 700">${result.formulatext} </td>
+			<td style="width: 15%; font-weight: 700">${result.formulatext_3} </td>
 		</tr>
 	</table>
 	<table class="itemtable" style="width: 100%; margin-top: 0px;">
@@ -251,14 +253,15 @@
 <tr>
 	<td class="quantity">${result.quantity}</td>
 	<td class="iteminfo"><span class="itemname">${result.itemid}</span><br/>${result.displayname}</td>
-	<td class="sodetails">${result.formulatext_2}</td>
+	<td class="sodetails">${result.formulatext_4}</td>
 </tr>
 
 <#assign sectionqtycounter = sectionqtycounter + result.quantity>
 <#assign grandtotalcounter = grandtotalcounter + result.quantity>
 
-<#assign last_shipmentid = result.formulatext_1>
-<#assign last_frozen = result.formulatext>
+<#assign last_sectionid = result.formulatext_1>
+<#assign last_shipmentid = result.formulatext_2>
+<#assign last_frozen = result.formulatext_3>
 <#assign record_counter++>
 </#list>
 </table>

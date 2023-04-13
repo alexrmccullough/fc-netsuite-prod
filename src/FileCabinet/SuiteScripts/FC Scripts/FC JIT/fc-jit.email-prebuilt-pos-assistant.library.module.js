@@ -275,73 +275,57 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
                     Label: 'Select POs',
                     Fields: {
                         Select: {
-                            Type: ui.FieldType.CHECKBOX,
                             Label: 'Select',
                             Id: 'custpage_select_po_sublist_field_select',
                             DefaultValue: 'checked',
-                            DisplayType: serverWidget.FieldDisplayType.NORMAL,
                         },
                         PoInternalId: {
-                            Type: ui.FieldType.TEXT,
                             Label: 'PO Internal ID',
                             Id: 'custpage_select_po_sublist_field_po_internal_id',
-                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.pointernalid,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.pointernalid,
                         },
                         PoExternalId: {
-                            Type: ui.FieldType.TEXT,
                             Label: 'PO External ID',
                             Id: 'custpage_select_po_sublist_field_po_external_id',
-                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.poexternalid,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.poexternalid,
                         },
                         PoDisplayName: {
-                            Type: ui.FieldType.TEXT,
                             Label: 'PO #',
                             Id: 'custpage_select_po_sublist_field_po_displayname',
-                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.podisplayname,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.podisplayname,
                         },
                         TransactionDate: {
-                            Type: ui.FieldType.DATETIMETZ,
                             Label: 'Created Date',
                             Id: 'custpage_select_po_sublist_field_created_date',
-                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.transactiondate,
+                            QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.transactiondate,
                             TypeFunc: (val) => { 
                                 return format.format({
                                     value: new Date(val),
                                     type: format.Type.DATETIMETZ
                                 });
                             },
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
                         },
                         DueDate: {
-                            Type: ui.FieldType.DATETIMETZ,
                             Label: 'Due Date',
                             Id: 'custpage_select_po_sublist_field_due_date',
-                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.duedate,
+                            QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.duedate,
                             TypeFunc: (val) => { 
                                 return format.format({
                                     value: new Date(val),
                                     type: format.Type.DATETIMETZ
                                 });
                             },
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
                         },
                         VendorName: {
-                            Type: ui.FieldType.TEXT,
                             Label: 'Vendor Name',
                             Id: 'custpage_select_po_sublist_field_vendor_name',
-                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.vendorname,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.vendorname,
                         },
                         TotalAmount: {
-                            Type: ui.FieldType.CURRENCY,
                             Label: 'Total Amount',
                             Id: 'custpage_select_po_sublist_field_total_amount',
-                            UnsentPoQuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.totalamount,
+                            QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.totalamount,
                             TypeFunc: (val) => { return parseFloat(val) },
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
                         }
 
                     },

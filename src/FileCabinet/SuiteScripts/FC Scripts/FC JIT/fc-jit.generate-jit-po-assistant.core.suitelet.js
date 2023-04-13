@@ -303,28 +303,28 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
         // TEMP: Debug data field
         // Create a field group first
-        let debugFieldGroup = assistant.addFieldGroup({
-            id: 'custpage_fg_debug',
-            label: 'Debug'
-        });
+        // let debugFieldGroup = assistant.addFieldGroup({
+        //     id: 'custpage_fg_debug',
+        //     label: 'Debug'
+        // });
 
-        let debugPODataField = assistant.addField({
-            id: `custpage_debugfield1`,
-            type: serverWidget.FieldType.INLINEHTML,
-            label: `Debug`,
-            container: `custpage_fg_debug`
-        });
+        // let debugPODataField = assistant.addField({
+        //     id: `custpage_debugfield1`,
+        //     type: serverWidget.FieldType.INLINEHTML,
+        //     label: `Debug`,
+        //     container: `custpage_fg_debug`
+        // });
 
 
 
-        let debugPOHtml = '';
-        // DEBUG: include parameters, query text, query results, display field lookup, display fields on separate lines
-        debugPOHtml += '<pre>' + JSON.stringify(context.request.parameters, null, 2) + '</pre>\n\n';
-        // debugPOHtml += '<pre>' + queryText + '</pre>\n\n';
-        debugPOHtml += '<pre>' + JSON.stringify(jitSOItemQueryResults, null, 2) + '</pre>\n\n';
-        debugPOHtml += '<pre>' + JSON.stringify(queryFieldLookup, null, 2) + '</pre>\n\n';
-        debugPOHtml += '<pre>' + JSON.stringify(queryFieldIds, null, 2) + '</pre>\n\n';
-        debugPODataField.defaultValue = debugPOHtml;
+        // let debugPOHtml = '';
+        // // DEBUG: include parameters, query text, query results, display field lookup, display fields on separate lines
+        // debugPOHtml += '<pre>' + JSON.stringify(context.request.parameters, null, 2) + '</pre>\n\n';
+        // // debugPOHtml += '<pre>' + queryText + '</pre>\n\n';
+        // debugPOHtml += '<pre>' + JSON.stringify(jitSOItemQueryResults, null, 2) + '</pre>\n\n';
+        // debugPOHtml += '<pre>' + JSON.stringify(queryFieldLookup, null, 2) + '</pre>\n\n';
+        // debugPOHtml += '<pre>' + JSON.stringify(queryFieldIds, null, 2) + '</pre>\n\n';
+        // debugPODataField.defaultValue = debugPOHtml;
 
         // Write the results to the context response
         // context.response.writePage(assistant);
@@ -643,34 +643,34 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
         // Create debug output on all variables
         // Create debug field
-        let debugOut = '<br><br>';
+        // let debugOut = '<br><br>';
 
-        var debugField = assistant.addField({
-            id: 'custpage_debug',
-            type: serverWidget.FieldType.INLINEHTML,
-            label: 'Debug'
-        });
+        // var debugField = assistant.addField({
+        //     id: 'custpage_debug',
+        //     type: serverWidget.FieldType.INLINEHTML,
+        //     label: 'Debug'
+        // });
 
-        debugOut += '<pre>' + allParams + '</pre>\n\n';
-        // Add persistent params to output
-        debugOut += 'persistentParams';
-        debugOut += '<pre>' + JSON.stringify(persistentParams, null, 2) + '</pre>\n\n';
-        // Add query results to output
-        debugOut += 'jitSOItemQueryResults';
-        debugOut += '<pre>' + JSON.stringify(jitSOItemQueryResults, null, 2) + '</pre>\n\n';
-        debugOut += '<br>OutputFieldsFromOrigQuery';
-        debugOut += '<pre>' + JSON.stringify(ouputFieldsFromOrigQuery, null, 2) + '</pre>\n\n';
-        debugOut += '<br>VendorMemos';
-        debugOut += '<pre>' + JSON.stringify(vendorMemos, null, 2) + '</pre>\n\n';
-        debugOut += '<br>Final Item Quantities';
-        debugOut += '<pre>' + JSON.stringify(finalItemQuantities, null, 2) + '</pre>\n\n';
-        debugOut += '<br>Accepted POs';
-        debugOut += '<pre>' + JSON.stringify(poDataAccepted, null, 2) + '</pre>\n\n';
-        debugOut += '<br>Rejected POs';
-        debugOut += '<pre>' + JSON.stringify(poDataRejected, null, 2) + '</pre>\n\n';
+        // debugOut += '<pre>' + allParams + '</pre>\n\n';
+        // // Add persistent params to output
+        // debugOut += 'persistentParams';
+        // debugOut += '<pre>' + JSON.stringify(persistentParams, null, 2) + '</pre>\n\n';
+        // // Add query results to output
+        // debugOut += 'jitSOItemQueryResults';
+        // debugOut += '<pre>' + JSON.stringify(jitSOItemQueryResults, null, 2) + '</pre>\n\n';
+        // debugOut += '<br>OutputFieldsFromOrigQuery';
+        // debugOut += '<pre>' + JSON.stringify(ouputFieldsFromOrigQuery, null, 2) + '</pre>\n\n';
+        // debugOut += '<br>VendorMemos';
+        // debugOut += '<pre>' + JSON.stringify(vendorMemos, null, 2) + '</pre>\n\n';
+        // debugOut += '<br>Final Item Quantities';
+        // debugOut += '<pre>' + JSON.stringify(finalItemQuantities, null, 2) + '</pre>\n\n';
+        // debugOut += '<br>Accepted POs';
+        // debugOut += '<pre>' + JSON.stringify(poDataAccepted, null, 2) + '</pre>\n\n';
+        // debugOut += '<br>Rejected POs';
+        // debugOut += '<pre>' + JSON.stringify(poDataRejected, null, 2) + '</pre>\n\n';
 
 
-        debugField.defaultValue = debugOut;
+        // debugField.defaultValue = debugOut;
         // context.response.write(htmlOut + '<br><br>' + debugOut);
     }
 

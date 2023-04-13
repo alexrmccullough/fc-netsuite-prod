@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_am_returnauth1" standard="STDTMPLRTNAUTH">
+  <description></description>
+  <displaysourcecode>F</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>TRANSACTION</printtype>
+  <title>FC | Return Authorization 1</title>
+  <trantype>RTNAUTH</trantype>
+</advancedpdftemplate>

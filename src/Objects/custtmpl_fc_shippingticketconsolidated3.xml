@@ -1,0 +1,10 @@
+<advancedpdftemplate scriptid="custtmpl_fc_shippingticketconsolidated3">
+  <description></description>
+  <displaysourcecode>T</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>SEARCH</printtype>
+  <savedsearch>[scriptid=customsearch2161]</savedsearch>
+  <title>FC | Shipping Tickets Consolidated 3</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

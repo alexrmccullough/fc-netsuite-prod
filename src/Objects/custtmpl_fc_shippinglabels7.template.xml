@@ -376,7 +376,7 @@
         <@openRow counter></@openRow>
 
         <@writeLabel 
-            customer=result.formulatext_2
+            customer=result.formulatext_3
             shipDate=result.shipdate
             route=result.custbody_rd_so_route
             itemId=result.itemid
@@ -389,7 +389,7 @@
             labelQty=qtyforthislabel 
             labelPos=i
             totalLabelCt=numberoflabels
-            isOrganic=result.formulatext_1
+            isOrganic=result.formulatext_2
             >
         </@writeLabel>
         
@@ -397,14 +397,14 @@
             labelCounter=counter
             isLastResult=(result?is_last)
             isLastLabelOfResult=(i >= numberoflabels)
-            hasUnlottedRemainder=(result.formulatext == "True" && result.formulanumeric_1?number > 0)
+            hasUnlottedRemainder=(result.formulatext_1 == "True" && result.formulanumeric_1?number > 0)
             >
         </@closeRow>
         <@closeTable 
             labelCounter=counter
             isLastResult=(result?is_last)
             isLastLabelOfResult=(i >= numberoflabels)
-            hasUnlottedRemainder=(result.formulatext == "True" && result.formulanumeric_1?number > 0)
+            hasUnlottedRemainder=(result.formulatext_1 == "True" && result.formulanumeric_1?number > 0)
             >
         </@closeTable>
  
@@ -412,7 +412,7 @@
         <#assign counter++>
     </#list>
 
-    <#if (result.formulatext == "True") && (result.formulanumeric_1?number > 0)>
+    <#if (result.formulatext_1 == "True") && (result.formulanumeric_1?number > 0)>
         <#assign qtyremaining = result.formulanumeric_1?number>
 
         <#if (qtyremaining > 0)>
@@ -424,7 +424,7 @@
                 <@openRow counter></@openRow>
 
                 <@writeLabel 
-                    customer=result.formulatext_2 
+                    customer=result.formulatext_3 
                     shipDate=result.shipdate
                     route=result.custbody_rd_so_route
                     itemId=result.itemid
@@ -437,7 +437,7 @@
                     labelQty=qtyforthislabel 
                     labelPos=j
                     totalLabelCt=numberoflabels
-                    isOrganic=result.formulatext_1
+                    isOrganic=result.formulatext_2
                     >
                 </@writeLabel>
                 

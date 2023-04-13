@@ -1,16 +1,19 @@
-var query,
+var search,
+    query,
     record,
     dayjs,
     FCLib;
 
 define([
+    'N/search',
     'N/query',
     'N/record',
     '../Libraries/dayjs.min.js',
     '../Libraries/fc-main.library.module.js'
 ], main);
 
-function main(queryModule, recordModule, dayjsModule, fcLibModule) {
+function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule) {
+    search = searchModule;
     query = queryModule;
     record = recordModule;
     dayjs = dayjsModule;
@@ -25,15 +28,22 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
                         BUILTIN.DF( InventoryNumber.Item ) AS itemid,
                         InventoryNumber.InventoryNumber AS lotnum,
                         InventoryNumber.id AS invnumberinternalid,
-                        INL.QuantityOnHand AS quantityonhand,
+                        INL.quantityonhand AS quantityonhand,
+			            INL.quantityintransit AS quantityintransit,
+			            INL.quantityavailable AS quantityavailable,
+			            INL.quantityonorder AS quantityonorder,
                         TO_DATE( InventoryNumber.ExpirationDate) AS expirationdate,
                         TO_DATE( InventoryNumber.ExpirationDate ) - TO_DATE( '@@SO_SHIP_DATE@@' ) AS expirationdays
                     FROM
                         InventoryNumber
-                        INNER JOIN InventoryNumberLocation AS INL ON
+                    INNER JOIN InventoryNumberLocation AS INL ON
                             ( INL.InventoryNumber = InventoryNumber.ID )
+                    INNER JOIN Item ON InventoryNumber.item = Item.id
                     WHERE
-                        InventoryNumber.item IN (@@ITEM_FILTER@@)
+                        INL.quantityavailable > 0
+                        AND InventoryNumber.item IN (@@ITEM_FILTER@@)
+                        AND Item.islotitem = 'T'
+
                     `,
                 BuildQuery: function (soShipDate, itemIds) {
                     let itemIdStr = itemIds.map((itemId) => { return `'${itemId}'`; }).join(',');
@@ -61,6 +71,18 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
                     QuantityOnHand: {
                         Name: 'quantityonhand',
                         Label: 'Quantity On Hand',
+                    },
+                    QuantityInTransit: {
+                        Name: 'quantityintransit',
+                        Label: 'Quantity In Transit',
+                    },
+                    QuantityAvailable: {
+                        Name: 'quantityavailable',
+                        Label: 'Quantity Available',
+                    },
+                    QuantityOnOrder: {
+                        Name: 'quantityonorder',
+                        Label: 'Quantity On Order',
                     },
                     ExpirationDate: {
                         Name: 'expirationdate',
@@ -188,30 +210,32 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
 
         let soItemIds = getTranLineItemIds(soRec);
 
-        let sqlOnHandLots = exports.Queries.GET_ONHAND_LOTNUMS.BuildQuery(
+        if (soItemIds.length == 0) {
+            return;
+        }
+
+        // Run the query.
+        // This query will give us information about the lots of available inventory filtered
+        //     by our list of item ids. 
+        //  It will also filter out non-JIT, non-lot-tracked items so that we have an easy lookup tool
+        //     to determine whether or not to process a transaction line. 
+        let sqlAvailableLots = exports.Queries.GET_ONHAND_LOTNUMS.BuildQuery(
             soShipDate,
             soItemIds
         );
 
-        // let sqlInboundLots = ThisAppLib.Queries.GET_INBOUND_PO_LOTNUMS.BuildQuery(
-        //     soShipDate,
-        //     soItemIds
-        // );
-
-        let onHandLotData = FCLib.sqlSelectAllRowsIntoNestedDict(
-            sqlOnHandLots,
+        let availableLotData = FCLib.sqlSelectAllRowsIntoNestedDict(
+            sqlAvailableLots,
             [exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.ItemInternalId.Name],
-        );
-
-        // let inboundLotData = FCLib.sqlSelectAllRowsIntoNestedDict(
-        //     sqlInboundLots,
-        //     [ThisAppLib.Queries.GET_INBOUND_PO_LOTNUMS.FieldSet1.ItemInternalId.Name],
-        // );
+        )
 
 
-        if ((!onHandLotData) && (!inboundLotData) && (onHandLotData.length == 0) && (inboundLotData.length == 0)) {
+        if ((!availableLotData) &&
+            (Object.keys(availableLotData).length == 0)){   
             return;
         }
+
+        // Store a running sum of the quantity of each item/lot combination that we've 
 
         // Loop through each item on SO and try to assign lot number
         let itemLineCount = soRec.getLineCount({
@@ -222,7 +246,7 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
             if (dynamic) {
                 soRec.selectLine({
                     sublistId: 'item',
-                    line: i 
+                    line: i
                 });
             }
 
@@ -241,14 +265,11 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
                 });
             }
 
-            // Check whether item is lot tracked. Skip if it is not.
-            let itemIsLotTracked = search.lookupFields({
-                type: search.Type.ITEM,
-                id: itemId,
-                columns: ['islotitem']
-            });
 
-            if (FCLib.looksLikeNo(itemIsLotTracked.islotitem)) {
+            // Check whether:
+            //   1. The item is in the results lookup from our query. If so, then it is lot tracked + JIT
+            // If no, then skip this item.
+            if (!(itemId in availableLotData)) {
                 continue;
             }
 
@@ -300,7 +321,7 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
                     if (dynamic) {
                         invDetailSubrec.selectLine({
                             sublistId: 'inventoryassignment',
-                            line: j 
+                            line: j
                         });
                     }
 
@@ -350,22 +371,30 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
             let currentInvAssnLineNum = invDetailLineCt;
 
             // It looks like we still have quantity on this line that needs to be assigned to a lot number.
-            // Try to assign on-hand inventory first
-            let onHandLots = onHandLotData[itemId];
+            let availableLots = availableLotData[itemId];
 
-            if (onHandLots && onHandLots.length > 0) {
-                onHandLots = FCLib.sortArrayOfObjsByKeys(
-                    onHandLots,
+            if (availableLots && availableLots.length > 0) {
+                availableLots = FCLib.sortArrayOfObjsByKeys(
+                    availableLots,
                     [
                         exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.ExpirationDate.Name,
                         exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.InvNumberInternalId.Name,
                     ]
                 );
 
-                for (let j = 0; j < onHandLots.length; j++) {
+                for (let j = 0; j < availableLots.length; j++) {
                     if (quantityLeftToAssign <= 0) {
                         break;
                     }
+
+                    // let lotNum = onHandLots[j][ThisAppLib.Queries.GET_ONHAND_LOTNUMS.FieldSet1.LotNum.Name];
+                    let lotId = availableLots[j][exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.InvNumberInternalId.Name];
+                    let lotQtyAvailable = availableLots[j][exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.QuantityAvailable.Name];
+                    if (lotQtyAvailable <= 0) {
+                        continue;
+                    }
+
+                    let lotQtyToAssign = Math.min(quantityLeftToAssign, lotQtyAvailable);
 
                     if (dynamic) {
                         invDetailSubrec.selectNewLine({
@@ -373,11 +402,7 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
                         });
                     }
 
-                    // let lotNum = onHandLots[j][ThisAppLib.Queries.GET_ONHAND_LOTNUMS.FieldSet1.LotNum.Name];
-                    let lotId = onHandLots[j][exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.InvNumberInternalId.Name];
-                    let lotQtyOnHand = onHandLots[j][exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.QuantityOnHand.Name];
 
-                    let lotQtyToAssign = Math.min(quantityLeftToAssign, lotQtyOnHand);
 
                     // Assign lot number to SO line
                     if (dynamic) {
@@ -430,6 +455,7 @@ function main(queryModule, recordModule, dayjsModule, fcLibModule) {
                     }
 
                     quantityLeftToAssign -= lotQtyToAssign;
+                    availableLots[j][exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.QuantityAvailable.Name] -= lotQtyToAssign;
                     currentInvAssnLineNum++;
                 }
             }
