@@ -27,56 +27,56 @@ function main(queryModule, taskModule, runtimeModule, emailModule, uiModule) {
         Queries: {
             GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO: {
                 Query: `
-                    WITH LotQtyBySO AS (
-                        SELECT
-                            TransactionLine.transaction AS transactionid,
-                            SUM(ABS(InventoryAssignment.quantity)) AS totallottedquantity
-                        FROM
-                            TransactionLine
-                        LEFT OUTER JOIN InventoryAssignment ON (
-                            TransactionLine.id = InventoryAssignment.transactionLine
-                            AND TransactionLine.transaction = inventoryAssignment.Transaction	
+                        WITH LotQtyBySO AS (
+                            SELECT
+                                TransactionLine.transaction AS transactionid,
+                                SUM(ABS(InventoryAssignment.quantity)) AS totallottedquantity
+                            FROM
+                                TransactionLine
+                            LEFT OUTER JOIN InventoryAssignment ON (
+                                TransactionLine.id = InventoryAssignment.transactionLine
+                                AND TransactionLine.transaction = inventoryAssignment.Transaction	
+                            )
+                            WHERE
+                                TransactionLine.isclosed = 'F'
+                            GROUP BY
+                                TransactionLine.transaction
                         )
+                        
+                        SELECT
+                            Transaction.id AS traninternalid,
+                            Transaction.tranid AS tranid,
+                            Transaction.shipdate AS shipdate,
+                            Transaction.entity AS customerinternalid,
+                            BUILTIN.DF(Transaction.entity) AS customername,
+                            SUM(ABS(TransactionLine.quantity)) AS totalquantity,
+                            LotQtyBySO.totallottedquantity,
+                            (SUM(ABS(TransactionLine.quantity)) - COALESCE(LotQtyBySO.totallottedquantity, 0)) AS qtyremainingtobelotted
+                        
+                        FROM
+                            Transaction
+                        
+                        INNER JOIN TransactionLine ON Transaction.id = TransactionLine.transaction
+                        INNER JOIN Item ON TransactionLine.item = Item.id
+                        INNER JOIN LotQtyBySO ON LotQtyBySO.transactionid = Transaction.id
+                        
                         WHERE
-                            TransactionLine.isclosed = 'F'
+                            Transaction.type = 'SalesOrd'
+                            AND BUILTIN.CF(Transaction.status) IN ('SalesOrd:B', 'SalesOrd:D', 'SalesOrd:E')
+                            AND TransactionLine.itemType = 'InvtPart'
+                            AND Item.isLotItem = 'T'
+                        
                         GROUP BY
-                            TransactionLine.transaction
-                    )
-                    
-                    SELECT
-                        Transaction.id AS traninternalid,
-                        Transaction.tranid AS tranid,
-                        Transaction.shipdate AS shipdate,
-                        Transaction.entity AS customerinternalid,
-                        BUILTIN.DF(Transaction.entity) AS customername,
-                        SUM(ABS(TransactionLine.quantity)) AS totalquantity,
-                        LotQtyBySO.totallottedquantity,
-                        (SUM(ABS(TransactionLine.quantity)) - COALESCE(LotQtyBySO.totallottedquantity, 0)) AS qtyremainingtobelotted
-                    
-                    FROM
-                        Transaction
-                    
-                    INNER JOIN TransactionLine ON Transaction.id = TransactionLine.transaction
-                    INNER JOIN Item ON TransactionLine.item = Item.id
-                    INNER JOIN LotQtyBySO ON LotQtyBySO.transactionid = Transaction.id
-                    
-                    WHERE
-                        Transaction.type = 'SalesOrd'
-                        AND BUILTIN.CF(Transaction.status) IN ('SalesOrd:B', 'SalesOrd:D', 'SalesOrd:E')
-                        AND TransactionLine.itemType = 'InvtPart'
-                        AND Item.isLotItem = 'T'
-                    
-                    GROUP BY
-                        Transaction.id,
-                        Transaction.tranid,
-                        Transaction.shipdate,
-                        Transaction.entity,
-                        BUILTIN.DF(Transaction.entity),
-                        LotQtyBySO.totallottedquantity
+                            Transaction.id,
+                            Transaction.tranid,
+                            Transaction.shipdate,
+                            Transaction.entity,
+                            BUILTIN.DF(Transaction.entity),
+                            LotQtyBySO.totallottedquantity
 
-                    ORDER BY
-                        Transaction.shipdate,
-                        Transaction.entity
+                        ORDER BY
+                            Transaction.shipdate,
+                            Transaction.entity
                     `,
                 BuildQuery: function (folderId) {
                     return this.Query;

@@ -19,7 +19,7 @@ var
     url,
     FCLib,
     ThisAppLib,
-    FCShipLabelLib, 
+    FCShipLabelLib,
     FCBulkEmailProcessLib;
 // Papa;
 // assistant, 
@@ -160,22 +160,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         // Run the query
         let queryResults = FCLib.sqlSelectAllRows(sqlQuery);
 
-
-        // let poSublist = assistant.addSublist({
-        //     id: ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Id,
-        //     type: serverWidget.SublistType.INLINEEDITOR,
-        //     label: ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Label,
-        // });
-        // buildPoSelectSublist(context, poSublist, queryResults);
-
-        // let poList = assistant.CreateList({
-        //     title: 'This List'
-        // });
-        // buildPoSelectREGULARLIST(context, poList, queryResults);
-
-
         // Build an INLINEHTML field, create a PO table, and inject the HTML into the table
-
         let tableHtml = buildPoSelectHtmlList(context, queryResults);
 
 
@@ -611,8 +596,16 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         };
 
         // First, sort the list by PO ID
-        let sortField = ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields.PoDisplayName.QuerySource.fieldid;
-        let poQueryResultsSorted = FCLib.sortArrayOfObjsByKey(poQueryResults, sortField, true);
+        let sortFields = [
+            ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields.DueDate.QuerySource.fieldid,
+            ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields.VendorName.QuerySource.fieldid,
+
+        ];
+        let poQueryResultsSorted = FCLib.sortArrayOfObjsByKeys(
+            poQueryResults,
+            sortFields,
+            true
+        );
 
         let formattedRows = [];
 
@@ -631,23 +624,13 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
                     if ((lookupVal !== null) && (lookupVal !== undefined) && (lookupVal != '')) {
                         fieldVal = lookupVal;
 
-                        if ('TypeFunc' in fieldDef) { fieldVal = fieldDef.TypeFunc(fieldVal); }
+                        if ('RecastFunc' in fieldDef) { fieldVal = fieldDef.RecastFunc(fieldVal); }
 
                     }
                 }
 
                 formattedRow[fieldLabel] = fieldVal;
 
-                // if ((fieldVal !== null) && (fieldVal !== undefined) && (fieldVal != '')) {
-                //     if ('TypeFunc' in fieldDef) { fieldVal = fieldDef.TypeFunc(fieldVal); }
-
-                //     formattedRow[fieldLabel] = fieldVal;
-                //     // sublist.setSublistValue({
-                //     //     id: fieldId,
-                //     //     line: i,
-                //     //     value: fieldVal,
-                //     // });
-                // }
             }
             formattedRows.push(formattedRow);
         }

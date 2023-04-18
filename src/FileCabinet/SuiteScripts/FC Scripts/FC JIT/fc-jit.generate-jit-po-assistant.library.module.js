@@ -18,32 +18,73 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
 
     var exports = {
         Queries: {
-            GET_FUTURE_SOS_FOR_JIT_ITEMS: {
-                // FIX: Need to group by vendor and item
+            GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST: {
                 Query: `
-                    SELECT 
-                    Abs(SUM(TransactionLine.quantitybackordered)) as totalbackordered,
-                    Abs(SUM(TransactionLine.quantity)) as totalqty,
-                    Item.id as iteminternalid,
-                    Item.itemId as itemid,
-                    Item.displayname as itemdisplayname,
+                SELECT 
                     ItemVendor.vendor as vendorid,
-                    Vendor.entityId as vendorentityid
-                    FROM TransactionLine
+                    Vendor.entityId as vendorentityid,
+                FROM TransactionLine
                     JOIN Item ON Item.id = TransactionLine.item
                     JOIN ItemVendor ON item.id = itemVendor.item
                     JOIN Transaction ON Transaction.id = TransactionLine.transaction
                     JOIN Vendor ON itemVendor.vendor = vendor.id
-                    WHERE (Transaction.type = 'SalesOrd')
-                    AND (BUILTIN.CF(Transaction.status) IN ('SalesOrd:B', 'SalesOrd:D', 'SalesOrd:E'))
+                WHERE (Transaction.type = 'SalesOrd')
+                    AND (
+                        BUILTIN.CF(Transaction.status) IN ('SalesOrd:B', 'SalesOrd:D', 'SalesOrd:E')
+                    )
                     AND (Item.custitem_soft_comit = 'T')
                     @@EXTRA_FILTERS@@
-                    GROUP BY 
-                    Item.id,
-                    Item.itemId,
-                    Item.displayname,
+
+                GROUP BY 
                     ItemVendor.vendor,
-                    Vendor.entityId 
+                    Vendor.entityId
+                `,
+                Filters: {
+                    soStartDate: `AND (Transaction.shipDate >= '@@SO_START_DATE@@')   `,
+                    soEndDate: `AND (Transaction.shipDate <= '@@SO_END_DATE@@')   `,
+                },
+                FieldSet1: {
+                    vendorid: {
+                        display: 'Vendor ID',
+                        poGenField: 'vendorid',
+                        includeInCsv: true,
+                    },
+                    vendorentityid: {
+                        display: 'Vendor Name',
+                        poGenField: 'vendorentityid',
+                        includeInCsv: true,
+                    },
+                }
+            },
+            GET_FUTURE_SOS_FOR_JIT_ITEMS: {
+                // FIX: Need to group by vendor and item
+                Query: `
+                    SELECT Abs(SUM(TransactionLine.quantitybackordered)) as totalbackordered,
+                        Abs(SUM(TransactionLine.quantity)) as totalqty,
+                        Item.id as iteminternalid,
+                        Item.itemId as itemid,
+                        Item.displayname as itemdisplayname,
+                        ItemVendor.vendor as vendorid,
+                        Vendor.entityId as vendorentityid,
+                        Vendor.companyname as vendorname
+                    FROM TransactionLine
+                        JOIN Item ON Item.id = TransactionLine.item
+                        JOIN ItemVendor ON item.id = itemVendor.item
+                        JOIN Transaction ON Transaction.id = TransactionLine.transaction
+                        JOIN Vendor ON itemVendor.vendor = vendor.id
+                    WHERE (Transaction.type = 'SalesOrd')
+                        AND (
+                            BUILTIN.CF(Transaction.status) IN ('SalesOrd:B', 'SalesOrd:D', 'SalesOrd:E')
+                        )
+                        AND (Item.custitem_soft_comit = 'T')
+                        @@EXTRA_FILTERS@@
+
+                    GROUP BY Item.id,
+                        Item.itemId,
+                        Item.displayname,
+                        ItemVendor.vendor,
+                        Vendor.entityId,
+                        Vendor.companyname
                 `,
                 Filters: {
                     soStartDate: `AND (Transaction.shipDate >= '@@SO_START_DATE@@')   `,

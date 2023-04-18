@@ -1,0 +1,6 @@
+{
+	"paths": {
+		"react": "/SuiteScripts/react/react.production.min.js",
+		"react-dom": "/SuiteScripts/react/react-dom.production.min.js"
+	}
+}

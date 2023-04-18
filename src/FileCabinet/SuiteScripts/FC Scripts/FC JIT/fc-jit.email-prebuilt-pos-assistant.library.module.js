@@ -298,7 +298,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
                             Label: 'Created Date',
                             Id: 'custpage_select_po_sublist_field_created_date',
                             QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.transactiondate,
-                            TypeFunc: (val) => { 
+                            RecastFunc: (val) => { 
                                 return format.format({
                                     value: new Date(val),
                                     type: format.Type.DATETIMETZ
@@ -309,7 +309,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
                             Label: 'Due Date',
                             Id: 'custpage_select_po_sublist_field_due_date',
                             QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.duedate,
-                            TypeFunc: (val) => { 
+                            RecastFunc: (val) => { 
                                 return format.format({
                                     value: new Date(val),
                                     type: format.Type.DATETIMETZ
@@ -325,7 +325,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
                             Label: 'Total Amount',
                             Id: 'custpage_select_po_sublist_field_total_amount',
                             QuerySource: exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.totalamount,
-                            TypeFunc: (val) => { return parseFloat(val) },
+                            RecastFunc: (val) => { return parseFloat(val) },
                         }
 
                     },

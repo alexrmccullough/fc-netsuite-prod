@@ -51,7 +51,11 @@
                 rec.setValue({
                     fieldId: 'email',
                     value: comboEmailString,
-                    // ignoreFieldChange: true          // not sure about this
+                });
+
+                rec.setValue({
+                    fieldId: 'custbody2',
+                    value: comboEmailString,
                 });
             }
             log.debug("beforeSubmit: Updated Email List: " + dedupedEmails)

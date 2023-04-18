@@ -119,8 +119,9 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         },
         Sublists: {
         }
-    }
+    };
     exports.Ids = Ids;
+
 
     var Settings = {
         PapaParse: {
@@ -137,6 +138,42 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         }
     }
     exports.Settings = Settings;
+
+
+    var Ui = {
+        TableStyles: {
+            Style1: {
+                trStyleFuncs: [],
+                tdStyleFuncs: [],
+                tableStyle: 'border-collapse: collapse; margin: 15px 0; font-size: 1.2em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)',
+                theadStyle: '',
+                tbodyStyle: '',
+                theadTrStyle: 'background-color: #009879; color: #ffffff; text-align: left',
+                tbodyTrStyle: 'border-bottom: 1px solid #dddddd',
+                thStyle: 'padding: 8px 11px',
+                tdStyle: 'padding: 8px 11px',
+            },
+            Style2: {
+                trStyleFuncs: [],
+                tdStyleFuncs: [],
+                tableStyle: 'border-collapse: collapse; margin: 15px 0; font-size: 1.2em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15)',
+                theadStyle: '',
+                tbodyStyle: '',
+                theadTrStyle: 'background-color: #ebab34; color: #ffffff; text-align: left',
+                tbodyTrStyle: 'border-bottom: 1px solid #dddddd',
+                thStyle: 'padding: 8px 11px',
+                tdStyle: 'padding: 8px 11px',
+            },
+        },
+        RadioButtonStyles: {
+            Style1: 'height: 20px; width: 20px; vertical-align:middle;'
+        },
+        CheckboxStyles: {
+            Style1: 'height: 20px; width: 20px; vertical-align:middle;',
+            Style2: 'height: 20px; width: 20px; vertical-align:middle; background-color:#FF0000;',
+        },
+    };
+    exports.Ui = Ui;
 
 
 
@@ -406,6 +443,86 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.stripBomFirstChar = stripBomFirstChar;
 
 
+
+
+    function updatedConvertLookupTableToHTMLTable({
+        data = [],
+        fieldDefs = [],
+        trStyleFuncs = [],
+        tdStyleFuncs = [],
+        tableStyle = '',
+        theadStyle = '',
+        tbodyStyle = '',
+        theadTrStyle = '',
+        tbodyTrStyle = '',
+        thStyle = '',
+        tdStyle = '',
+
+
+    }) {
+        let tableHtml = '';
+        const tableElem = `<table style="${tableStyle}">`;
+        const theadElem = `<thead style="${theadStyle}">`;
+        const tbodyElem = `<tbody style="${tbodyStyle}">`;
+        const theadTrElem = `<tr style="${theadTrStyle}">`;
+        const thElem = `<th style="${thStyle}">`;
+        const tbodyTrElem = (style) => { return `<tr style="${style}">`; };
+        const tdElem = (style) => { return `<td style="${style}">`; };
+
+        const fdLabel = 'Label';
+        const fdGetTableElem = 'GetTableElem';
+
+
+        // Build the table + header row
+        tableHtml += tableElem;
+        tableHtml += theadElem;
+        tableHtml += theadTrElem;
+
+        for (let fieldDef of fieldDefs) {
+            tableHtml += thElem;
+            tableHtml += fieldDef[fdLabel];
+            tableHtml += '</th>';
+        }
+
+        tableHtml += '</tr>';
+
+
+        // Build the body rows
+        tableHtml += tbodyElem;
+        for (let row of data) {
+            let rowDynamicStylings = [];
+            for (let trStyleFunc of trStyleFuncs) {
+                rowDynamicStylings.push(trStyleFunc(row));
+            }
+            let rowStylings = [tbodyTrStyle, ...rowDynamicStylings].filter(Boolean).join(';');
+
+            tableHtml += tbodyTrElem(rowStylings);
+
+            for (let fieldDef of fieldDefs) {
+                let cellDynamicStylings = [];
+                for (let tdStyleFunc of tdStyleFuncs) {
+                    cellDynamicStylings.push(tdStyleFunc(row));
+                }
+                let cellStylings = [tdStyle, ...cellDynamicStylings].filter(Boolean).join(';');
+
+                tableHtml += tdElem(cellStylings);
+                tableHtml += fieldDef[fdGetTableElem](row);
+                tableHtml += '</td>';
+            }
+            tableHtml += '</tr>';
+        }
+
+        tableHtml += '</tbody>';
+        tableHtml += '</table>';
+
+        return tableHtml;
+
+    }
+    exports.updatedConvertLookupTableToHTMLTable = updatedConvertLookupTableToHTMLTable;
+
+
+
+
     function convertObjToHTMLTable({
         fields = [],
         data = [],
@@ -505,7 +622,8 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                     const fieldDisplayName = elem.fieldDisplayName;
 
                     // Build element id
-                    let elemId =
+                    let elemId = 'idSourceField' in elem ?
+                        row[elem.idSourceField] :
                         `${elem.idPrefixPart1Str}_${elem.idPrefixPart2Str}_${row[elem.idUniqueSuffixSourceField]}`;
 
                     let name = 'nameSourceField' in elem ? row[elem.nameSourceField] : elemId;
@@ -521,11 +639,13 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                         case 'checkbox':
                             val = `<input type="checkbox" id="${elemId}" name="${name}" value="${value}" ${checked}>`;
                             break;
-                        
+                        case 'radio':
+                            val = `<input type="radio" id="${elemId}" name="${name}" value="${value}" ${checked}>`;
+                            break;
                     }
                     htmlBody += tdElem + val + '</td>';
                 }
-                
+
                 for (var k = 0; k < internalFieldsWithMapping.length; k++) {
                     let thisField = internalFieldsWithMapping[k];
 
@@ -534,7 +654,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                     }
 
                     let val = row[thisField.orig];
-        
+
                     htmlBody += tdElem + val + '</td>';
                 }
                 htmlBody += '</tr>';
@@ -789,14 +909,14 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.getPersistentParams = getPersistentParams;
 
 
-    function looksLikeYes (val) {
+    function looksLikeYes(val) {
         if (val === true || ((typeof val == 'number') && (val !== 0))) { return true; }
         if (val === false || val === 0) { return false; }
         return val.match(/^(?:y(?:es)?|t(?:rue)?)$/i) !== null;
     }
     exports.looksLikeYes = looksLikeYes;
 
-    function looksLikeNo (val) {
+    function looksLikeNo(val) {
         if (val === false || val === 0) { return true; }
         if (val === true || ((typeof val == 'number') && (val !== 0))) { return false; }
         return val.match(/^(?:n(?:o)?|f(?:alse)?)$/i) !== null;
@@ -813,7 +933,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.condenseSimplifyString = condenseSimplifyString;
 
 
-    function formatQueryRowsOnFieldDefs(fieldDefs, queryResultsRows){
+    function formatQueryRowsOnFieldDefs(fieldDefs, queryResultsRows) {
         let formattedRows = [];
         for (let i = 0; i < queryResultsRows.length; i++) {
             let queryRow = queryResultsRows[i];
@@ -828,7 +948,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                     if ((lookupVal !== null) && (lookupVal !== undefined) && (lookupVal != '')) {
                         fieldVal = lookupVal;
 
-                        if ('TypeFunc' in fieldDef) { fieldVal = fieldDef.TypeFunc(fieldVal); }
+                        if ('RecastFunc' in fieldDef) { fieldVal = fieldDef.RecastFunc(fieldVal); }
 
                     }
                 }

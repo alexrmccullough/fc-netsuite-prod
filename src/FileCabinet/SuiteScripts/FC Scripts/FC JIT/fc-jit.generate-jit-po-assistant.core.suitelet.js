@@ -56,6 +56,11 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
                 label: 'Select Options',
             });
 
+            var stepSelectVendors = assistant.addStep({
+                id: 'custpage_step_select_vendors',
+                label: 'Select Vendors',
+            });
+
             var stepInitialEdit = assistant.addStep({
                 id: 'custpage_step_initial_edit',
                 label: 'Initial Edit',
@@ -71,6 +76,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
             var steps = [
                 null,
                 stepSelectOptions,
+                stepSelectVendors,
                 stepInitialEdit,
                 stepFinalReview,
                 null
@@ -79,8 +85,9 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
             var stepWriteFunc = [
                 writeCancel,
                 writeStep1SelectOptions,
-                writeStep2InitialEdit,
-                writeStep3FinalReview,
+                writeStep2SelectVendors,
+                writeStep3InitialEdit,
+                writeStep4FinalReview,
                 writeResult
             ];
 
@@ -158,18 +165,27 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         });
 
-        // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
-        var sendAllPosByDefault = assistant.addField({
-            id: ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID,
-            type: serverWidget.FieldType.CHECKBOX,
-            label: ThisAppLib.Settings.Ui.Fields.ENABLE_SEND_ALL_POS_BY_DEFAULT_LABEL,
-            // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
-        });
-        sendAllPosByDefault.defaultValue = 'T';
+        // // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
+        // var sendAllPosByDefault = assistant.addField({
+        //     id: ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID,
+        //     type: serverWidget.FieldType.CHECKBOX,
+        //     label: ThisAppLib.Settings.Ui.Fields.ENABLE_SEND_ALL_POS_BY_DEFAULT_LABEL,
+        //     // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
+        // });
+        // sendAllPosByDefault.defaultValue = 'T';
 
     }
 
-    function writeStep2InitialEdit(context, assistant) {
+    function writeStep2SelectVendors(context, assistant) {
+        // Run query to get list of vendors with future SOs within selected dates
+
+        // Build a checkbox selection list and inject the html into a field
+
+        // Pass the options from Step 1 to the next step
+
+    }
+
+    function writeStep3InitialEdit(context, assistant) {
         // Get date parameters
         var persistentParams = {
             [ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
@@ -179,13 +195,33 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         // var soStartDate = context.request.parameters[FCJITLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID];
         // var soEndDate = context.request.parameters[FCJITLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID];
         var sendAllPosByDefault = context.request.parameters[ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID];
-        
+
 
         var jitSOItemQueryResults = runFutureSOItemQuery(
             ['vendorentityid'],
             persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
             persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]
         );
+
+        if (!jitSOItemQueryResults || Object.keys(jitSOItemQueryResults).length === 0) {
+            // Create a field in the assistant to display a simple error message and return
+            var errorField = assistant.addField({
+                id: 'custpage_error',
+                type: serverWidget.FieldType.INLINEHTML,
+                label: 'No JIT Items Founds on SOs',
+            });
+
+            errorField.defaultValue = `
+                No JIT items found on SOs with selected options.
+                <ul>SO Start Date: ${persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID]}</ul>
+                <ul>SO End Date: ${persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]}</ul>
+                <ul>PO Delivery Due Date: ${persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]}</ul>
+                <br>
+                Please try again with different options.
+                `;
+
+            return;
+        }
 
         // DEBUG: Add a text field to the assistant to display query text
         var queryText = assistant.addField({
@@ -206,131 +242,93 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
                 return acc;
             }, {});
 
-        // var draftPOHtml = '';
-        if (jitSOItemQueryResults) {
-            // let keys = Object.keys(jitSOItemQueryResults).sort();
-            let vendorEntityIds = Object.keys(jitSOItemQueryResults);
+        let vendorNames = Object.keys(jitSOItemQueryResults).sort();
+        
 
-            // draftPOHtml += '<pre>Keys:' + vendorEntityIds + '</pre>\n';
+        // draftPOHtml += '<pre>Keys:' + vendorEntityIds + '</pre>\n';
 
-            for (const vendorEntityId of vendorEntityIds) {
-                let vendorHtml = '';
-                // draftPOHtml += '<pre>Vendor in table-building loop:' + vendorEntityId + '</pre>\n';
+        for (const vendorEntityId of vendorNames) {
+            let vendorHtml = '';
+            // draftPOHtml += '<pre>Vendor in table-building loop:' + vendorEntityId + '</pre>\n';
 
-                const vendorId = jitSOItemQueryResults[vendorEntityId][0].vendorid;    //FIX: Need to get these variables to settings
+            const vendorId = jitSOItemQueryResults[vendorEntityId][0].vendorid;    //FIX: Need to get these variables to settings
 
-                // Build checkbox to enable/disable PO creation 
-                let poCreateCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID.build(vendorId);
-                let poCreateChecked = 'checked';
-                let poCreateCheckboxField = `
+            // Build checkbox to enable/disable PO creation 
+            let poCreateCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID.build(vendorId);
+            let poCreateChecked = 'checked';
+            let poCreateCheckboxField = `
                     <input type="checkbox" id="${poCreateCheckboxId}" name="${poCreateCheckboxId}" ${poCreateChecked} />
                     <label for="${poCreateCheckboxId}">Create PO?</label>
                     `;
 
-                // Build checkbox to enable/disable PO emailing
-                let poEmailCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID.build(vendorId);
-                let poEmailChecked = sendAllPosByDefault ? 'checked' : '';
-                let poEmailCheckboxField = `
-                    <input type="checkbox" name="${poEmailCheckboxId}" ${poEmailChecked} />
-                    <label for="${poEmailCheckboxId}">Email PO After Created?</label>
-                    `;
+            // // Build checkbox to enable/disable PO emailing
+            // let poEmailCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID.build(vendorId);
+            // let poEmailChecked = sendAllPosByDefault ? 'checked' : '';
+            // let poEmailCheckboxField = `
+            //         <input type="checkbox" name="${poEmailCheckboxId}" ${poEmailChecked} />
+            //         <label for="${poEmailCheckboxId}">Email PO After Created?</label>
+            //         `;
 
-                // Build long text memo field for this PO
-                let memoId = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID.build(vendorId);
-                let memoField = `<input type="text" name="${memoId}" placeholder="Include a memo to the vendor" />`;
+            // Build long text memo field for this PO
+            let memoId = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID.build(vendorId);
+            let memoField = `<input type="text" name="${memoId}" placeholder="Include a memo to the vendor" />`;
 
-                // Build specifications for final item qty textbox to inject into table
-                let itemQtyInputSpecs = {
-                    htmlElem: 'input',
-                    type: 'number',
-                    valueSourceField: 'totalbackordered',
-                    fieldDisplayName: 'Final PO Qty',
-                    idPrefixPart1Str: ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID.build('', ''),
-                    idPrefixPart2Str: vendorId,
-                    idUniqueSuffixSourceField: 'itemid',
-                };
+            // Build specifications for final item qty textbox to inject into table
+            let itemQtyInputSpecs = {
+                htmlElem: 'input',
+                type: 'number',
+                valueSourceField: 'totalbackordered',
+                fieldDisplayName: 'Final PO Qty',
+                idPrefixPart1Str: ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID.build('', ''),
+                idPrefixPart2Str: vendorId,
+                idUniqueSuffixSourceField: 'itemid',
+            };
 
-                let thisHTMLTable = FCLib.convertObjToHTMLTableStylized({
-                    fields: queryFieldIds,
-                    data: jitSOItemQueryResults[vendorEntityId],
-                    specialElems: [
-                        itemQtyInputSpecs
-                    ],
-                    headerNameMap: displayHeaderLookup,          // FIX: We don't need this + fields, just a single lookup object
-                });
+            let thisHTMLTable = FCLib.convertObjToHTMLTableStylized({
+                fields: queryFieldIds,
+                data: FCLib.sortArrayOfObjsByKey(
+                    jitSOItemQueryResults[vendorEntityId],
+                    'itemdisplayname'
+                ),
+                specialElems: [
+                    itemQtyInputSpecs
+                ],
+                headerNameMap: displayHeaderLookup,          // FIX: We don't need this + fields, just a single lookup object
+            });
 
-                // Put it all together into a chunk of html representing this vendor
-                vendorHtml = `${poCreateCheckboxField}<br>${poEmailCheckboxField}<br>${memoField}<br>${thisHTMLTable}`;
+            // Put it all together into a chunk of html representing this vendor
+            // vendorHtml = `${poCreateCheckboxField}<br>${poEmailCheckboxField}<br>${memoField}<br>${thisHTMLTable}`;
+            vendorHtml = `${poCreateCheckboxField}<br>${memoField}<br>${thisHTMLTable}`;
 
-                // Build a Field Group to hold the data specific to this vendor
-                let fieldGroupId = `custpage_fg_${vendorId}`;
-                let fieldGroupLabel = `Vendor: ${vendorEntityId}`;
-                let fieldGroup = assistant.addFieldGroup({
-                    id: fieldGroupId,
-                    label: fieldGroupLabel
-                });
+            // Build a Field Group to hold the data specific to this vendor
+            let fieldGroupId = `custpage_fg_${vendorId}`;
+            let fieldGroupLabel = `Vendor: ${vendorEntityId}`;
+            let fieldGroup = assistant.addFieldGroup({
+                id: fieldGroupId,
+                label: fieldGroupLabel
+            });
 
-                // Build an inlinehtml field to hold the html, and assign it to the field group
-                let fieldId = `custpage_html_${vendorId}`;
-                let fieldLabel = `Vendor: ${vendorEntityId}`;
-                let field = assistant.addField({
-                    id: fieldId,
-                    type: serverWidget.FieldType.INLINEHTML,
-                    label: fieldLabel,
-                    container: fieldGroupId
-                });
-                field.defaultValue = vendorHtml;
+            // Build an inlinehtml field to hold the html, and assign it to the field group
+            let fieldId = `custpage_html_${vendorId}`;
+            let fieldLabel = `Vendor: ${vendorEntityId}`;
+            let field = assistant.addField({
+                id: fieldId,
+                type: serverWidget.FieldType.INLINEHTML,
+                label: fieldLabel,
+                container: fieldGroupId
+            });
+            field.defaultValue = vendorHtml;
 
-            }
         }
 
 
         // Add a hidden field to hold persistentParams to be passed to next step
         FCLib.addPersistentParamsField(assistant, persistentParams);
 
-        // // Add a hidden field to hold persistentParams
-        // let hiddenPersistentParamsField = assistant.addField({
-        //     id: FCJITLib.Settings.Ui.Parameters.HIDDEN_PERSISTENT_PARAMS_ID,
-        //     type: serverWidget.FieldType.LONGTEXT,
-        //     label: FCJITLib.Settings.Ui.Fields.HIDDEN_PERSISTENT_PARAMS_LABEL,
-        // });
-        // hiddenPersistentParamsField.updateDisplayType({
-        //     displayType: serverWidget.FieldDisplayType.HIDDEN
-        // });
 
-        // hiddenPersistentParamsField.defaultValue = JSON.stringify(persistentParams);
-
-
-        // TEMP: Debug data field
-        // Create a field group first
-        // let debugFieldGroup = assistant.addFieldGroup({
-        //     id: 'custpage_fg_debug',
-        //     label: 'Debug'
-        // });
-
-        // let debugPODataField = assistant.addField({
-        //     id: `custpage_debugfield1`,
-        //     type: serverWidget.FieldType.INLINEHTML,
-        //     label: `Debug`,
-        //     container: `custpage_fg_debug`
-        // });
-
-
-
-        // let debugPOHtml = '';
-        // // DEBUG: include parameters, query text, query results, display field lookup, display fields on separate lines
-        // debugPOHtml += '<pre>' + JSON.stringify(context.request.parameters, null, 2) + '</pre>\n\n';
-        // // debugPOHtml += '<pre>' + queryText + '</pre>\n\n';
-        // debugPOHtml += '<pre>' + JSON.stringify(jitSOItemQueryResults, null, 2) + '</pre>\n\n';
-        // debugPOHtml += '<pre>' + JSON.stringify(queryFieldLookup, null, 2) + '</pre>\n\n';
-        // debugPOHtml += '<pre>' + JSON.stringify(queryFieldIds, null, 2) + '</pre>\n\n';
-        // debugPODataField.defaultValue = debugPOHtml;
-
-        // Write the results to the context response
-        // context.response.writePage(assistant);
     }
 
-    function writeStep3FinalReview(context, assistant) {
+    function writeStep4FinalReview(context, assistant) {
         var allParams = JSON.stringify(context.request.parameters);
         var persistentParams = FCLib.getPersistentParams(context);
 
