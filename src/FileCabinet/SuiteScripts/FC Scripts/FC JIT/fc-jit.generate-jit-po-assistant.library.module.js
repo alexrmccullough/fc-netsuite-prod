@@ -43,16 +43,23 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
                     soStartDate: `AND (Transaction.shipDate >= '@@SO_START_DATE@@')   `,
                     soEndDate: `AND (Transaction.shipDate <= '@@SO_END_DATE@@')   `,
                 },
+                BuildQuery: function (startDate = null, endDate = null) {
+                    let dateFilters = '';
+                    dateFilters += startDate ? this.Filters.soStartDate.replace('@@SO_START_DATE@@', startDate) : '';
+                    dateFilters += endDate ? this.Filters.soEndDate.replace('@@SO_END_DATE@@', endDate) : '';
+
+                    return this.Query.replace('@@EXTRA_FILTERS@@', dateFilters);
+                },
                 FieldSet1: {
                     vendorid: {
-                        display: 'Vendor ID',
-                        poGenField: 'vendorid',
-                        includeInCsv: true,
+                        label: 'Vendor ID',
+                        fieldid: 'vendorid',
+                        // includeInCsv: true,
                     },
                     vendorentityid: {
-                        display: 'Vendor Name',
-                        poGenField: 'vendorentityid',
-                        includeInCsv: true,
+                        label: 'Vendor Name',
+                        fieldid: 'vendorentityid',
+                        // includeInCsv: true,
                     },
                 }
             },
@@ -77,7 +84,8 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
                             BUILTIN.CF(Transaction.status) IN ('SalesOrd:B', 'SalesOrd:D', 'SalesOrd:E')
                         )
                         AND (Item.custitem_soft_comit = 'T')
-                        @@EXTRA_FILTERS@@
+                        @@VENDOR_ID_FILTER@@
+                        @@DATE_FILTERS@@
 
                     GROUP BY Item.id,
                         Item.itemId,
@@ -87,44 +95,55 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
                         Vendor.companyname
                 `,
                 Filters: {
-                    soStartDate: `AND (Transaction.shipDate >= '@@SO_START_DATE@@')   `,
-                    soEndDate: `AND (Transaction.shipDate <= '@@SO_END_DATE@@')   `,
+                    soStartDate: `AND (Transaction.shipDate >= '@@SO_START_DATE@@')\n   `,
+                    soEndDate: `AND (Transaction.shipDate <= '@@SO_END_DATE@@')\n   `,
+                    vendorIds: `AND (ItemVendor.vendor IN (@@VENDOR_IDS@@))\n   `,
+                },
+                BuildQuery: function (startDate = null, endDate = null, vendorIds = null) {
+                    let dateFilters = '';
+                    dateFilters += startDate ? this.Filters.soStartDate.replace('@@SO_START_DATE@@', startDate) : '';
+                    dateFilters += endDate ? this.Filters.soEndDate.replace('@@SO_END_DATE@@', endDate) : '';
+
+                    const vendorIdStr = vendorIds ? vendorIds.map(id => `'${id}'`).join(',') : '';
+                    let vendorIdFilter = vendorIds ? this.Filters.vendorIds.replace('@@VENDOR_IDS@@', vendorIdStr) : '';
+
+                    return this.Query.replace('@@DATE_FILTERS@@', dateFilters).replace('@@VENDOR_ID_FILTER@@', vendorIdFilter);
                 },
                 FieldSet1: {
                     totalbackordered: {
-                        display: 'Total Backordered',
-                        poGenField: 'totalbackordered',
-                        includeInCsv: false,
+                        label: 'Total Backordered',
+                        fieldid: 'totalbackordered',
+                        // includeInCsv: false,
                     },
                     totalqty: {
-                        display: 'Total Demand',
-                        poGenField: null,
-                        includeInCsv: false,
+                        label: 'Total Demand',
+                        fieldid: 'totalqty',
+                        // includeInCsv: false,
                     },
                     iteminternalid: {
-                        display: 'Item Internal ID',
-                        poGenField: null,
-                        includeInCsv: true,
+                        label: 'Item Internal ID',
+                        fieldid: 'iteminternalid',
+                        // includeInCsv: true,
                     },
                     itemid: {
-                        display: 'Item ID',
-                        poGenField: null,
-                        includeInCsv: true,
+                        label: 'Item ID',
+                        fieldid: 'itemid',
+                        // includeInCsv: true,
                     },
                     itemdisplayname: {
-                        display: 'Item Name',
-                        poGenField: null,
-                        includeInCsv: true,
+                        label: 'Item Name',
+                        fieldid: 'itemdisplayname',
+                        // includeInCsv: true,
                     },
                     vendorid: {
-                        display: 'Vendor ID',
-                        poGenField: 'vendorid',
-                        includeInCsv: true,
+                        label: 'Vendor ID',
+                        fieldid: 'vendorid',
+                        // includeInCsv: true,
                     },
                     vendorentityid: {
-                        display: 'Vendor Name',
-                        poGenField: 'vendorentityid',
-                        includeInCsv: true,
+                        label: 'Vendor Name',
+                        fieldid: 'vendorentityid',
+                        // includeInCsv: true,
                     },
                 }
             },
@@ -145,7 +164,10 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
                     `,
                 Parameters: {
                     LotPrefix: '@@LOT_PREFIX@@'
-                }
+                },
+                BuildQuery: function (lotPrefix) {
+                    return this.Query.replace('@@LOT_PREFIX@@', lotPrefix);
+                },
             },
             GET_SUMMARIZED_ITEM_INFO_FROM_PO: {            /// Used in the Email JIT PO from PO Form script
                 BuildQueryFunction: buildQueryGetItemInfoFromPO,
@@ -161,15 +183,9 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
                     GROUP BY TransactionLine.uniquekey,
                         Item.id            
                 `,
-                Filters: {
-                    POID: {
-                        ParamPlaceholder: '@@PO_ID@@',
-                        QueryLinePlaceholders: {
-                            '@@PO_ID_FILTER_1@@': 'AND (Transaction.id = @@PO_ID@@)',
-                            // '@@PO_ID_FILTER_2@@': 'WHERE (InventoryAssignment.transaction = @@PO_ID@@)',
-                        },
-
-                    }
+                BuildQuery: function (poId) {
+                    let filterLine = `AND (Transaction.id = ${poId})`;
+                    return this.Query.replace('@@PO_ID_FILTER_1@@', filterLine);
                 },
                 FieldSet1: {
                     itemid: 'Item ID',
@@ -199,6 +215,48 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
         },
     };
 
+    var Parameters = {
+        Step2: {
+            VENDOR_SELECT_CHECKBOX: {
+                prefix: 'custpage_vendorselect_',
+                looksLike: (val) => { return val.startsWith('custpage_vendorselect_'); },
+                build: (vendorId) => { return `custpage_vendorselect_${vendorId}`; },
+                parse: (val) => {
+                    return val.split('_')[2];
+                },
+            },
+
+        },
+        Step3: {
+            FINAL_PO_QTY_INPUT: {
+                prefix: 'custpage_finalpoqty_',
+                looksLike: (val) => { return val.startsWith('custpage_finalpoqty_'); },
+                build: (vendorId, itemId) => { return `custpage_finalpoqty_${vendorId}_${itemId}`; },
+                parse: (val) => {
+                    let split = val.split('_');
+                    return { vendorId: split[2], itemId: split[3] };
+                },
+            },
+            CREATE_PO_CHECKBOX: {
+                prefix: 'custpage_create_po_',
+                looksLike: (val) => { return val.startsWith('custpage_create_po_'); },
+                build: (vendorid) => `custpage_create_po_${vendorid}`,
+                parse: (param) => param.match(/^custpage_create_po_(.+)$/),
+            },
+            PO_MEMO_FIELD: {
+                prefix: 'custpage_po_memo_',
+                looksLike: (val) => { return val.startsWith('custpage_po_memo_'); },
+                build: (vendorid) => `custpage_po_memo_${vendorid}`,
+                parse: (param) => param.match(/^custpage_po_memo_(.+)$/),
+            },
+        },
+        Step4: {
+
+        },
+    };
+    exports.Parameters = Parameters;
+
+
     var Settings = {
         SESSION_RESULTS_FOLDER_NAME_PREFIX: 'JIT_PO_Results_',
         JIT_PO_ACCEPTEDPOS_TEMPJSON_FILENAME_PREFIX: 'TEMP_JIT_PO_AcceptedPOs_',
@@ -218,6 +276,120 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
         },
 
         Ui: {
+            General: {
+                Parameters: {
+                    CAPTURE_SOS_START_DATE_ID: 'custpage_capture_sos_start_date',
+                    CAPTURE_SOS_END_DATE_ID: 'custpage_capture_sos_end_date',
+                    ENABLE_SEND_ALL_POS_BY_DEFAULT_ID: 'custpage_enable_send_all_pos_by_default',
+                    HIDDEN_PERSISTENT_PARAMS_ID: 'custpage_hidden_persistent_params',
+                    CAPTURE_PO_DELIVERY_DUE_DATE_ID: 'custpage_capture_po_delivery_due_date',
+                    JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_acceptedpos_tempjson_file',
+                    JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_rejectedpos_tempjson_file',
+                    POS_TO_EMAIL_EXTERNAL_IDS: 'custpage_pos_to_email_external_ids',
+                },
+            },
+            Step2: {
+                Sublists: {
+                    INITIAL_VENDOR_SELECT_TABLE: {
+                        Id: 'custpage_initial_vendor_select_table',
+                        Label: 'Select Vendor(s) to Process',
+                        Fields: {
+                            CB_Select: {
+                                Label: 'Select',
+                                GetTableElem: function (thisRow) {
+                                    const queryFields = exports.Queries.GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST.FieldSet1;
+                                    const vendorId = thisRow[queryFields.vendorid.fieldid];
+                                    const name = exports.Parameters.Step2.VENDOR_SELECT_CHECKBOX.build(vendorId);
+                                    const id = name;
+                                    const value = vendorId;
+                                    const style = FCLib.Ui.CheckboxStyles.Style1;
+                                    const defaultState = '';
+                                    return `<input type="checkbox" name="${name}" id="${id}" value="${value}" style="${style}" ${defaultState}>`;
+                                },
+                            },
+                            VendorName: {
+                                Label: 'Vendor Name',
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST.FieldSet1.vendorentityid.fieldid];
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            Step3: {
+                Main: {
+                },
+                Fields: {
+                },
+                FieldGroups: {
+                },
+                Sublists: {
+                    VENDOR_FUTURE_SO_TABLE: {
+                        Id: 'custpage_vendor_future_so_table',
+                        Label: 'Vendor Future SO Table',
+                        Fields: {
+                            QtyInput: {
+                                Label: 'Final PO Qty',
+                                GetTableElem: function (thisRow) {
+                                    const queryFields = exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
+                                    const value = thisRow[queryFields.totalbackordered.fieldid];
+                                    const vendorId = thisRow[queryFields.vendorid.fieldid];
+                                    const itemId = thisRow[queryFields.itemid.fieldid];
+
+                                    const name = exports.Parameters.Step3.FINAL_PO_QTY_INPUT.build(vendorId, itemId);
+                                    const id = name;
+                                    const style = '';
+
+                                    return `<input type="number" name="${name}" id="${id}" value="${value}" style="${style}">`;
+                                },
+                            },
+                            TotalBackordered: {
+                                Label: 'Total Backordered',
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.totalbackordered.fieldid];
+                                },
+                            },
+                            TotalDemand: {
+                                Label: 'Total Demand',
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.totalqty.fieldid];
+                                },
+                            },
+                            ItemName: {
+                                Label: 'Item Name',
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.fieldid];
+                                },
+
+                            },
+                            ItemDisplayName: {
+                                Label: 'Item Display Name',
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.fieldid];
+                                },
+                            },
+                            VendorId: {
+                                Label: 'Vendor ID',
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.fieldid];
+                                },
+                            },
+                            VendorDisplayName: {
+                                Label: 'Vendor Name',
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorentityid.fieldid];
+                                }
+
+                            },
+                        },
+                    },
+                },
+            },
+
+
+
+
             Main: {
                 DEFAULT_PO_DUE_DATE_DAYS_FROM_TODAY: 1,
             },
@@ -253,25 +425,14 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
                 POS_TO_EMAIL_EXTERNAL_IDS: 'custpage_pos_to_email_external_ids',
             },
             DynamicParameters: {
-                CREATE_PO_CHECKBOX_ID: {
-                    build: (vendorid) => `custpage_create_po_${vendorid}`,
-                    parse: (param) => param.match(/^custpage_create_po_(.+)$/),
-                },
-                EMAIL_PO_CHECKBOX_ID: {
-                    build: (vendorid) => `custpage_email_po_${vendorid}`,
-                    parse: (param) => param.match(/^custpage_email_po_(.+)$/),
-                },
-                PO_MEMO_FIELD_ID: {
-                    build: (vendorid) => `custpage_po_memo_${vendorid}`,
-                    parse: (param) => param.match(/^custpage_po_memo_(.+)$/),
-                },
-                ITEM_FINAL_QTY_FIELD_ID: {
-                    build: (vendorid, itemid) => ['custpage_item_final_qty', vendorid, itemid].filter(Boolean).join('_'),
-                    parse: (param) => {
-                        let res = param.match(/^custpage_item_final_qty_([^_]+)_([^_]+)$/);
-                        return res ? { vendorId: res[1], itemId: res[2] } : null;
-                    }
-                },
+
+                // ITEM_FINAL_QTY_FIELD_ID: {
+                //     build: (vendorid, itemid) => ['custpage_item_final_qty', vendorid, itemid].filter(Boolean).join('_'),
+                //     parse: (param) => {
+                //         let res = param.match(/^custpage_item_final_qty_([^_]+)_([^_]+)$/);
+                //         return res ? { vendorId: res[1], itemId: res[2] } : null;
+                //     }
+                // },
             },
 
         },

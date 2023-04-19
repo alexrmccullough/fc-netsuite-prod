@@ -963,6 +963,27 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.formatQueryRowsOnFieldDefs = formatQueryRowsOnFieldDefs;
 
 
+    function extractParametersFromRequest(
+        params,
+        matchFunc = (paramName) => { return true; },
+        parseFunc = (paramName) => { return paramName; },
+        valueTransformFunc = (paramValue) => { return paramValue; }
+    ) {
+        let output = Object.entries(params).reduce(
+            (matched, [paramName, value]) => {
+                if (matchFunc(paramName)) {
+                    let key = parseFunc(paramName)
+                    matched[key] = valueTransformFunc(value);
+                    return matched;
+                }
+                return matched;
+            }, {}
+        );
+        return output;
+    }
+    exports.extractParametersFromRequest = extractParametersFromRequest;
+
+
     // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
     //     // Store the script ID of the script to submit
     //     //

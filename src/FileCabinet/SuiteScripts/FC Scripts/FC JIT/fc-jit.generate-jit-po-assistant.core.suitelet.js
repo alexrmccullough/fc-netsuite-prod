@@ -139,7 +139,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         );
 
         var capturePODeliveryDueDate = assistant.addField({
-            id: ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID,
+            id: ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID,
             type: serverWidget.FieldType.DATE,
             label: ThisAppLib.Settings.Ui.Fields.CAPTURE_PO_DELIVERY_DUE_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
@@ -149,7 +149,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         capturePODeliveryDueDate.defaultValue = poDueDate;
 
         var captureSosStartDate = assistant.addField({
-            id: ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID,
+            id: ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID,
             type: serverWidget.FieldType.DATE,
             label: ThisAppLib.Settings.Ui.Fields.CAPTURE_SOS_START_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
@@ -159,7 +159,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         // captureSosStartDate.defaultValue = today;
 
         var captureSosEndDate = assistant.addField({
-            id: ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID,
+            id: ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID,
             type: serverWidget.FieldType.DATE,
             label: ThisAppLib.Settings.Ui.Fields.CAPTURE_SOS_END_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
@@ -167,7 +167,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
         // // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
         // var sendAllPosByDefault = assistant.addField({
-        //     id: ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID,
+        //     id: ThisAppLib.Settings.Ui.General.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID,
         //     type: serverWidget.FieldType.CHECKBOX,
         //     label: ThisAppLib.Settings.Ui.Fields.ENABLE_SEND_ALL_POS_BY_DEFAULT_LABEL,
         //     // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
@@ -177,31 +177,103 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
     }
 
     function writeStep2SelectVendors(context, assistant) {
+        // Get the parameters from the first step
+        const paramStartDate = context.request.parameters[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID];
+        const paramEndDate = context.request.parameters[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID];
+        const paramPoDueDate = context.request.parameters[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID];
+
+        // Save those params to persistent params to be passed to next step
+        var persistentParams = {
+            [ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID]: paramStartDate,
+            [ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID]: paramEndDate,
+            [ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]: paramPoDueDate,
+        };
+
         // Run query to get list of vendors with future SOs within selected dates
+        let sqlVendorQuery = ThisAppLib.Queries.GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST.BuildQuery(
+            paramStartDate,
+            paramEndDate
+        );
+
+        let vendorQueryResults = FCLib.sqlSelectAllRows(sqlVendorQuery);
+
+        vendorQueryResults = FCLib.sortArrayOfObjsByKey(
+            vendorQueryResults,
+            ThisAppLib.Queries.GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST.FieldSet1.vendorentityid.fieldid
+        );
+
+        if (!vendorQueryResults || vendorQueryResults.length == 0) {
+            // Create a form field and display a simple message
+            let errorField = assistant.addField({
+                id: 'custpage_no_vendors_found',
+                type: serverWidget.FieldType.INLINEHTML,
+                label: 'No Vendors Found',
+            });
+
+            errorField.defaultValue = `No vendors were found for the selected options: 
+                <br>Start Date: ${paramStartDate}  
+                <br>End Date: ${paramEndDate}
+                <br>PO Due Date: ${paramPoDueDate}
+                <br><br>Please try again with different options.`;
+
+            return;
+        }
 
         // Build a checkbox selection list and inject the html into a field
+        const fieldDefs = ThisAppLib.Settings.Ui.Step2.Sublists.INITIAL_VENDOR_SELECT_TABLE.Fields;
+        const vendorSelectFields = [
+            fieldDefs.CB_Select,
+            fieldDefs.VendorName,
+        ];
 
-        // Pass the options from Step 1 to the next step
+        const tableStyle = FCLib.Ui.TableStyles.Style1;
+        let htmlVendorTable = FCLib.updatedConvertLookupTableToHTMLTable({
+            data: vendorQueryResults,
+            fieldDefs: vendorSelectFields,
+            ...tableStyle
+        });
 
+        // Add the table to an inlinehtml field
+        let vendorSelectFormField = assistant.addField({
+            id: 'custpage_vendor_select_table',
+            type: serverWidget.FieldType.INLINEHTML,
+            label: 'Select Vendors',
+        });
+        vendorSelectFormField.defaultValue = htmlVendorTable;
+
+        // Pass the options from Step 1 to the next step. Write persistent parameters to the assistant
+        FCLib.addPersistentParamsField(assistant, persistentParams);
     }
 
+
     function writeStep3InitialEdit(context, assistant) {
-        // Get date parameters
-        var persistentParams = {
-            [ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
-            [ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
-            [ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
-        };
-        // var soStartDate = context.request.parameters[FCJITLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID];
-        // var soEndDate = context.request.parameters[FCJITLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID];
-        var sendAllPosByDefault = context.request.parameters[ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID];
+        // Get star date/end date/due date parameters from Step 1
+        var persistentParams = FCLib.getPersistentParams(context);
 
+        const soStartDate = persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID];
+        const soEndDate = persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID];
+        const poDueDate = persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID];
 
-        var jitSOItemQueryResults = runFutureSOItemQuery(
-            ['vendorentityid'],
-            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
-            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]
+        // Get the selected vendors from Step 2
+        const selectedVendors = FCLib.extractParametersFromRequest(
+            context.request.parameters,
+            ThisAppLib.Parameters.Step2.VENDOR_SELECT_CHECKBOX.looksLike,
+            ThisAppLib.Parameters.Step2.VENDOR_SELECT_CHECKBOX.parse,
         );
+
+        const selectedVendorIds = Object.values(selectedVendors);
+
+        var sqlJitSoItemQuery = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.BuildQuery(
+            soStartDate,
+            soEndDate,
+            selectedVendorIds
+        );
+
+        var jitSOItemQueryResults = FCLib.sqlSelectAllRowsIntoNestedDict(
+            sqlJitSoItemQuery,
+            [ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorentityid.fieldid]
+        );
+
 
         if (!jitSOItemQueryResults || Object.keys(jitSOItemQueryResults).length === 0) {
             // Create a field in the assistant to display a simple error message and return
@@ -213,9 +285,9 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
             errorField.defaultValue = `
                 No JIT items found on SOs with selected options.
-                <ul>SO Start Date: ${persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID]}</ul>
-                <ul>SO End Date: ${persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]}</ul>
-                <ul>PO Delivery Due Date: ${persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]}</ul>
+                <ul>SO Start Date: ${persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID]}</ul>
+                <ul>SO End Date: ${persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID]}</ul>
+                <ul>PO Delivery Due Date: ${persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]}</ul>
                 <br>
                 Please try again with different options.
                 `;
@@ -223,29 +295,21 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
             return;
         }
 
-        // DEBUG: Add a text field to the assistant to display query text
-        var queryText = assistant.addField({
-            id: 'custpage_query_text',
-            type: serverWidget.FieldType.INLINEHTML,
-            label: 'Query Text',
-        });
-        // queryText.defaultValue = '<pre>' + jitSOItemQueryResults + '</pre>\n';
-        // return;
-
 
         // Build HTML tables to display the results
-        var queryFieldLookup = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
-        var queryFieldIds = Object.keys(queryFieldLookup);
-        var displayHeaderLookup = Object.keys(queryFieldLookup).reduce(
-            (acc, key) => {
-                acc[key] = queryFieldLookup[key].display;
-                return acc;
-            }, {});
+        const fieldDefs = ThisAppLib.Settings.Ui.Step3.Sublists.VENDOR_FUTURE_SO_TABLE.Fields;
+        let poTableFields = [
+            fieldDefs.QtyInput,
+            fieldDefs.TotalBackordered,
+            fieldDefs.TotalDemand,
+            fieldDefs.ItemName,
+            fieldDefs.ItemDisplayName,
+            fieldDefs.VendorId,
+            fieldDefs.VendorDisplayName
+        ];
 
         let vendorNames = Object.keys(jitSOItemQueryResults).sort();
-        
 
-        // draftPOHtml += '<pre>Keys:' + vendorEntityIds + '</pre>\n';
 
         for (const vendorEntityId of vendorNames) {
             let vendorHtml = '';
@@ -254,51 +318,35 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
             const vendorId = jitSOItemQueryResults[vendorEntityId][0].vendorid;    //FIX: Need to get these variables to settings
 
             // Build checkbox to enable/disable PO creation 
-            let poCreateCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID.build(vendorId);
+            let poCreateCheckboxId = ThisAppLib.Parameters.Step3.CREATE_PO_CHECKBOX.build(vendorId);
             let poCreateChecked = 'checked';
             let poCreateCheckboxField = `
                     <input type="checkbox" id="${poCreateCheckboxId}" name="${poCreateCheckboxId}" ${poCreateChecked} />
                     <label for="${poCreateCheckboxId}">Create PO?</label>
                     `;
 
-            // // Build checkbox to enable/disable PO emailing
-            // let poEmailCheckboxId = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID.build(vendorId);
-            // let poEmailChecked = sendAllPosByDefault ? 'checked' : '';
-            // let poEmailCheckboxField = `
-            //         <input type="checkbox" name="${poEmailCheckboxId}" ${poEmailChecked} />
-            //         <label for="${poEmailCheckboxId}">Email PO After Created?</label>
-            //         `;
 
             // Build long text memo field for this PO
-            let memoId = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID.build(vendorId);
+            let memoId = ThisAppLib.Parameters.Step3.PO_MEMO_FIELD.build(vendorId);
             let memoField = `<input type="text" name="${memoId}" placeholder="Include a memo to the vendor" />`;
 
-            // Build specifications for final item qty textbox to inject into table
-            let itemQtyInputSpecs = {
-                htmlElem: 'input',
-                type: 'number',
-                valueSourceField: 'totalbackordered',
-                fieldDisplayName: 'Final PO Qty',
-                idPrefixPart1Str: ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID.build('', ''),
-                idPrefixPart2Str: vendorId,
-                idUniqueSuffixSourceField: 'itemid',
-            };
 
-            let thisHTMLTable = FCLib.convertObjToHTMLTableStylized({
-                fields: queryFieldIds,
-                data: FCLib.sortArrayOfObjsByKey(
-                    jitSOItemQueryResults[vendorEntityId],
-                    'itemdisplayname'
-                ),
-                specialElems: [
-                    itemQtyInputSpecs
-                ],
-                headerNameMap: displayHeaderLookup,          // FIX: We don't need this + fields, just a single lookup object
+            // Build vendor PO table
+            const tableStyle = FCLib.Ui.TableStyles.Style1;
+            let data = FCLib.sortArrayOfObjsByKey(
+                jitSOItemQueryResults[vendorEntityId],
+                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorentityid.fieldid
+            );
+
+            let thisHtmlTable = FCLib.updatedConvertLookupTableToHTMLTable({
+                data: data,
+                fieldDefs: poTableFields,
+                ...tableStyle
             });
 
+
             // Put it all together into a chunk of html representing this vendor
-            // vendorHtml = `${poCreateCheckboxField}<br>${poEmailCheckboxField}<br>${memoField}<br>${thisHTMLTable}`;
-            vendorHtml = `${poCreateCheckboxField}<br>${memoField}<br>${thisHTMLTable}`;
+            vendorHtml = `${poCreateCheckboxField}<br>${memoField}<br>${thisHtmlTable}`;
 
             // Build a Field Group to hold the data specific to this vendor
             let fieldGroupId = `custpage_fg_${vendorId}`;
@@ -347,11 +395,25 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         // INSTEAD
         // Rerun query to get up-to-date item data
 
-        var jitSOItemQueryResults = runFutureSOItemQuery(
-            ['vendorid', 'itemid'],
-            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
-            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
-            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
+        // var jitSOItemQueryResults = runFutureSOItemQuery(
+        //     ['vendorid', 'itemid'],
+        //     persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID],
+        //     persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID],
+        //     persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
+        // );
+
+
+        var sqlJitSoItemQuery = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.BuildQuery(
+            persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID],
+            persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID]
+        );
+
+        var jitSOItemQueryResults = FCLib.sqlSelectAllRowsIntoNestedDict(
+            sqlJitSoItemQuery,
+            [
+                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.fieldid,
+                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.fieldid
+            ]
         );
 
 
@@ -359,25 +421,25 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         let finalItemQuantities = {};
         let vendorsToInclude = {};
         let vendorsToExclude = {};
-        let vendorsToEmail = {};
+        // let vendorsToEmail = {};
 
-        let fieldPrefixItemQty = ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID.build('', '');
-        let fieldPrefixCreatePO = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID.build('');
-        let fieldPrefixEmailPO = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID.build('');
-        let fieldPrefixMemo = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID.build('');
+        const paramDefFinalPoQty = ThisAppLib.Parameters.Step3.FINAL_PO_QTY_INPUT;
+        const paramDefCreatePo = ThisAppLib.Parameters.Step3.CREATE_PO_CHECKBOX;
+        const paramDefPoMemo = ThisAppLib.Parameters.Step3.PO_MEMO_FIELD;
+
 
         for (const [paramName, paramVal] of Object.entries(context.request.parameters)) {
-            if (paramName.startsWith(fieldPrefixItemQty)) {
+            if (paramDefFinalPoQty.looksLike(paramName)) {
                 // Get the vendor id and item id from the param name
-                let parsed = ThisAppLib.Settings.Ui.DynamicParameters.ITEM_FINAL_QTY_FIELD_ID.parse(paramName);
+                let parsed = ThisAppLib.Parameters.Step3.FINAL_PO_QTY_INPUT.parse(paramName);
                 let vendorId = parsed.vendorId;
                 let itemId = parsed.itemId;
 
                 if (!finalItemQuantities[vendorId]) { finalItemQuantities[vendorId] = {}; }
                 finalItemQuantities[vendorId][itemId] = paramVal;
             }
-            else if (paramName.startsWith(fieldPrefixCreatePO)) {
-                let vendorId = ThisAppLib.Settings.Ui.DynamicParameters.CREATE_PO_CHECKBOX_ID.parse(paramName)[1];
+            else if (paramDefCreatePo.looksLike(paramName)) {
+                let vendorId = ThisAppLib.Parameters.Step3.CREATE_PO_CHECKBOX.parse(paramName)[1];
 
                 if (paramVal == 'on' || FCLib.looksLikeYes(paramVal)) {
                     vendorsToInclude[vendorId] = true;
@@ -386,19 +448,8 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
                     vendorsToExclude[vendorId] = false;
                 }
             }
-            else if (paramName.startsWith(fieldPrefixEmailPO)) {
-                let vendorId = ThisAppLib.Settings.Ui.DynamicParameters.EMAIL_PO_CHECKBOX_ID.parse(paramName)[1];
-
-                if (paramVal === 'on' || FCLib.looksLikeYes(paramVal)) {
-                    vendorsToEmail[vendorId] = true;
-                }
-                else {
-                    vendorsToEmail[vendorId] = false;
-                }
-            }
-            else if (paramName.startsWith(fieldPrefixMemo)) {
-                let vendorId = ThisAppLib.Settings.Ui.DynamicParameters.PO_MEMO_FIELD_ID.parse(paramName)[1];
-
+            else if (paramDefPoMemo.looksLike(paramName)) {
+                let vendorId = ThisAppLib.Parameters.Step3.PO_MEMO_FIELD.parse(paramName)[1];
                 vendorMemos[vendorId] = paramVal;
             }
         }
@@ -413,7 +464,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
                 let fieldInfo = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[key];
                 // if (ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[fieldid].includeInCsv)
                 if (fieldInfo.includeInCsv)
-                    acc[key] = fieldInfo.display;
+                    acc[key] = fieldInfo.label;
                 return acc;
             },
             {}
@@ -442,7 +493,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
 
         let preformattedPODeliveryDate_1 = FCLib.getStandardDateString1(
-            persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]
+            persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]
         );
 
         // Create a lot number for these JIT POs. Lot number is based on PO delivery date
@@ -478,7 +529,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
                     [newOutputFields.poExternalId]: poExternalId,
                     [newOutputFields.poSequenceNumber]: poSequenceCounter,
                     // FIX: Do I need to format this date somehow?
-                    [newOutputFields.receiveByDate]: persistentParams[ThisAppLib.Settings.Ui.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
+                    [newOutputFields.receiveByDate]: persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
                     // [newOutputFields.emailOnceCreated]: vendorsToEmail[vendorId] ? 'Yes' : 'No',
                 };
 
@@ -549,8 +600,8 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         );
 
         // Add the file ids to the persistent params
-        persistentParams[ThisAppLib.Settings.Ui.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID] = poAcceptedCacheFileId;
-        persistentParams[ThisAppLib.Settings.Ui.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID] = poRejectedCacheFileId;
+        persistentParams[ThisAppLib.Settings.Ui.General.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID] = poAcceptedCacheFileId;
+        persistentParams[ThisAppLib.Settings.Ui.General.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID] = poRejectedCacheFileId;
 
 
         // Build display of final include/exclude summary, along with changes from the original? 
@@ -677,10 +728,10 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
         // Read in the accepted/rejected PO data from the cache JSON files
         let acceptedPoFileObj = file.load({
-            id: persistentParams[ThisAppLib.Settings.Ui.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID]
+            id: persistentParams[ThisAppLib.Settings.Ui.General.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID]
         });
         let rejectedPoFileObj = file.load({
-            id: persistentParams[ThisAppLib.Settings.Ui.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID]
+            id: persistentParams[ThisAppLib.Settings.Ui.General.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID]
         });
 
         let acceptedPoData = JSON.parse(acceptedPoFileObj.getContents());
@@ -821,37 +872,37 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         return resultsFolderId;
     }
 
-    function runFutureSOItemQuery(nestingKeys, soStartDate = null, soEndDate = null) {
-        // Run query to get JIT items on future SOs within the date range specified
-        let queryText = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Query;
-        let extraFilters = '';
+    // function runFutureSOItemQuery(nestingKeys, soStartDate = null, soEndDate = null) {
+    //     // Run query to get JIT items on future SOs within the date range specified
+    //     let queryText = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Query;
+    //     let extraFilters = '';
 
-        // Replace the date parameters in the query
-        if (soStartDate) {
-            let startFilter = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Filters.soStartDate;
-            extraFilters += startFilter.replace('@@SO_START_DATE@@', soStartDate) + '\n';
-        }
+    //     // Replace the date parameters in the query
+    //     if (soStartDate) {
+    //         let startFilter = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Filters.soStartDate;
+    //         extraFilters += startFilter.replace('@@SO_START_DATE@@', soStartDate) + '\n';
+    //     }
 
-        if (soEndDate) {
-            let endFilter = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Filters.soEndDate;
-            extraFilters += endFilter.replace('@@SO_END_DATE@@', soEndDate) + '\n';
-        }
+    //     if (soEndDate) {
+    //         let endFilter = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.Filters.soEndDate;
+    //         extraFilters += endFilter.replace('@@SO_END_DATE@@', soEndDate) + '\n';
+    //     }
 
-        // Add the filters to the query
-        // FIX: Get thsis replacement string into settings
-        queryText = queryText.replace('@@EXTRA_FILTERS@@', extraFilters);
+    //     // Add the filters to the query
+    //     // FIX: Get thsis replacement string into settings
+    //     queryText = queryText.replace('@@EXTRA_FILTERS@@', extraFilters);
 
-        // // DEBUG
-        // return queryText;
+    //     // // DEBUG
+    //     // return queryText;
 
-        // Use sqlSelectAllRowsIntoDict to get the results
-        let queryResults = FCLib.sqlSelectAllRowsIntoNestedDict(
-            queryText,
-            nestingKeys              // FIX: Replace with setting variable?
-        );
+    //     // Use sqlSelectAllRowsIntoDict to get the results
+    //     let queryResults = FCLib.sqlSelectAllRowsIntoNestedDict(
+    //         queryText,
+    //         nestingKeys              // FIX: Replace with setting variable?
+    //     );
 
-        return queryResults;
-    }
+    //     return queryResults;
+    // }
 
     function getNextAvailableLotNumber(lotPrefix) {
         let matchingLotsQuery = runConflictingLotNumberQuery(['lotsuffix']);
