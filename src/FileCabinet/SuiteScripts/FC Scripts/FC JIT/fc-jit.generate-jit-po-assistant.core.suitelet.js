@@ -5,35 +5,25 @@
 */
 
 var modulePathJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module.js';
-
-
-
 var
     file,
     log,
-    page,
     query,
-    record,
-    render,
     runtime,
-    scriptURL,
+    serverWidget,
     url,
     FCLib,
     ThisAppLib,
     Papa;
-// assistant, 
-// stepSelectOptions;
 
 
-define(['N/file', 'N/log', 'N/query', 'N/record', 'N/render', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
+define(['N/file', 'N/log', 'N/query', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
 
 
-function main(fileModule, logModule, queryModule, recordModule, renderModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, jitPoLibModule, papaparseModule) {
+function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, jitPoLibModule, papaparseModule) {
     file = fileModule;
     log = logModule;
     query = queryModule;
-    record = recordModule;
-    render = renderModule;
     runtime = runtimeModule;
     serverWidget = serverWidgetModule;
     url = urlModule;
@@ -135,13 +125,13 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         var today = new Date();
         var poDueDate = FCLib.addDaysToDate(
             today,
-            ThisAppLib.Settings.Ui.Main.DEFAULT_PO_DUE_DATE_DAYS_FROM_TODAY
+            ThisAppLib.Settings.PurchaseOrder.DEFAULT_PO_DUE_DATE_DAYS_FROM_TODAY
         );
 
         var capturePODeliveryDueDate = assistant.addField({
-            id: ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID,
+            id: ThisAppLib.Ui.Step1.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID,
             type: serverWidget.FieldType.DATE,
-            label: ThisAppLib.Settings.Ui.Fields.CAPTURE_PO_DELIVERY_DUE_DATE_LABEL,
+            label: ThisAppLib.Ui.Step1.Fields.CAPTURE_PO_DELIVERY_DUE_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         });
 
@@ -149,9 +139,9 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         capturePODeliveryDueDate.defaultValue = poDueDate;
 
         var captureSosStartDate = assistant.addField({
-            id: ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID,
+            id: ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_START_DATE_ID,
             type: serverWidget.FieldType.DATE,
-            label: ThisAppLib.Settings.Ui.Fields.CAPTURE_SOS_START_DATE_LABEL,
+            label: ThisAppLib.Ui.Step1.Fields.CAPTURE_SOS_START_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         });
 
@@ -159,17 +149,17 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         // captureSosStartDate.defaultValue = today;
 
         var captureSosEndDate = assistant.addField({
-            id: ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID,
+            id: ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_END_DATE_ID,
             type: serverWidget.FieldType.DATE,
-            label: ThisAppLib.Settings.Ui.Fields.CAPTURE_SOS_END_DATE_LABEL,
+            label: ThisAppLib.Ui.Step1.Fields.CAPTURE_SOS_END_DATE_LABEL,
             // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         });
 
         // // Add a checkbox to switch on/off Subtract Future JIT SOs from Remaining JIT Qty
         // var sendAllPosByDefault = assistant.addField({
-        //     id: ThisAppLib.Settings.Ui.General.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID,
+        //     id: ThisAppLib.Ui.General.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID,
         //     type: serverWidget.FieldType.CHECKBOX,
-        //     label: ThisAppLib.Settings.Ui.Fields.ENABLE_SEND_ALL_POS_BY_DEFAULT_LABEL,
+        //     label: ThisAppLib.Ui.Fields.ENABLE_SEND_ALL_POS_BY_DEFAULT_LABEL,
         //     // container: FCJITLib.Settings.Ui.FieldGroups.OPTIONS_FIELD_GROUP_ID
         // });
         // sendAllPosByDefault.defaultValue = 'T';
@@ -178,15 +168,15 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
     function writeStep2SelectVendors(context, assistant) {
         // Get the parameters from the first step
-        const paramStartDate = context.request.parameters[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID];
-        const paramEndDate = context.request.parameters[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID];
-        const paramPoDueDate = context.request.parameters[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID];
+        const paramStartDate = context.request.parameters[ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_START_DATE_ID];
+        const paramEndDate = context.request.parameters[ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_END_DATE_ID];
+        const paramPoDueDate = context.request.parameters[ThisAppLib.Ui.Step1.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID];
 
         // Save those params to persistent params to be passed to next step
         var persistentParams = {
-            [ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID]: paramStartDate,
-            [ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID]: paramEndDate,
-            [ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]: paramPoDueDate,
+            [ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_START_DATE_ID]: paramStartDate,
+            [ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_END_DATE_ID]: paramEndDate,
+            [ThisAppLib.Ui.Step1.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]: paramPoDueDate,
         };
 
         // Run query to get list of vendors with future SOs within selected dates
@@ -220,7 +210,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         }
 
         // Build a checkbox selection list and inject the html into a field
-        const fieldDefs = ThisAppLib.Settings.Ui.Step2.Sublists.INITIAL_VENDOR_SELECT_TABLE.Fields;
+        const fieldDefs = ThisAppLib.Ui.Step2.Sublists.INITIAL_VENDOR_SELECT_TABLE.Fields;
         const vendorSelectFields = [
             fieldDefs.CB_Select,
             fieldDefs.VendorName,
@@ -250,15 +240,15 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         // Get star date/end date/due date parameters from Step 1
         var persistentParams = FCLib.getPersistentParams(context);
 
-        const soStartDate = persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID];
-        const soEndDate = persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID];
-        const poDueDate = persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID];
+        const soStartDate = persistentParams[ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_START_DATE_ID];
+        const soEndDate = persistentParams[ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_END_DATE_ID];
+        const poDueDate = persistentParams[ThisAppLib.Ui.Step1.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID];
 
         // Get the selected vendors from Step 2
         const selectedVendors = FCLib.extractParametersFromRequest(
             context.request.parameters,
-            ThisAppLib.Parameters.Step2.VENDOR_SELECT_CHECKBOX.looksLike,
-            ThisAppLib.Parameters.Step2.VENDOR_SELECT_CHECKBOX.parse,
+            ThisAppLib.Ui.Step2.Parameters.VENDOR_SELECT_CHECKBOX.looksLike,
+            ThisAppLib.Ui.Step2.Parameters.VENDOR_SELECT_CHECKBOX.parse,
         );
 
         const selectedVendorIds = Object.values(selectedVendors);
@@ -285,9 +275,9 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
             errorField.defaultValue = `
                 No JIT items found on SOs with selected options.
-                <ul>SO Start Date: ${persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID]}</ul>
-                <ul>SO End Date: ${persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID]}</ul>
-                <ul>PO Delivery Due Date: ${persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]}</ul>
+                <ul>SO Start Date: ${soStartDate}</ul>
+                <ul>SO End Date: ${soEndDate}</ul>
+                <ul>PO Delivery Due Date: ${poDueDate}</ul>
                 <br>
                 Please try again with different options.
                 `;
@@ -297,7 +287,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
 
         // Build HTML tables to display the results
-        const fieldDefs = ThisAppLib.Settings.Ui.Step3.Sublists.VENDOR_FUTURE_SO_TABLE.Fields;
+        const fieldDefs = ThisAppLib.Ui.Step3.Sublists.VENDOR_FUTURE_SO_TABLE.Fields;
         let poTableFields = [
             fieldDefs.QtyInput,
             fieldDefs.TotalBackordered,
@@ -318,7 +308,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
             const vendorId = jitSOItemQueryResults[vendorEntityId][0].vendorid;    //FIX: Need to get these variables to settings
 
             // Build checkbox to enable/disable PO creation 
-            let poCreateCheckboxId = ThisAppLib.Parameters.Step3.CREATE_PO_CHECKBOX.build(vendorId);
+            let poCreateCheckboxId = ThisAppLib.Ui.Step3.Parameters.CREATE_PO_CHECKBOX.build(vendorId);
             let poCreateChecked = 'checked';
             let poCreateCheckboxField = `
                     <input type="checkbox" id="${poCreateCheckboxId}" name="${poCreateCheckboxId}" ${poCreateChecked} />
@@ -327,7 +317,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
 
             // Build long text memo field for this PO
-            let memoId = ThisAppLib.Parameters.Step3.PO_MEMO_FIELD.build(vendorId);
+            let memoId = ThisAppLib.Ui.Step3.Parameters.PO_MEMO_FIELD.build(vendorId);
             let memoField = `<input type="text" name="${memoId}" placeholder="Include a memo to the vendor" />`;
 
 
@@ -372,9 +362,8 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
         // Add a hidden field to hold persistentParams to be passed to next step
         FCLib.addPersistentParamsField(assistant, persistentParams);
-
-
     }
+
 
     function writeStep4FinalReview(context, assistant) {
         var allParams = JSON.stringify(context.request.parameters);
@@ -397,41 +386,29 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
         // var jitSOItemQueryResults = runFutureSOItemQuery(
         //     ['vendorid', 'itemid'],
-        //     persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID],
-        //     persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID],
-        //     persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
+        //     persistentParams[ThisAppLib.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID],
+        //     persistentParams[ThisAppLib.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID],
+        //     persistentParams[ThisAppLib.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
         // );
 
 
-        var sqlJitSoItemQuery = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.BuildQuery(
-            persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID],
-            persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID]
-        );
 
-        var jitSOItemQueryResults = FCLib.sqlSelectAllRowsIntoNestedDict(
-            sqlJitSoItemQuery,
-            [
-                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.fieldid,
-                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.fieldid
-            ]
-        );
 
 
         // Build lookup data for parameters
         let finalItemQuantities = {};
         let vendorsToInclude = {};
         let vendorsToExclude = {};
-        // let vendorsToEmail = {};
 
-        const paramDefFinalPoQty = ThisAppLib.Parameters.Step3.FINAL_PO_QTY_INPUT;
-        const paramDefCreatePo = ThisAppLib.Parameters.Step3.CREATE_PO_CHECKBOX;
-        const paramDefPoMemo = ThisAppLib.Parameters.Step3.PO_MEMO_FIELD;
+        const paramDefFinalPoQty = ThisAppLib.Ui.Step3.Parameters.FINAL_PO_QTY_INPUT;
+        const paramDefCreatePo = ThisAppLib.Ui.Step3.Parameters.CREATE_PO_CHECKBOX;
+        const paramDefPoMemo = ThisAppLib.Ui.Step3.Parameters.PO_MEMO_FIELD;
 
 
         for (const [paramName, paramVal] of Object.entries(context.request.parameters)) {
             if (paramDefFinalPoQty.looksLike(paramName)) {
                 // Get the vendor id and item id from the param name
-                let parsed = ThisAppLib.Parameters.Step3.FINAL_PO_QTY_INPUT.parse(paramName);
+                let parsed = paramDefFinalPoQty.parse(paramName);
                 let vendorId = parsed.vendorId;
                 let itemId = parsed.itemId;
 
@@ -439,7 +416,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
                 finalItemQuantities[vendorId][itemId] = paramVal;
             }
             else if (paramDefCreatePo.looksLike(paramName)) {
-                let vendorId = ThisAppLib.Parameters.Step3.CREATE_PO_CHECKBOX.parse(paramName)[1];
+                let vendorId = paramDefCreatePo.parse(paramName)[1];
 
                 if (paramVal == 'on' || FCLib.looksLikeYes(paramVal)) {
                     vendorsToInclude[vendorId] = true;
@@ -449,15 +426,13 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
                 }
             }
             else if (paramDefPoMemo.looksLike(paramName)) {
-                let vendorId = ThisAppLib.Parameters.Step3.PO_MEMO_FIELD.parse(paramName)[1];
+                let vendorId = paramDefPoMemo.parse(paramName)[1];
                 vendorMemos[vendorId] = paramVal;
             }
         }
 
         // FIX: Update this logic to present a nice table
         let newOutputFields = ThisAppLib.Settings.PoImportCsv.NewOutputFields;
-
-        let tempFieldSet1Keys = Object.keys(ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1);
 
         let ouputFieldsFromOrigQuery = Object.keys(ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1).reduce(
             (acc, key) => {
@@ -470,11 +445,6 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
             {}
         );
 
-        //     // 'vendorid',
-        //     'vendorentityid',
-        //     'itemid',
-        //     'itemdisplayname',
-        // ];
 
         let outputFieldHeaders = [
             ...Object.values(newOutputFields),
@@ -492,14 +462,32 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         };
 
 
+        // Query the DB for the future SO data
+        var sqlJitSoItemQuery = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.BuildQuery(
+            persistentParams[ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_START_DATE_ID],
+            persistentParams[ThisAppLib.Ui.Step1.Parameters.CAPTURE_SOS_END_DATE_ID]
+        );
+
+        var jitSOItemQueryResults = FCLib.sqlSelectAllRowsIntoNestedDict(
+            sqlJitSoItemQuery,
+            [
+                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.fieldid,
+                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.fieldid
+            ]
+        );
+
+
+
         let preformattedPODeliveryDate_1 = FCLib.getStandardDateString1(
-            persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]
+            persistentParams[ThisAppLib.Ui.Step1.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]
         );
 
         // Create a lot number for these JIT POs. Lot number is based on PO delivery date
         let lotPrefix = ThisAppLib.Settings.PurchaseOrder.GENERATE_LOT_NUMBER(preformattedPODeliveryDate_1);
         let lotNumber = getNextAvailableLotNumber(lotPrefix);
         let poSequenceCounter = 1;
+
+        
 
         // Build PO data for display
         //    Accepted POs/items
@@ -528,9 +516,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
                     [newOutputFields.memo]: vendorMemos[vendorId],
                     [newOutputFields.poExternalId]: poExternalId,
                     [newOutputFields.poSequenceNumber]: poSequenceCounter,
-                    // FIX: Do I need to format this date somehow?
-                    [newOutputFields.receiveByDate]: persistentParams[ThisAppLib.Settings.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
-                    // [newOutputFields.emailOnceCreated]: vendorsToEmail[vendorId] ? 'Yes' : 'No',
+                    [newOutputFields.receiveByDate]: persistentParams[ThisAppLib.Ui.Step1.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
                 };
 
                 //NOTE/FIX?: Assuming that the query is structured such that vendorId > itemId is always unique
@@ -574,13 +560,13 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
 
         const poAcceptedCacheJsonFilename = FCLib.generateTimestampedFilename(
-            ThisAppLib.Settings.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILENAME_PREFIX,
+            ThisAppLib.Settings.IO.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILENAME_PREFIX,
             '.json',
             new Date()
         );
 
         const poRejectedCacheJsonFilename = FCLib.generateTimestampedFilename(
-            ThisAppLib.Settings.JIT_PO_REJECTEDPOS_TEMPJSON_FILENAME_PREFIX,
+            ThisAppLib.Settings.IO.JIT_PO_REJECTEDPOS_TEMPJSON_FILENAME_PREFIX,
             '.json',
             new Date()
         );
@@ -600,29 +586,29 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         );
 
         // Add the file ids to the persistent params
-        persistentParams[ThisAppLib.Settings.Ui.General.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID] = poAcceptedCacheFileId;
-        persistentParams[ThisAppLib.Settings.Ui.General.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID] = poRejectedCacheFileId;
+        persistentParams[ThisAppLib.Ui.Step4.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID] = poAcceptedCacheFileId;
+        persistentParams[ThisAppLib.Ui.Step4.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID] = poRejectedCacheFileId;
 
 
         // Build display of final include/exclude summary, along with changes from the original? 
         // Build a field group for POs accepted + POs rejected
         var poAcceptedFieldGroup = assistant.addFieldGroup({
-            id: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID,
-            label: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_LABEL
+            id: ThisAppLib.Ui.Step4.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID,
+            label: ThisAppLib.Ui.Step4.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_LABEL
         });
 
         var poRejectedFieldGroup = assistant.addFieldGroup({
-            id: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID,
-            label: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_LABEL
+            id: ThisAppLib.Ui.Step4.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID,
+            label: ThisAppLib.Ui.Step4.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_LABEL
         });
 
 
         // Add a field to display the POs accepted
         var posAcceptedDataField = assistant.addField({
-            id: ThisAppLib.Settings.Ui.Fields.FINALREVIEW_POS_ACCEPTED_FIELD_ID,
+            id: ThisAppLib.Ui.Step4.Fields.FINALREVIEW_POS_ACCEPTED_FIELD_ID,
             type: serverWidget.FieldType.INLINEHTML,
-            label: ThisAppLib.Settings.Ui.Fields.FINALREVIEW_POS_ACCEPTED_FIELD_LABEL,
-            container: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID,
+            label: ThisAppLib.Ui.Step4.Fields.FINALREVIEW_POS_ACCEPTED_FIELD_LABEL,
+            container: ThisAppLib.Ui.Step4.FieldGroups.FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID,
         });
 
         posAcceptedDataField.updateLayoutType({
@@ -634,10 +620,10 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
         // Add a field to display the POs rejected
         var posRejectedDataField = assistant.addField({
-            id: ThisAppLib.Settings.Ui.Fields.FINALREVIEW_POS_REJECTED_FIELD_ID,
+            id: ThisAppLib.Ui.Step4.Fields.FINALREVIEW_POS_REJECTED_FIELD_ID,
             type: serverWidget.FieldType.INLINEHTML,
-            label: ThisAppLib.Settings.Ui.Fields.FINALREVIEW_POS_REJECTED_FIELD_LABEL,
-            container: ThisAppLib.Settings.Ui.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID,
+            label: ThisAppLib.Ui.Step4.Fields.FINALREVIEW_POS_REJECTED_FIELD_LABEL,
+            container: ThisAppLib.Ui.Step4.FieldGroups.FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID,
         });
         posRejectedDataField.updateLayoutType({
             layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
@@ -663,75 +649,22 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         posAcceptedDataField.defaultValue = posAcceptedHtml ? posAcceptedHtml : 'No POs accepted';
         posRejectedDataField.defaultValue = posRejectedHtml ? posRejectedHtml : 'No POs rejected';
 
-
-        // Build a reverse lookup table for the CSV headers > NS field id, and pass it to next step
-        //   The map/reduce script that builds the POs will use this to map the CSV headers to NS, just like
-        //    in the CSV import tool.
-        // let newFieldsReverseLookup = Object.keys(newOutputFields).reduce(
-        //     (acc, key) => {
-        //         acc[newOutputFields[key]] = key;
-        //         return acc;
-        //     },
-        //     {}
-        // );
-
-        // let origFieldsReverseLookup = Object.keys(ouputFieldsFromOrigQuery).reduce(
-        //     (acc, key) => {
-        //         acc[ouputFieldsFromOrigQuery[key]] = key;
-        //         return acc;
-        //     }
-        // )
-
-        // persistentParams[ThisAppLib.Ids.Parameters.PO_CSV_HEADER_TO_NS_REVERSE_LOOKUP_JSON] =
-        //     JSON.stringify(
-        //         { ...newFieldsReverseLookup, ...origFieldsReverseLookup }
-        //     );
-
         // Add the persistent params to the assistant
         FCLib.addPersistentParamsField(assistant, persistentParams);
 
-        // Create debug output on all variables
-        // Create debug field
-        // let debugOut = '<br><br>';
-
-        // var debugField = assistant.addField({
-        //     id: 'custpage_debug',
-        //     type: serverWidget.FieldType.INLINEHTML,
-        //     label: 'Debug'
-        // });
-
-        // debugOut += '<pre>' + allParams + '</pre>\n\n';
-        // // Add persistent params to output
-        // debugOut += 'persistentParams';
-        // debugOut += '<pre>' + JSON.stringify(persistentParams, null, 2) + '</pre>\n\n';
-        // // Add query results to output
-        // debugOut += 'jitSOItemQueryResults';
-        // debugOut += '<pre>' + JSON.stringify(jitSOItemQueryResults, null, 2) + '</pre>\n\n';
-        // debugOut += '<br>OutputFieldsFromOrigQuery';
-        // debugOut += '<pre>' + JSON.stringify(ouputFieldsFromOrigQuery, null, 2) + '</pre>\n\n';
-        // debugOut += '<br>VendorMemos';
-        // debugOut += '<pre>' + JSON.stringify(vendorMemos, null, 2) + '</pre>\n\n';
-        // debugOut += '<br>Final Item Quantities';
-        // debugOut += '<pre>' + JSON.stringify(finalItemQuantities, null, 2) + '</pre>\n\n';
-        // debugOut += '<br>Accepted POs';
-        // debugOut += '<pre>' + JSON.stringify(poDataAccepted, null, 2) + '</pre>\n\n';
-        // debugOut += '<br>Rejected POs';
-        // debugOut += '<pre>' + JSON.stringify(poDataRejected, null, 2) + '</pre>\n\n';
-
-
-        // debugField.defaultValue = debugOut;
-        // context.response.write(htmlOut + '<br><br>' + debugOut);
     }
 
+
+    
     function writeResult(context, assistant) {
         var persistentParams = FCLib.getPersistentParams(context);
 
         // Read in the accepted/rejected PO data from the cache JSON files
         let acceptedPoFileObj = file.load({
-            id: persistentParams[ThisAppLib.Settings.Ui.General.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID]
+            id: persistentParams[ThisAppLib.Ui.Step4.Parameters.JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID]
         });
         let rejectedPoFileObj = file.load({
-            id: persistentParams[ThisAppLib.Settings.Ui.General.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID]
+            id: persistentParams[ThisAppLib.Ui.Step4.Parameters.JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID]
         });
 
         let acceptedPoData = JSON.parse(acceptedPoFileObj.getContents());
@@ -752,7 +685,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         // Create CSV file of accepted POs > session folder
         const curDateTimeStr = FCLib.getStandardDateTimeString1(new Date());
         let poAcceptedCsvFilename =
-            ThisAppLib.Settings.JIT_PO_ACCEPTEDPOS_CSV_FILENAME_PREFIX +
+            ThisAppLib.Settings.IO.JIT_PO_ACCEPTEDPOS_CSV_FILENAME_PREFIX +
             curDateTimeStr +
             '.csv';
 
@@ -771,7 +704,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
 
         // Create CSV file of rejected POs > session folder
         let poRejectedCsvFilename =
-            ThisAppLib.Settings.JIT_PO_REJECTEDPOS_CSV_FILENAME_PREFIX +
+            ThisAppLib.Settings.IO.JIT_PO_REJECTEDPOS_CSV_FILENAME_PREFIX +
             curDateTimeStr +
             '.csv';
 
@@ -861,7 +794,7 @@ function main(fileModule, logModule, queryModule, recordModule, renderModule, ru
         const curDateTimeStr = FCLib.getStandardDateTimeString1(date);
         // const curDateTime = new Date();
         // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
-        var resultsFolderName = ThisAppLib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
+        var resultsFolderName = ThisAppLib.Settings.IO.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
         try {
             var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.Ids.Folders.RESULTS);
         }

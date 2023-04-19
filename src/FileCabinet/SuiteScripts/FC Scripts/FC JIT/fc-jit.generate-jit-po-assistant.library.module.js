@@ -1,18 +1,12 @@
-var query,
-    record,
-    task,
-    runtime,
+var record,
     dayjs,
     FCLib;
 
 
-define(['N/query', 'N/record', 'N/task', 'N/runtime', '../Libraries/dayjs.min.js', '../Libraries/fc-main.library.module.js'], main);
+define(['N/record', '../Libraries/dayjs.min.js', '../Libraries/fc-main.library.module.js'], main);
 
-function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule, fcLibModule) {
-    query = queryModule;
+function main(recordModule, dayjsModule, fcLibModule) {
     record = recordModule;
-    task = taskModule;
-    runtime = runtimeModule;
     dayjs = dayjsModule;
     FCLib = fcLibModule;
 
@@ -214,57 +208,18 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
             PO_CSV_HEADER_TO_NS_REVERSE_LOOKUP_JSON: 'custscript_fc_am_csvtons_reverselookup',
         },
     };
-
-    var Parameters = {
-        Step2: {
-            VENDOR_SELECT_CHECKBOX: {
-                prefix: 'custpage_vendorselect_',
-                looksLike: (val) => { return val.startsWith('custpage_vendorselect_'); },
-                build: (vendorId) => { return `custpage_vendorselect_${vendorId}`; },
-                parse: (val) => {
-                    return val.split('_')[2];
-                },
-            },
-
-        },
-        Step3: {
-            FINAL_PO_QTY_INPUT: {
-                prefix: 'custpage_finalpoqty_',
-                looksLike: (val) => { return val.startsWith('custpage_finalpoqty_'); },
-                build: (vendorId, itemId) => { return `custpage_finalpoqty_${vendorId}_${itemId}`; },
-                parse: (val) => {
-                    let split = val.split('_');
-                    return { vendorId: split[2], itemId: split[3] };
-                },
-            },
-            CREATE_PO_CHECKBOX: {
-                prefix: 'custpage_create_po_',
-                looksLike: (val) => { return val.startsWith('custpage_create_po_'); },
-                build: (vendorid) => `custpage_create_po_${vendorid}`,
-                parse: (param) => param.match(/^custpage_create_po_(.+)$/),
-            },
-            PO_MEMO_FIELD: {
-                prefix: 'custpage_po_memo_',
-                looksLike: (val) => { return val.startsWith('custpage_po_memo_'); },
-                build: (vendorid) => `custpage_po_memo_${vendorid}`,
-                parse: (param) => param.match(/^custpage_po_memo_(.+)$/),
-            },
-        },
-        Step4: {
-
-        },
-    };
-    exports.Parameters = Parameters;
-
+    exports.Ids = Ids;
 
     var Settings = {
-        SESSION_RESULTS_FOLDER_NAME_PREFIX: 'JIT_PO_Results_',
-        JIT_PO_ACCEPTEDPOS_TEMPJSON_FILENAME_PREFIX: 'TEMP_JIT_PO_AcceptedPOs_',
-        JIT_PO_REJECTEDPOS_TEMPJSON_FILENAME_PREFIX: 'TEMP_JIT_PO_RejectedPOs_',
-        JIT_PO_ACCEPTEDPOS_CSV_FILENAME_PREFIX: 'JIT_PO_AcceptedPOs_',
-        JIT_PO_REJECTEDPOS_CSV_FILENAME_PREFIX: 'JIT_PO_RejectedPOs_',
-
+        IO: {
+            SESSION_RESULTS_FOLDER_NAME_PREFIX: 'JIT_PO_Results_',
+            JIT_PO_ACCEPTEDPOS_TEMPJSON_FILENAME_PREFIX: 'TEMP_JIT_PO_AcceptedPOs_',
+            JIT_PO_REJECTEDPOS_TEMPJSON_FILENAME_PREFIX: 'TEMP_JIT_PO_RejectedPOs_',
+            JIT_PO_ACCEPTEDPOS_CSV_FILENAME_PREFIX: 'JIT_PO_AcceptedPOs_',
+            JIT_PO_REJECTEDPOS_CSV_FILENAME_PREFIX: 'JIT_PO_RejectedPOs_',
+        },
         PurchaseOrder: {
+            DEFAULT_PO_DUE_DATE_DAYS_FROM_TODAY: 1,
             VALID_PO_SUFFIXES:
                 ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
                     'aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am', 'an', 'ao', 'ap', 'aq', 'ar', 'as', 'at', 'au', 'av', 'aw', 'ax', 'ay', 'az',
@@ -274,169 +229,6 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
                 ],
             GENERATE_LOT_NUMBER: (delivdatestr) => { return `JIT${delivdatestr}`; },
         },
-
-        Ui: {
-            General: {
-                Parameters: {
-                    CAPTURE_SOS_START_DATE_ID: 'custpage_capture_sos_start_date',
-                    CAPTURE_SOS_END_DATE_ID: 'custpage_capture_sos_end_date',
-                    ENABLE_SEND_ALL_POS_BY_DEFAULT_ID: 'custpage_enable_send_all_pos_by_default',
-                    HIDDEN_PERSISTENT_PARAMS_ID: 'custpage_hidden_persistent_params',
-                    CAPTURE_PO_DELIVERY_DUE_DATE_ID: 'custpage_capture_po_delivery_due_date',
-                    JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_acceptedpos_tempjson_file',
-                    JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_rejectedpos_tempjson_file',
-                    POS_TO_EMAIL_EXTERNAL_IDS: 'custpage_pos_to_email_external_ids',
-                },
-            },
-            Step2: {
-                Sublists: {
-                    INITIAL_VENDOR_SELECT_TABLE: {
-                        Id: 'custpage_initial_vendor_select_table',
-                        Label: 'Select Vendor(s) to Process',
-                        Fields: {
-                            CB_Select: {
-                                Label: 'Select',
-                                GetTableElem: function (thisRow) {
-                                    const queryFields = exports.Queries.GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST.FieldSet1;
-                                    const vendorId = thisRow[queryFields.vendorid.fieldid];
-                                    const name = exports.Parameters.Step2.VENDOR_SELECT_CHECKBOX.build(vendorId);
-                                    const id = name;
-                                    const value = vendorId;
-                                    const style = FCLib.Ui.CheckboxStyles.Style1;
-                                    const defaultState = '';
-                                    return `<input type="checkbox" name="${name}" id="${id}" value="${value}" style="${style}" ${defaultState}>`;
-                                },
-                            },
-                            VendorName: {
-                                Label: 'Vendor Name',
-                                GetTableElem: function (thisRow) {
-                                    return thisRow[exports.Queries.GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST.FieldSet1.vendorentityid.fieldid];
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            Step3: {
-                Main: {
-                },
-                Fields: {
-                },
-                FieldGroups: {
-                },
-                Sublists: {
-                    VENDOR_FUTURE_SO_TABLE: {
-                        Id: 'custpage_vendor_future_so_table',
-                        Label: 'Vendor Future SO Table',
-                        Fields: {
-                            QtyInput: {
-                                Label: 'Final PO Qty',
-                                GetTableElem: function (thisRow) {
-                                    const queryFields = exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
-                                    const value = thisRow[queryFields.totalbackordered.fieldid];
-                                    const vendorId = thisRow[queryFields.vendorid.fieldid];
-                                    const itemId = thisRow[queryFields.itemid.fieldid];
-
-                                    const name = exports.Parameters.Step3.FINAL_PO_QTY_INPUT.build(vendorId, itemId);
-                                    const id = name;
-                                    const style = '';
-
-                                    return `<input type="number" name="${name}" id="${id}" value="${value}" style="${style}">`;
-                                },
-                            },
-                            TotalBackordered: {
-                                Label: 'Total Backordered',
-                                GetTableElem: function (thisRow) {
-                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.totalbackordered.fieldid];
-                                },
-                            },
-                            TotalDemand: {
-                                Label: 'Total Demand',
-                                GetTableElem: function (thisRow) {
-                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.totalqty.fieldid];
-                                },
-                            },
-                            ItemName: {
-                                Label: 'Item Name',
-                                GetTableElem: function (thisRow) {
-                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.fieldid];
-                                },
-
-                            },
-                            ItemDisplayName: {
-                                Label: 'Item Display Name',
-                                GetTableElem: function (thisRow) {
-                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.fieldid];
-                                },
-                            },
-                            VendorId: {
-                                Label: 'Vendor ID',
-                                GetTableElem: function (thisRow) {
-                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.fieldid];
-                                },
-                            },
-                            VendorDisplayName: {
-                                Label: 'Vendor Name',
-                                GetTableElem: function (thisRow) {
-                                    return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorentityid.fieldid];
-                                }
-
-                            },
-                        },
-                    },
-                },
-            },
-
-
-
-
-            Main: {
-                DEFAULT_PO_DUE_DATE_DAYS_FROM_TODAY: 1,
-            },
-            Fields: {
-                CAPTURE_SOS_START_DATE_LABEL: 'From SO Delivery Date',
-                CAPTURE_SOS_END_DATE_LABEL: 'To SO Delivery Date',
-                DRAFT_POS_DATA_FIELD_ID: 'custpage_draft_pos_data',
-                DRAFT_POS_DATA_FIELD_LABEL: 'Draft POs',
-                ENABLE_SEND_ALL_POS_BY_DEFAULT_LABEL: 'Enable Send All POs by Default?',
-                HIDDEN_PERSISTENT_PARAMS_LABEL: 'Hidden Persistent Parameters',
-                FINALREVIEW_POS_ACCEPTED_FIELD_ID: 'custpage_finalreview_pos_accepted',
-                FINALREVIEW_POS_ACCEPTED_FIELD_LABEL: 'POs to Accept',
-                FINALREVIEW_POS_REJECTED_FIELD_ID: 'custpage_finalreview_pos_rejected',
-                FINALREVIEW_POS_REJECTED_FIELD_LABEL: 'POs to Reject',
-                CAPTURE_PO_DELIVERY_DUE_DATE_LABEL: 'PO Delivery Due Date',
-            },
-            FieldGroups: {
-                FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID: 'custpage_finalreview_pos_accepted_group',
-                FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_LABEL: 'POs to Accept',
-                FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID: 'custpage_finalreview_pos_rejected_group',
-                FINALREVIEW_POS_REJECTED_FIELD_GROUP_LABEL: 'POs to Reject',
-            },
-            Buttons: {
-            },
-            Parameters: {
-                CAPTURE_SOS_START_DATE_ID: 'custpage_capture_sos_start_date',
-                CAPTURE_SOS_END_DATE_ID: 'custpage_capture_sos_end_date',
-                ENABLE_SEND_ALL_POS_BY_DEFAULT_ID: 'custpage_enable_send_all_pos_by_default',
-                HIDDEN_PERSISTENT_PARAMS_ID: 'custpage_hidden_persistent_params',
-                CAPTURE_PO_DELIVERY_DUE_DATE_ID: 'custpage_capture_po_delivery_due_date',
-                JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_acceptedpos_tempjson_file',
-                JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_rejectedpos_tempjson_file',
-                POS_TO_EMAIL_EXTERNAL_IDS: 'custpage_pos_to_email_external_ids',
-            },
-            DynamicParameters: {
-
-                // ITEM_FINAL_QTY_FIELD_ID: {
-                //     build: (vendorid, itemid) => ['custpage_item_final_qty', vendorid, itemid].filter(Boolean).join('_'),
-                //     parse: (param) => {
-                //         let res = param.match(/^custpage_item_final_qty_([^_]+)_([^_]+)$/);
-                //         return res ? { vendorId: res[1], itemId: res[2] } : null;
-                //     }
-                // },
-            },
-
-        },
-
         PoImportCsv: {
             NewOutputFields: {
                 finalQty: 'Final Item Qty',
@@ -451,6 +243,240 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
 
         },
     };
+    exports.Settings = Settings;
+
+
+    var Ui = {
+        General: {
+            Parameters: {
+                CAPTURE_SOS_START_DATE_ID: 'custpage_capture_sos_start_date',
+                CAPTURE_SOS_END_DATE_ID: 'custpage_capture_sos_end_date',
+                ENABLE_SEND_ALL_POS_BY_DEFAULT_ID: 'custpage_enable_send_all_pos_by_default',
+                HIDDEN_PERSISTENT_PARAMS_ID: 'custpage_hidden_persistent_params',
+                CAPTURE_PO_DELIVERY_DUE_DATE_ID: 'custpage_capture_po_delivery_due_date',
+                JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_acceptedpos_tempjson_file',
+                JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_rejectedpos_tempjson_file',
+                POS_TO_EMAIL_EXTERNAL_IDS: 'custpage_pos_to_email_external_ids',
+            },
+        },
+        Step1: {
+            Parameters: {
+                CAPTURE_PO_DELIVERY_DUE_DATE_ID: 'custpage_capture_po_delivery_due_date',
+                CAPTURE_SOS_START_DATE_ID: 'custpage_capture_sos_start_date',
+                CAPTURE_SOS_END_DATE_ID: 'custpage_capture_sos_end_date',
+            },
+            Fields: {
+                CAPTURE_PO_DELIVERY_DUE_DATE_LABEL: 'PO Delivery Due Date',
+
+                CAPTURE_SOS_START_DATE_LABEL: 'From SO Delivery Date',
+                CAPTURE_SOS_END_DATE_LABEL: 'To SO Delivery Date',
+            },
+        },
+        Step2: {
+            Sublists: {
+                INITIAL_VENDOR_SELECT_TABLE: {
+                    Id: 'custpage_initial_vendor_select_table',
+                    Label: 'Select Vendor(s) to Process',
+                    Fields: {
+                        CB_Select: {
+                            Label: 'Select',
+                            GetTableElem: function (thisRow) {
+                                const queryFields = exports.Queries.GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST.FieldSet1;
+                                const vendorId = thisRow[queryFields.vendorid.fieldid];
+                                const name = exports.Ui.Step2.Parameters.VENDOR_SELECT_CHECKBOX.build(vendorId);
+                                const id = name;
+                                const value = vendorId;
+                                const style = FCLib.Ui.CheckboxStyles.Style1;
+                                const defaultState = '';
+                                return `<input type="checkbox" name="${name}" id="${id}" value="${value}" style="${style}" ${defaultState}>`;
+                            },
+                        },
+                        VendorName: {
+                            Label: 'Vendor Name',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_SIMPLE_FUTURE_JIT_SO_VENDOR_LIST.FieldSet1.vendorentityid.fieldid];
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        Step3: {
+            Main: {
+            },
+            Fields: {
+            },
+            FieldGroups: {
+            },
+            Sublists: {
+                VENDOR_FUTURE_SO_TABLE: {
+                    Id: 'custpage_vendor_future_so_table',
+                    Label: 'Vendor Future SO Table',
+                    Fields: {
+                        QtyInput: {
+                            Label: 'Final PO Qty',
+                            GetTableElem: function (thisRow) {
+                                const queryFields = exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
+                                const value = thisRow[queryFields.totalbackordered.fieldid];
+                                const vendorId = thisRow[queryFields.vendorid.fieldid];
+                                const itemId = thisRow[queryFields.itemid.fieldid];
+
+                                const name = exports.Ui.Step3.Parameters.FINAL_PO_QTY_INPUT.build(vendorId, itemId);
+                                const id = name;
+                                const style = '';
+
+                                return `<input type="number" name="${name}" id="${id}" value="${value}" style="${style}">`;
+                            },
+                        },
+                        TotalBackordered: {
+                            Label: 'Total Backordered',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.totalbackordered.fieldid];
+                            },
+                        },
+                        TotalDemand: {
+                            Label: 'Total Demand',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.totalqty.fieldid];
+                            },
+                        },
+                        ItemName: {
+                            Label: 'Item Name',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.fieldid];
+                            },
+
+                        },
+                        ItemDisplayName: {
+                            Label: 'Item Display Name',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.fieldid];
+                            },
+                        },
+                        VendorId: {
+                            Label: 'Vendor ID',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.fieldid];
+                            },
+                        },
+                        VendorDisplayName: {
+                            Label: 'Vendor Name',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorentityid.fieldid];
+                            }
+
+                        },
+                    },
+                },
+            },
+        },
+
+        Step4: {
+            Fields: {
+                FINALREVIEW_POS_ACCEPTED_FIELD_ID: 'custpage_finalreview_pos_accepted',
+                FINALREVIEW_POS_ACCEPTED_FIELD_LABEL: 'POs to Accept',
+                FINALREVIEW_POS_REJECTED_FIELD_ID: 'custpage_finalreview_pos_rejected',
+                FINALREVIEW_POS_REJECTED_FIELD_LABEL: 'POs to Reject',
+            },
+            FieldGroups: {
+                FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_ID: 'custpage_finalreview_pos_accepted_group',
+                FINALREVIEW_POS_ACCEPTED_FIELD_GROUP_LABEL: 'POs to Accept',
+                FINALREVIEW_POS_REJECTED_FIELD_GROUP_ID: 'custpage_finalreview_pos_rejected_group',
+                FINALREVIEW_POS_REJECTED_FIELD_GROUP_LABEL: 'POs to Reject',
+            },
+
+            // Sublists: {
+            //     POS_TO_ACCEPT_TABLE: {
+            //         Id: 'custpage_pos_to_accept_table',
+            //         Label: 'POs to Accept',
+            //         Fields: {
+            //             FinalItemQty: {
+            //                 Label: 'Final Item Qty',
+            //                 GetTableElem: function (thisRow) {
+
+            //                 },
+            //             },
+            //             ReceiptLotNum: {
+            //                 Label: 'Receipt Lot #',
+            //                 GetTableElem: function (thisRow) {
+            //                 },
+            //             },
+            //             ReceiptLotQty: {
+            //                 Label: 'Receipt Lot Qty',
+            //                 GetTableElem: function (thisRow) {
+
+            //                 },
+            //             },
+            //             PoMemo: {
+            //                 Label: 'PO Memo',
+            //                 GetTableElem: function (thisRow) {
+            //                 },
+            //             },
+            //             POExternalId: {
+            //                 Label: 'PO External ID',
+            //                 GetTableElem: function (thisRow) {
+
+            //                 },
+            //             },
+            //             PoSeqCounter: {
+            //                 Label: 'PO Seq Counter',
+            //                 GetTableElem: function (thisRow) {
+            //                 },
+            //             },
+            //             PoDueDate: {
+            //                 Label: 'PO Receive By Date',
+            //                 GetTableElem: function (thisRow) {
+            //                 }
+            //             },
+            //         },
+            //     },
+            // },
+        },
+
+    };
+
+    Ui.Step2.Parameters = {
+        VENDOR_SELECT_CHECKBOX: {
+            prefix: 'custpage_vendorselect_',
+            looksLike: (val) => { return val.startsWith('custpage_vendorselect_'); },
+            build: (vendorId) => { return `custpage_vendorselect_${vendorId}`; },
+            parse: (val) => {
+                return val.split('_')[2];
+            },
+        },
+    };
+
+    Ui.Step3.Parameters = {
+        FINAL_PO_QTY_INPUT: {
+            prefix: 'custpage_finalpoqty_',
+            looksLike: (val) => { return val.startsWith('custpage_finalpoqty_'); },
+            build: (vendorId, itemId) => { return `custpage_finalpoqty_${vendorId}_${itemId}`; },
+            parse: (val) => {
+                let split = val.split('_');
+                return { vendorId: split[2], itemId: split[3] };
+            },
+        },
+        CREATE_PO_CHECKBOX: {
+            prefix: 'custpage_create_po_',
+            looksLike: (val) => { return val.startsWith('custpage_create_po_'); },
+            build: (vendorid) => `custpage_create_po_${vendorid}`,
+            parse: (param) => param.match(/^custpage_create_po_(.+)$/),
+        },
+        PO_MEMO_FIELD: {
+            prefix: 'custpage_po_memo_',
+            looksLike: (val) => { return val.startsWith('custpage_po_memo_'); },
+            build: (vendorid) => `custpage_po_memo_${vendorid}`,
+            parse: (param) => param.match(/^custpage_po_memo_(.+)$/),
+        },
+    };
+
+    Ui.Step4.Parameters = {
+        JIT_PO_ACCEPTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_acceptedpos_tempjson_file',
+        JIT_PO_REJECTEDPOS_TEMPJSON_FILE_ID: 'custpage_jit_po_rejectedpos_tempjson_file',
+    };
+    
+    exports.Ui = Ui;
+
 
     var MRSettings = {
         CsvToNsFieldMap: {
@@ -558,6 +584,8 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
         return bodytext;
     };
 
+    exports.MRSettings = MRSettings;
+
 
     function buildQueryGetItemInfoFromPO(poId) {
         let sqlQuery = exports.Queries.GET_ITEM_INFO_FROM_PO.Query;
@@ -576,12 +604,6 @@ function main(queryModule, recordModule, taskModule, runtimeModule, dayjsModule,
         return sqlQuery;
 
     }
-
-
-
-    exports.Ids = Ids;
-    exports.Settings = Settings;
-    exports.MRSettings = MRSettings;
     exports.buildQueryGetItemInfoFromPO = buildQueryGetItemInfoFromPO;
 
 
