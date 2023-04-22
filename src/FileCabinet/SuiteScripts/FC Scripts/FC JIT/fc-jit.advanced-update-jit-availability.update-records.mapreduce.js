@@ -9,7 +9,6 @@
 
 var
     runtime,
-    query,
     record,
     task,
     file,
@@ -17,11 +16,10 @@ var
     ThisAppLib,
     Papa;
 
-define(['N/runtime', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/fc-main.library.module', './fc-jit.update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
+define(['N/runtime', 'N/record', 'N/task', 'N/file', '../Libraries/fc-main.library.module', './fc-jit.advanced-update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
 
-function main(runtimeModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcJITUploadLibModule, papaParseModule) {
+function main(runtimeModule, recordModule, taskModule, fileModule, fcMainLibModule, fcJITUploadLibModule, papaParseModule) {
     runtime = runtimeModule;
-    query = queryModule;
     record = recordModule;
     task = taskModule;
     file = fileModule;
@@ -67,61 +65,43 @@ function getInputData(context) {
         }
     );
 
-    // In order to modify these Item records, we need to add the following fields to the data:
-    //      itemtype
-    //      islotitem
+    // Query the DB to get updated, more complete data about these items
+    // Get at unique list of item internal ids from the data
+    let itemInternalIds = parsedFile.data.reduce(function (itemids, row) {
+        itemids.add(row[FCLib.Ids.Fields.Item.InternalId]);
+        return itemids;
+    }, new Set());
 
-    let missingRequiredFields = [];
-
-    if (!parsedFile.meta.fields.includes(FCLib.Ids.Fields.Item.ItemType)) {
-        missingRequiredFields.push(FCLib.Ids.Fields.Item.ItemType);
-    };
-
-    if (!parsedFile.meta.fields.includes(FCLib.Ids.Fields.Item.IsLotItem)) {
-        missingRequiredFields.push(FCLib.Ids.Fields.Item.IsLotItem);
-    };
-
-    if (missingRequiredFields.length > 0) {
-        let sqlSelectFields = missingRequiredFields.map((field) => {
-            return `Item.${field}`;
-        }).join(', ');
-
-        // Get at unique list of item internal ids from the data
-        let itemInternalIds = parsedFile.data.reduce(function (itemids, row) {
-            itemids.add(row[FCLib.Ids.Fields.Item.InternalId]);
-            return itemids;
-        }, new Set());
-
-        // Run a simple query filtered by the item ids to get the required fields. 
-        let sqlQuery = `
-            SELECT
-                Item.${FCLib.Ids.Fields.Item.InternalId},
-                ${sqlSelectFields}
-            FROM
-                Item
-            WHERE
-                Item.${FCLib.Ids.Fields.Item.InternalId} IN (${[...itemInternalIds].join(',')})
+    // Run a simple query filtered by the item ids to get the required fields. 
+    let sqlQuery = `
+        SELECT
+            Item.${FCLib.Ids.Fields.Item.InternalId},
+            Item.${FCLib.Ids.Fields.Item.Name},
+            Item.${FCLib.Ids.Fields.Item.DisplayName},
+            Item.${FCLib.Ids.Fields.Item.ItemType},
+            Item.${FCLib.Ids.Fields.Item.IsLotItem},
+        FROM
+            Item
+        WHERE
+            Item.${FCLib.Ids.Fields.Item.InternalId} IN (${[...itemInternalIds].join(',')})
         `;
 
-        // Run the query
-        let queryResults = FCLib.sqlSelectAllRowsIntoDict(
-            sqlQuery,
-            FCLib.Ids.Fields.Item.InternalId,
-        );
+    // Run the query
+    let queryResults = FCLib.sqlSelectAllRowsIntoDict(
+        sqlQuery,
+        FCLib.Ids.Fields.Item.InternalId,
+    );
 
-        // Add the missing field data into the parsedFile data
-        parsedFile.data.forEach((row) => {
-            let itemInternalId = row[FCLib.Ids.Fields.Item.InternalId];
-            let itemData = queryResults[itemInternalId];
+    // Add the missing field data into the parsedFile data
+    parsedFile.data.forEach((row) => {
+        let itemInternalId = row[FCLib.Ids.Fields.Item.InternalId];
+        let itemData = queryResults[itemInternalId];
 
-            if (itemData) {
-                missingRequiredFields.forEach((field) => {
-                    row[field] = itemData[field];
-                });
-            }
-        });
+        if (itemData) {
+            Object.assign(row, itemData);
+        }
+    });
 
-    }
 
     return parsedFile.data;
 }
@@ -146,14 +126,19 @@ function map(context) {
 
 function reduce(context) {
     log.audit({ title: 'reduce - context', details: context });
+
+    var result = context.values.map(JSON.parse)[0];
+    log.debug({ title: 'reduce - result', details: { item: context.key, result: result } });
+
+    var changedRecordId;
+    var success = true;
+    var errorMessage = '';
+
     try {
 
         //NOTE: We shouldn't ever have more than one value returned here due to how we designed the input. 
         // How should we deal with it if we do have > 1 result? 
         // Currently: Consider only the first result.
-        let result = context.values.map(JSON.parse)[0];
-
-        log.debug({ title: 'reduce - result', details: { item: context.key, result: result } });
 
         // Get the internal item type for this item
         let itemType = FCLib.lookupInternalItemType(
@@ -161,10 +146,9 @@ function reduce(context) {
             result[FCLib.Ids.Fields.Item.IsLotItem]
         );
 
-
         log.debug({ title: 'reduce - itemType', details: itemType });
 
-        var changedRecordId = record.submitFields({
+        changedRecordId = record.submitFields({
             type: itemType,
             id: result[FCLib.Ids.Fields.Item.InternalId],
             values: {
@@ -173,50 +157,143 @@ function reduce(context) {
             },
         });
 
-        let summaryValue = {
-            changeMsg: `Updated JIT quantity info for item ${result[FCLib.Ids.Fields.Item.Name]}: 
-                Start JIT Qty: ${result[FCLib.Ids.Fields.Item.StartJITQty]}
-                Remaining JIT Qty: ${result[FCLib.Ids.Fields.Item.RemainingJITQty]}
-                From: Old Start (${result[FCLib.Ids.Fields.Item.OldStartJITQty]}) / Old Remaining (${result[FCLib.Ids.Fields.Item.OldRemainingJITQty]})`,
-        };
-        Object.assign(summaryValue, result);
 
-        context.write({
-            key: context.key,
-            value: summaryValue
-        });
     } catch (e) {
         log.error({ title: 'reduce - error', details: { 'context': context, 'error': e } });
+        success = false;
+        errorMessage = e.message;
     }
+
+
+    let changeNotes = {
+        success: success,
+        errorMessage: errorMessage,
+        changedRecordId: changedRecordId,
+        ...result
+        // itemName: result[FCLib.Ids.Fields.Item.Name],
+        // itemInternalId: result[FCLib.Ids.Fields.Item.InternalId],
+        // itemStartJITQty: result[FCLib.Ids.Fields.Item.StartJITQty],
+        // itemRemainingJITQty: result[FCLib.Ids.Fields.Item.RemainingJITQty],
+        // itemOldStartJITQty: result[FCLib.Ids.Fields.Item.OldStartJITQty],
+        // itemOldRemainingJITQty: result[FCLib.Ids.Fields.Item.OldRemainingJITQty],
+    };
+
+    context.write({
+        key: context.key,
+        value: changeNotes
+    });
 }
 
 
 function summarize(context) {
     log.audit({ title: 'summarize - context', details: context });
+    log.debug({ title: 'summarize start - Settings', details: JSON.stringify(ThisAppLib.Settings) });
     // Log details about the script's execution.
     log.audit({
-        title: 'Usage units consumed',
-        details: context.usage
-    });
-    log.audit({
-        title: 'Concurrency',
-        details: context.concurrency
-    });
-    log.audit({
-        title: 'Number of yields',
-        details: context.yields
+        title: 'Metrics',
+        details: `Usage: ${context.usage}, Concurrency: ${context.concurrency}, Yields: ${context.yields}`
     });
 
-    var itemsUpdated = [];
+    // Log details about the script's execution AND send summary email to the user and to any default recipients. 
+    // Build lists of succeeded and failed items
+    let succeededItems = [];
+    let failedItems = [];
 
-    context.output.iterator().each(function (key, value) {
-        let thisVal = JSON.parse(value);
-        itemsUpdated.push(thisVal[FCLib.Ids.Fields.Item.Name]);
+
+    context.output.iterator().each((key, value) => {
+        let changeInfo = JSON.parse(value);
+        if (changeInfo.success) {
+            succeededItems.push(changeInfo);
+        } else {
+            failedItems.push(changeInfo);
+        }
         return true;
     });
 
+    // Build a formatted table for the email output
+    let htmlSuccessTable = '';
+
+    if (succeededItems.length > 0) {
+        let successFieldDefs = [
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.ItemInternalId,
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.ItemName,
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.ItemDisplayName,
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.StartJitQty,
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.RemainingJitQty,
+        ];
+
+        const successTableStyle = FCLib.Ui.TableStyles.Style1;
+
+        succeededItems = FCLib.sortArrayOfObjsByKeys(
+            succeededItems,
+            [ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.ItemDisplayName]
+        );
+
+        htmlSuccessTable = FCLib.updatedConvertLookupTableToHTMLTable({
+            data: succeededItems,
+            fieldDefs: successFieldDefs,
+            ...successTableStyle
+        });
+    }
+
+    let htmlFailureTable = '';
+    if (failedItems.length > 0) {
+        let failureFieldDefs = [
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.FAILURE_TABLE.Fields.ItemInternalId,
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.FAILURE_TABLE.Fields.ItemName,
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.FAILURE_TABLE.Fields.ItemDisplayName,
+            ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.FAILURE_TABLE.Fields.ErrorMessage,
+        ];
+
+        const failureTableStyle = FCLib.Ui.TableStyles.Style1;
+
+        failedItems = FCLib.sortArrayOfObjsByKeys(
+            failedItems,
+            [ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.FAILURE_TABLE.Fields.ItemDisplayName]
+        );
+
+        htmlFailureTable = FCLib.updatedConvertLookupTableToHTMLTable({
+            data: failedItems,
+            fieldDefs: failureFieldDefs,
+            ...failureTableStyle
+        });
+    }
+
+    // Build the email body
+    const thisUserRec = runtime.getCurrentUser();
+    let userStr = `${thisUserRec.name} (${thisUserRec.id})`;
+
+
+    log.debug({ title: 'summarize - SUMMARIZE_EMAIL obj', details: ThisAppLib.Settings.Email.SUMMARIZE_EMAIL });
+
+    let emailBody = ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.BuildBody(
+        userStr,
+        htmlSuccessTable,
+        htmlFailureTable,
+    );
+
+    log.debug({ title: 'summarize - emailBody', details: emailBody });
+
+    let emailSubject = ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.BuildSubject();
+
+    log.debug({ title: 'summarize - emailSubject', details: emailSubject });
+
+    // Send the email
+    email.send({
+        author: thisUserRec.id,
+        recipients: [
+            thisUserRec.email,
+            ...ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.RecipientsEmails,
+        ],
+        cc: ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.CcEmails,
+        bcc: ThisAppLib.Settings.Email.SUMMARIZE_EMAIL.BccEmails,
+        body: emailBody,
+        subject: emailSubject
+    });
+
+
     log.audit({
         title: 'Items updated with new JIT quantities',
-        details: `Updated ${itemsUpdated.length} items. Item IDs: ${itemsUpdated.join(',')}`
+        details: `Successfully updated ${succeededItems.length} items. Failed to update ${failedItems.length} items.}`
     });
 }

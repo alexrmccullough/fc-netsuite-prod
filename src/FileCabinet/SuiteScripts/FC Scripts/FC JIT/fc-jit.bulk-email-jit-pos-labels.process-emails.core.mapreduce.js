@@ -331,10 +331,14 @@ function summarize(context) {
         dayjs().format('M/D/YYYY h:mm A')
     );
 
+    let thisUserRec = runtime.getCurrentUser();
 
     email.send({
-        author: FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.AuthorId,
-        recipients: FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.RecipientsEmails,
+        author: thisUserRec.id,
+        recipients: [
+            thisUserRec.email,
+            ...FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.RecipientsEmails
+        ],
         cc: FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.CcEmails,
         bcc: FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.BccEmails,
         body: emailBody,

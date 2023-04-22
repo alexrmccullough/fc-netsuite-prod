@@ -81,7 +81,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
             Item: {
                 InternalId: 'id',
                 Name: 'itemid',
-                DisplayName: 'displayName',
+                DisplayName: 'displayname',
                 ItemType: 'itemtype',
                 IsLotItem: 'islotitem',
                 IsJIT: 'custitem_soft_comit',
@@ -97,7 +97,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
             },
             ItemVendor: {
                 VendorInternalId: 'vendor',
-                PreferredVendor: 'preferredVendor'
+                PreferredVendor: 'preferredvendor'
             },
             Vendor: {
                 InternalId: 'id',
@@ -106,16 +106,20 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
             Transaction: {
                 InternalId: 'id',
                 EntityInternalId: 'entity',
-                DisplayName: 'tranDisplayName',
-                DueDate: 'dueDate',
+                DisplayName: 'trandisplayname',
+                DueDate: 'duedate',
                 ExternalId: 'externalid',
-                MainDate: 'tranDate',
+                MainDate: 'trandate',
 
             }
         },
         Folders: {
             // MAIN_TEMP_CACHE_FOLDER: 9114,   // PROD
-            MAIN_TEMP_CACHE_FOLDER: 8605, // SB
+            MAIN_TEMP_CACHE_FOLDER: {
+                GetId: function () { return getEnvSpecificFolderId( this.Sandbox, this.Prod ); },
+                Sandbox: 8605,
+                Prod: 9114
+            },
         },
         Sublists: {
         }
@@ -983,6 +987,13 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     }
     exports.extractParametersFromRequest = extractParametersFromRequest;
 
+    function getEnvSpecificFolderId(folderIdSb, folderIdProd) {
+        const env = runtime.envType;
+        if (env === runtime.EnvType.SANDBOX) { return folderIdSb; }
+        if (env === runtime.EnvType.PRODUCTION) { return folderIdProd; }
+        return null;
+    }
+    exports.getEnvSpecificFolderId = getEnvSpecificFolderId;
 
     // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
     //     // Store the script ID of the script to submit

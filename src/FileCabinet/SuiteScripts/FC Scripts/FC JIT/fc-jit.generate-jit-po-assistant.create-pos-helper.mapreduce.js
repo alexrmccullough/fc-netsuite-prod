@@ -341,6 +341,7 @@ function summarize(context) {
         }
     });
 
+    let thisUserRec = runtime.getCurrentUser();
 
     // Send the summary email to the user
     let emailBody = buildProcessSummaryEmail(
@@ -350,8 +351,11 @@ function summarize(context) {
     );
 
     email.send({
-        author: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Sender,
-        recipients: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Recipients,
+        author: thisUserRec.id,
+        recipients: [
+            thisUserRec.email,
+            ...FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Recipients
+        ],
         cc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Cc,
         bcc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Bcc,
         body: emailBody,

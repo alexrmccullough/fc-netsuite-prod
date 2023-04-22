@@ -8,10 +8,15 @@
       <feature required="false">CRM</feature>
       <feature required="false">CREATESUITEBUNDLES</feature>
       <feature required="true">SALESORDERS</feature>
+      <feature required="true">RETURNAUTHS</feature>
+      <feature required="true">PURCHASEORDERS</feature>
     </features>
     <objects>
+      <object>customsearch2204</object>
       <object>customsearch_fc_shippinglabel_mainstatic</object>
       <object>customsearch2144</object>
+      <object>customsearch_fc_openposforjitsuppliers1</object>
+      <object>customsearch_fc_ops_sovalidation1_2</object>
       <object>customsearch2161</object>
     </objects>
   </dependencies>

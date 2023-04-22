@@ -130,7 +130,7 @@ function main(queryModule, runtimeModule, ) {
                 }
             },
             AuthorId: runtime.getCurrentUser().id,
-            RecipientsEmails: [],
+            RecipientsEmails: ['procurement@foodconnects.org'],
             CcEmails: [],
             BccEmails: [],
             Subject: 'Food Connects - JIT POs Summary',

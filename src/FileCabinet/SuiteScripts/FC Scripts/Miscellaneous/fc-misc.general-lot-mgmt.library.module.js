@@ -510,6 +510,8 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
             // }
         }
 
+        return true;
+
     }
     exports.doAssignSOLotNumbers = doAssignSOLotNumbers;
 

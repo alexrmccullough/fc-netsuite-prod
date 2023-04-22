@@ -10,42 +10,34 @@
 var
     runtime,
     email,
-    query,
     record,
-    task,
     FCLib,
     FCLotMgmtLib,
     ThisAppLib;
 
 
 define([
-    'N/runtime', 
-    'N/email', 
-    'N/query', 
-    'N/record', 
-    'N/task', 
-    '../Libraries/fc-main.library.module.js', 
+    'N/runtime',
+    'N/email',
+    'N/record',
+    '../Libraries/fc-main.library.module.js',
     './fc-misc.general-lot-mgmt.library.module.js',
     './fc-misc.assign-so-lot-numbers-assistant.library.module.js'
 ], main);
 
 
 function main(
-    runtimeModule, 
-    emailModule, 
-    queryModule, 
-    recordModule, 
-    taskModule, 
-    fcMainLibModule, 
+    runtimeModule,
+    emailModule,
+    recordModule,
+    fcMainLibModule,
     fcLotMgmtLibModule,
     thisAppLibModule
-    ) {
+) {
 
     runtime = runtimeModule;
     email = emailModule;
-    query = queryModule;
     record = recordModule;
-    task = taskModule;
     FCLib = fcMainLibModule;
     FCLotMgmtLib = fcLotMgmtLibModule;
     ThisAppLib = thisAppLibModule;
@@ -60,7 +52,6 @@ function main(
 
 
 function getInputData(context) {
-
     var currentScript = runtime.getCurrentScript();
     var sosToUpdateJsonFileId = currentScript.getParameter({
         name: ThisAppLib.MRSettings.Parameters.SELECTED_SO_JSON_FILE_ID
@@ -75,10 +66,14 @@ function getInputData(context) {
     try {
         // Load the JSON file with the import data
         // Convert it to an array of objects with keys matching the NS fields to be referenced when creating the POs
-
         let soList = FCLib.getTextFileContents(sosToUpdateJsonFileId);
         sosToUpdateInternalIds = JSON.parse(soList);
-       
+
+        // Query the DB to get more detailed main line info about the SOs that we're going to try to update.
+        // We'll have this data on hand for log messages along the way.
+        // Most importantly, we'll have it on hand to email out a detailed process summary email.
+        let sqlSoListQuery = ThisAppLib.Queries.MR_GET_SOS_TO_UPDATE_DETAILS.BuildQuery(sosToUpdateInternalIds);
+        let soListQueryResults = FCLib.sqlSelectAllRows(sqlSoListQuery);
 
     } catch (e) {
         log.error({ title: 'getInputData - error', details: e });
@@ -90,84 +85,35 @@ function getInputData(context) {
         throw e;
     }
 
-    return sosToUpdateInternalIds;
+    return soListQueryResults;
 }
 
 
 function map(context) {
     log.debug({ title: 'map - result', details: context });
 
-    try {
-        let row = JSON.parse(context.value);
+    const soInfo = JSON.parse(context.value);
+    const soInternalId = soInfo[ThisAppLib.Queries.MR_GET_SOS_TO_UPDATE_DETAILS.FieldSet.TranInternalId.fieldid];
 
-        log.debug({ title: 'map - row', details: row });
-
-        // let soInternalId = row[ThisAppLib.Settings.Ui.Step1.Sublists.SO_TABLE.TranId.Label];
-        let soInternalId = row;
-
-        log.debug({ title: 'map - soInternalId', details: soInternalId });
-
-        // let targetKeys = [
-            // ...Object.keys(FCJITGenPoLib.MRSettings.CsvToNsFieldMap),
-        // ];
-
-        // log.debug({ title: 'map - targetKeys', details: targetKeys });
-
-        // let filteredRow = FCLib.pickFromObj(row, targetKeys);
-
-        // log.debug({ title: 'map - filteredRow', details: filteredRow });
-
-        // let sessionFolderId = row.sessionFolderId;
-
-        context.write({
-            key: soInternalId,
-            value: row,
-            success: true
-        });
-
-    } catch (e) {
-        context.write({
-            key: soInternalId,
-            value: row,
-            success: false,
-            errorMsg: e.message
-        });
-        log.error({ title: 'map - error', details: { 'context': context, 'error': e } });
-
-        // FIX: Need to make sure the error makes it through to summarize
-    }
-
+    context.write({
+        key: soInternalId,
+        value: soInfo,
+    });
 }
 
 
 function reduce(context) {
     log.audit({ title: 'reduce - context', details: context });
 
+    var soInternalId = context.key;
+    var soInfo = JSON.parse(context.value);
+    var success = true;
+    var errorMessage = '';
+    var soUpdateSummary = '';
+
     try {
-        // First, check to see if there are any rows with error messages.
-        // //  If so, reject the entire PO and include the error message with the summary. 
-        // let failedRows = [];
-
-        // for (let value of context.values) {
-        //     if (!value.success) {
-        //         failedRows.push(value);
-        //     }
-        // }
-
-        // // let soName = row[ThisAppLib.Settings.Ui.Step1.Sublists.SO_TABLE.TranId.Label]
-
-        // if (failedRows.length > 0) {
-        //     let errorMsg = `Skipping this entire SO (${key}) because the following rows failed to parse:
-        //     ${JSON.stringify(failedRows)}.`;
-        //     throw new Error(errorMsg);
-        // }
-
-        let soInternalId = context.key;
-
         log.debug({ title: 'reduce - soInternalId', details: soInternalId });
 
-        // let soToUpdate = context.values[0];
-        
         // Load the SO Record to pass to the autoAssignLotNumbers function
         let soRecord = record.load({
             type: record.Type.SALES_ORDER,
@@ -176,45 +122,28 @@ function reduce(context) {
         });
 
         soUpdateSummary = FCLotMgmtLib.doAssignSOLotNumbers(soRecord);
-
         soRecord.save();
 
         log.debug({ title: 'reduce - soRecord', details: soRecord });
 
-        let out = {
-            key: context.key,
-            value: {
-                // poRecordId: poId,
-                poExternalId: context.key,
-                updateSummary: soUpdateSummary,
-                success: true,
-            },
-        };
-
-        log.debug({ title: 'reduce - result out 1', details: out });
-
-        context.write(out);
-
     } catch (e) {
         log.error({ title: 'reduce - error', details: { 'context': context, 'error': e } });
-
-        let out = {
-            key: context.key,
-            value: {
-                soRecordId: null,
-                soInternalId: soInternalId,
-                success: false,
-                // sendEmail: false,
-                errorMsg: e.message
-            }
-        };
-
-        context.write(out);
+        success = false;
+        errorMessage = e.message;
     }
 
+    let out = {
+        key: soInternalId,
+        value: {
+            success: success,
+            errorMessage: errorMessage,
+            ...soInfo
+        }
+    };
+
+    context.write(out);
+
 }
-
-
 
 
 function summarize(context) {
@@ -228,104 +157,126 @@ function summarize(context) {
         details: `Time to completion (${context.seconds} seconds), Usage units consumed (${context.usage}), Concurrency (${context.concurrency}), Number of yields (${context.yields})`
     });
 
-    // Two main steps:
-    //   1. Build + send a process summary email to send to the user, summarizing:
-    //          Lots that were assigned to each SO
-    //          Lots that were not assigned
+    // Build and send a detailed summary email of the changes that were applied and the failures that occurred
+    // Build lists of succeeded and failed items
+    let succeededSos = [];
+    let failedSos = [];
 
-    // context.output.iterator().each(function (key, value) {
-    //     let thisVal = JSON.parse(value);
-    //     if (thisVal.success) {
-    //         posSucceeded[thisVal.poExternalId] = thisVal;
-    //         if (thisVal.sendEmail) {
-    //             posToEmail.push(thisVal.poRecordId);
-    //         }
-    //     } else {
-    //         posFailed[thisVal.poExternalId] = {
-    //             row: thisVal,
-    //             errorMsg: thisVal.errorMsg
-    //         };
-    //     }
-    // });
-
-
-    // // Send the summary email to the user
-    // let emailBody = buildProcessSummaryEmail(
-    //     // FIX
-    // );
-
-    // email.send({
-    //     author: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Sender,
-    //     recipients: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Recipients,
-    //     cc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Cc,
-    //     bcc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Bcc,
-    //     body: emailBody,
-    //     subject: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Subject,
-    // });
-
-
-    log.audit({
-        title: 'AutoAssign SO Lot Numbers - summary',
-        details: ''
+    context.output.iterator().each((key, value) => {
+        let changeInfo = JSON.parse(value);
+        if (changeInfo.success) {
+            succeededSos.push(changeInfo);
+        } else {
+            failedSos.push(changeInfo);
+        }
+        return true;
     });
 
+    // Build a formatted table for the email output
+    let htmlSuccessTable = '';
 
+    if (succeededSos.length > 0) {
+        let successFieldDefs = [
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.TranInternalId,
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.TranId,
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.CustomerName,
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.ShipDate,
+        ];
+
+        const successTableStyle = FCLib.Ui.TableStyles.Style1;
+
+        succeededSos = FCLib.sortArrayOfObjsByKeys(
+            succeededSos,
+            [ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.TranId]
+        );
+
+        htmlSuccessTable = FCLib.updatedConvertLookupTableToHTMLTable({
+            data: succeededSos,
+            fieldDefs: successFieldDefs,
+            ...successTableStyle
+        });
+    }
+
+    let htmlFailureTable = '';
+    if (failedSos.length > 0) {
+        let failureFieldDefs = [
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.TranInternalId,
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.TranId,
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.CustomerName,
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.ShipDate,
+            ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.SUCCESS_TABLE.Fields.ErrorMessage,
+        ];
+
+        const failureTableStyle = FCLib.Ui.TableStyles.Style1;
+
+        failedSos = FCLib.sortArrayOfObjsByKeys(
+            failedSos,
+            [ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.FAILURE_TABLE.Fields.TranId]
+        );
+
+        htmlFailureTable = FCLib.updatedConvertLookupTableToHTMLTable({
+            data: failedSos,
+            fieldDefs: failureFieldDefs,
+            ...failureTableStyle
+        });
+    }
+
+    // Build the email body
+    const thisUserRec = runtime.getCurrentUser();
+    let userStr = `${thisUserRec.name} (${thisUserRec.id})`;
+
+    log.debug({ title: 'summarize - SUMMARIZE_EMAIL obj', details: ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL });
+
+    let emailBody = ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.BuildBody(
+        userStr,
+        htmlSuccessTable,
+        htmlFailureTable,
+    );
+
+    log.debug({ title: 'summarize - emailBody', details: emailBody });
+
+    let emailSubject = ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.BuildSubject();
+
+    log.debug({ title: 'summarize - emailSubject', details: emailSubject });
+
+    // Send the email
+    email.send({
+        author: thisUserRec.id,
+        recipients: [
+            thisUserRec.email,
+            ...ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.RecipientsEmails,
+        ],
+        cc: ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.CcEmails,
+        bcc: ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.BccEmails,
+        body: emailBody,
+        subject: emailSubject
+    });
+
+    log.audit({ title: 'Final Process Summary', details: `Succeeded: ${succeededSos.length}, Failed: ${failedSos.length}` });
 }
 
 
+function sendTotalFailureEmail (reason) {
+    let emailBody =
+        `The Autoassign SO Lot Numbers process failed.
+        Reason specified: ${reason ? reason : 'No reason specified.'}`;
+    let thisUserRec = runtime.getCurrentUser();
 
-// function sendTotalFailureEmail (reason) {
-//     let emailBody = 
-//         `The Autoassign SO Lot Numbers process failed.
-//         Reason specified: ${reason ? reason : 'No reason specified.'}`;
+    // FIX
+    email.send({
+        author: thisUserRec.id,
+        recipients: [
+            thisUserRec.email,
+            ...ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.RecipientsEmails,
+        ],
+        cc: ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.CcEmails,
+        bcc: ThisAppLib.MRSettings.Email.SUMMARIZE_EMAIL.BccEmails,
+        body: emailBody,
+        subject: 'Autoassign SO Lot Numbers - Total Process Failure'
+    });
+    return;
+}
 
-//     // FIX
-//     email.send({
-//         author: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Sender,
-//         recipients: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Recipients,
-//         cc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Cc,
-//         bcc: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Bcc,
-//         body: emailBody,
-//         subject: FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Subject,
-//     });
-//     return;
-// }
-
-// function buildProcessSummaryEmail(
-//     posSucceeded = {},
-//     posFailed = {},
-//     posToEmail = {},
-// ) {
-
-//     let posSucceededCount = Object.keys(posSucceeded).length;
-//     let posFailedCount = Object.keys(posFailed).length;
-//     let posToEmailCount = Object.keys(posToEmail).length;
-
-//     let posSucceededList = '';
-//     let posFailedList = '';
-
-//     if (posSucceededCount > 0) {
-//         for (const [key, value] of Object.entries(posSucceeded)) {
-//             posSucceededList += `<li>Internal ID: ${value.poRecordId}, External ID: ${key}</li>`;
-//         }
-//     }
-
-//     if (posFailedCount > 0) {
-//         for (const [key, value] of Object.entries(posFailed)) {
-//             posFailedList += `<li>Internal ID: ${value.poRecordId}, External ID: ${key}, Error: ${value.errorMsg}</li>`;
-//         }
-//     }
-
-//     let emailBody = FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Body.ReplaceAllPlaceholders(
-//         // FCJITGenPoLib.MRSettings.Emails.PoCreationSummary.Body.Template,
-//         posSucceededCount,
-//         posFailedCount,
-//         posSucceededList,
-//         posFailedList,
-//     );
-
-//     return emailBody;
-// }
 
 
 

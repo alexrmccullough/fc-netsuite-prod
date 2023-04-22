@@ -3,18 +3,20 @@ var query,
     runtime,
     email,
     ui,
-    format;
+    format,
+    FCLib;
 
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', 'N/format', 'N/record'], main);
+define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', 'N/format', 'N/record', '../Libraries/fc-main.library.module'], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetModule, formatModule) {
+function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetModule, formatModule, fcLibModule) {
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
     ui = serverWidgetModule;
     format = formatModule;
+    FCLib = fcLibModule;
 
     var exports = {
         Queries: {
@@ -216,8 +218,16 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
 
     var Ids = {
         Folders: {
-            MAIN: 8541,
-            SESSION_RESULTS: 8620,
+            MAIN: {
+                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                Sandbox: 8541,
+                Prod: '??',
+            },
+            SESSION_RESULTS: {
+                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                Sandbox: 8620,
+                Prod: '??',
+            },
         },
         CSVImportMappings: {
             JIT_PO_IMPORT_ASSISTANT_CSVIMPORT: -1
@@ -410,7 +420,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetM
         // const curDateTime = new Date();
         // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
         var resultsFolderName = Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
-        var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, exports.Ids.Folders.SESSION_RESULTS);
+        var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, exports.Ids.Folders.SESSION_RESULTS.GetId());
 
         return resultsFolderId;
     }

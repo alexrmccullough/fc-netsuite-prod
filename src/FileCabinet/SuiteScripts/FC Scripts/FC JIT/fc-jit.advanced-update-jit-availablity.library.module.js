@@ -1,17 +1,20 @@
-var query,
+var log, query,
     task,
     runtime,
     email,
-    ui;
+    ui,
+    FCLib;
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget'], main);
+define(['N/log', 'N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', '../Libraries/fc-main.library.module'], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule, uiModule) {
+function main(logModule, queryModule, taskModule, runtimeModule, emailModule, uiModule, fcLibModule) {
+    log = logModule;
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
     ui = uiModule;
+    FCLib = fcLibModule;
 
     var exports = {
         Form: {
@@ -515,13 +518,13 @@ function main(queryModule, taskModule, runtimeModule, emailModule, uiModule) {
 
     var Ids = {
         Scripts: {
-            MR_JIT_UPDATE: 'customscript_fc_am_jit_mr_updateitemjit',
+            MR_JIT_UPDATE: 'customscript_fc_am_mr_adv_updateitemjit',
         },
         Deployments: {
-            MR_JIT_UPDATE: 'customdeploy_fc_am_jit_mr_updateitemjit',
+            MR_JIT_UPDATE: 'customdeploy_fc_am_mr_adv_updateitemjit',
         },
         Parameters: {
-            JIT_ITEM_UPDATE_CSV_FILEID: 'custscript_fc_am_jit_update_csv_fileid',
+            JIT_ITEM_UPDATE_CSV_FILEID: 'custscript_fc_am_adv_jit_update_csvid',
             // SUBTRACT_FUTURE_SOS_ON_UPDATE: 'custscript_fc_am_jit_subtract_future_sos',
         }
 
@@ -624,6 +627,111 @@ function main(queryModule, taskModule, runtimeModule, emailModule, uiModule) {
 
 
     var Settings = {
+        Email: {
+            SUMMARIZE_EMAIL: {
+                EmailSubject: {
+                    Template: `JIT Availability Update Summary - {{TIMESTAMP}}`,
+                },
+
+                EmailBody: {
+                    Template: `
+                        <p>An imported update to JIT availability has been completed by user: {{USER}}</p>. 
+                        <br>
+                        <h3>Succesfully updated items</h3>
+                        {{SUCCESSFUL_CHANGES}}
+                        <br>
+                        <h3>Failed items</h3>
+                        {{FAILED_CHANGES}}
+                    `,
+                },
+                BuildSubject: function (testVar = '') {
+                    log.debug({title: 'this in BuildSubject', details: this + ', ' + JSON.stringify(this)});
+
+                    let timestamp = FCLib.getStandardDateTimeString1();
+                    let subject = this.EmailSubject.Template;
+                    subject = subject.replace('{{TIMESTAMP}}', timestamp);
+                    return subject;
+                },
+                BuildBody: function (
+                    user = '',
+                    successfulChanges = '',
+                    failedChanges = ''
+                ) {
+                    log.debug({title: 'this in BuildBody', details: this + ', ' + JSON.stringify(this)});
+
+                    let body = this.EmailBody.Template;
+                    body = body.replace('{{USER}}', user);
+                    body = body.replace('{{SUCCESSFUL_CHANGES}}', successfulChanges);
+                    body = body.replace('{{FAILED_CHANGES}}', failedChanges);
+                    return body;
+                },
+
+                AuthorId: runtime.getCurrentUser().id,
+                RecipientsEmails: [],
+                CcEmails: [],
+                // RecipientsEmails: ['procurement@foodconnects.org'],
+                // CcEmails: ['sales@foodconnects.org'],
+                BccEmails: [],
+
+                SUCCESS_TABLE: {
+                    Id: 'custpage_success_table',
+                    Label: 'Successful JIT Availability Updates',
+                    Fields: {
+                        ItemInternalId: {
+                            Label: 'Item Internal Id',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.InternalId]; },
+                        },
+                        ItemName: {
+                            Label: 'Item Name',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.Name]; },
+                        },
+                        ItemDisplayName: {
+                            Label: 'Item Display Name',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.DisplayName]; },
+                        },
+                        StartJitQty: {
+                            Label: 'Start JIT Qty',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.StartJITQty]; },
+                        },
+                        RemainingJitQty: {
+                            Label: 'Remaining JIT Qty',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.RemainingJITQty]; },
+                        },
+                    },
+                },
+
+                FAILURE_TABLE: {
+                    Id: 'custpage_failure_table',
+                    Label: 'Failed JIT Availability Updates',
+                    Fields: {
+                        ItemInternalId: {
+                            Label: 'Item Internal Id',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.InternalId]; },
+                        },
+                        ItemName: {
+                            Label: 'Item Name',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.Name]; },
+                        },
+                        ItemDisplayName: {
+                            Label: 'Item Display Name',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.DisplayName]; },
+                        },
+                        StartJitQty: {
+                            Label: 'Start JIT Qty',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.StartJITQty]; },
+                        },
+                        RemainingJitQty: {
+                            Label: 'Remaining JIT Qty',
+                            GetTableElem: (thisRow) => { return thisRow[FCLib.Ids.Fields.Item.RemainingJITQty]; },
+                        },
+                        ErrorMessage: {
+                            Label: 'Error',
+                            GetTableElem: (thisRow) => { return thisRow.errorMessage; },
+                        },
+                    },
+                },
+            },
+        },
         Ui: {
             Step1: {
                 Main: {
@@ -1015,9 +1123,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, uiModule) {
                                     );
 
                                     let checked = 'checked';
-                                    if ((oldItemStart !== null) && (newItemStart !== null) && 
-                                        (Number(oldItemStart) === Number(newItemStart)) && (Number(oldItemRemain) === Number(newItemRemain))) 
-                                        {
+                                    if ((oldItemStart !== null) && (newItemStart !== null) &&
+                                        (Number(oldItemStart) === Number(newItemStart)) && (Number(oldItemRemain) === Number(newItemRemain))) {
                                         checked = '';
                                     }
                                     return `<input type="checkbox" name="${name}" id="${id}" value='${value}' style="${style}" ${checked}>`;

@@ -231,6 +231,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         `,
         ShipToWidthHtml: `style="width:69%;"`
     };
+    exports.Resources = Resources;
+
 
 
     var LabelFormatting = {
@@ -247,44 +249,10 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         },
 
     };
-
-    var Ids = {
-        Scripts: {
-        },
-        Deployments: {
-        },
-        Searches: {
-        },
-        Fields: {
-        },
-        Sublists: {
-        },
-        Folders: {
-        },
-        Files: {
-        },
-        Parameters: {
-        },
-        CSVImportMappings: {
-        }
-
-    };
-
-
-    var Settings = {
-
-    };
-
-    var TempFields = {
-    };
-
-    exports.Resources = Resources;
-    exports.Ids = Ids;
-    exports.Settings = Settings;
-    exports.TempFields = TempFields;
     exports.LabelFormatting = LabelFormatting;
 
 
+    
     function generateShippingLabelXml(
         printFormat = 'PDF_AVERY_8X11',
         getFromDate = null,

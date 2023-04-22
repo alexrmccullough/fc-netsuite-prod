@@ -575,14 +575,14 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
             'json',
             poAcceptedCacheJsonFilename,
             JSON.stringify(poDataAccepted),
-            FCLib.Ids.Folders.MAIN_TEMP_CACHE_FOLDER
+            FCLib.Ids.Folders.MAIN_TEMP_CACHE_FOLDER.GetId(),
         );
 
         const poRejectedCacheFileId = FCLib.writeFileToFileCabinet(
             'json',
             poRejectedCacheJsonFilename,
             JSON.stringify(poDataRejected),
-            FCLib.Ids.Folders.MAIN_TEMP_CACHE_FOLDER
+            FCLib.Ids.Folders.MAIN_TEMP_CACHE_FOLDER.GetId(),
         );
 
         // Add the file ids to the persistent params
@@ -796,7 +796,7 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
         // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
         var resultsFolderName = ThisAppLib.Settings.IO.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
         try {
-            var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.Ids.Folders.RESULTS);
+            var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.Ids.Folders.RESULTS.GetId());
         }
         catch (e) {
             throw e;

@@ -144,7 +144,7 @@
 			font-weight:500;
 		}
 
-		span.customername {
+		span.vendorname {
 			font-size: 20pt;
 			align: right;
 			text-align: right;
@@ -154,7 +154,7 @@
 			align: right;
 			text-align: right;
 		}
-		span.shipdate {
+		span.duedate {
 			font-size: 18pt;
 			align: right;
 			text-align: right;
@@ -174,18 +174,21 @@
 		}
 </style>
 </head>
-<#assign last_shipmentid = ''>
-<#assign last_frozen = ''>
+
+<#assign prev_shipment = ''>
+<#assign prev_section = ''>
 <#assign record_counter = 1>
-<body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt" padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
 
 <#assign sectionqtycounter = 0>
 <#assign grandtotalcounter = 0>
 
+
+<body padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
+
 <#list results as result>
 
 <#if (record_counter > 1)>
-	<#if ((result.formulatext_1 != last_shipmentid) || (result.formulatext != last_frozen))>
+	<#if (result.formulatext_1 != prev_section)>
 		<tr>
 			<td class="sectiontotal_title" colspan="2">Section Total: </td>
 			<td class="sectiontotal_value">${sectionqtycounter}</td>
@@ -193,48 +196,45 @@
 
 		</table>
 	</#if>
-	<#if (result.formulatext_1 != last_shipmentid)>
-	<table style="width: 100%; margin-top: 0px;">
-		<thead>
-			<tr>
-				<th class="grandtotal_title">GRAND TOTAL: </th>
-				<th class="grandtotal_value">${grandtotalcounter}</th>
-			</tr>
-		</thead>
-	</table>
+	<#if (result.formulatext_2 != prev_shipment)>
+		<table style="width: 100%; margin-top: 0px;">
+			<thead>
+				<tr>
+					<th class="grandtotal_title">GRAND TOTAL:</th>
+					<th class="grandtotal_value">${grandtotalcounter}</th>
+				</tr>
+			</thead>
+		</table>
 
-		<pbr></pbr>
+			<pbr></pbr>
 	</#if>
 </#if>
-<#if (result.formulatext_1 != last_shipmentid)>
-	<#assign grandtotalcounter = 0>
+
+
+<#if (result.formulatext_2 != prev_shipment)>
+<#assign grandtotalcounter = 0>
 	<table class="header" style="width: 100%;">
 		<tr>
 			<td rowspan="2" colspan="2"><#if companyInformation.logoUrl?length != 0><img src="${companyInformation.logoUrl}" style="float: left; margin: 7px; height: 75px; width 90px;"/></#if></td>
-			<td align="left" colspan="3" text-align="left"><span class="doctype">Shipping Ticket</span></td>
+			<td align="left" colspan="3" text-align="right"><span class="doctype">Pickup Ticket</span></td>
 		
 		</tr>
 		<tr>
-			<td align="right" colspan="3" text-align="right"><span class="customername">${result.entity}</span></td>
+			<td align="right" colspan="3" text-align="right"><span class="vendorname">${result.mainname}</span></td>
 		</tr>
+
 		<tr>
 			<td colspan="2"></td>
-			<td align="right" colspan="3" text-align="right"><span class="routename">${result.custbody_rd_so_route}</span></td>
+			<td align="right" colspan="3" text-align="right"><span class="duedate">Receive By: ${result.duedate}</span></td>
 		</tr>
-		<tr>
-			<td colspan="2"></td>
-			<td align="right" colspan="3" text-align="right"><span class="shipdate">${result.shipdate}</span></td>
-		</tr>
-		<tr>
-			<td colspan="5" style="padding-top:6px; font-weight: bold;">Ship To: ${result.shipaddress}</td>
-		</tr>		
 	</table>
 </#if>
-<#if (result.formulatext_1 != last_shipmentid) || (result.formulatext != last_frozen)>
+	
+<#if (result.formulatext_1 != prev_section)>
 	<#assign sectionqtycounter = 0>
 	<table class="darkmode" style="width: 100%; margin-top: 10px; margin-bottom: 0px;">
 		<tr>
-			<td style="width: 15%; font-weight: 700">${result.formulatext} </td>
+			<td style="width: 15%; font-weight: 700">${result.formulatext_3}</td>
 		</tr>
 	</table>
 	<table class="itemtable" style="width: 100%; margin-top: 0px;">
@@ -242,7 +242,7 @@
 			<tr>
 				<th class="quantity">Quantity</th>
 				<th class="iteminfo">Item Name</th>
-				<th class="sodetails">SO Detail</th>
+				<th class="podetails">PO Detail</th>
 			</tr>
 		</thead>
 </#if>
@@ -251,14 +251,15 @@
 <tr>
 	<td class="quantity">${result.quantity}</td>
 	<td class="iteminfo"><span class="itemname">${result.itemid}</span><br/>${result.displayname}</td>
-	<td class="sodetails">${result.formulatext_2}</td>
+	<td class="podetails">${result.formulatext_4}</td>
 </tr>
+
 
 <#assign sectionqtycounter = sectionqtycounter + result.quantity>
 <#assign grandtotalcounter = grandtotalcounter + result.quantity>
 
-<#assign last_shipmentid = result.formulatext_1>
-<#assign last_frozen = result.formulatext>
+<#assign prev_section = result.formulatext_1>
+<#assign prev_shipment = result.formulatext_2>
 <#assign record_counter++>
 </#list>
 </table>

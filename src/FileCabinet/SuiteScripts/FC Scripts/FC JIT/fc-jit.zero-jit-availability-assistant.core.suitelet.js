@@ -8,9 +8,7 @@ var modulePathJitAvailUpdateLibrary = './fc-jit.update-jit-availablity.library.m
 var modulePathThisAppLibrary = './fc-jit.zero-jit-availability-assistant.library.module.js';
 
 var
-    file,
     log,
-    record,
     runtime,
     serverWidget,
     url,
@@ -20,13 +18,11 @@ var
     Papa;
 
 
-define(['N/file', 'N/log', 'N/record', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitAvailUpdateLibrary, modulePathThisAppLibrary, '../Libraries/papaparse.min.js'], main);
+define(['N/log', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitAvailUpdateLibrary, modulePathThisAppLibrary, '../Libraries/papaparse.min.js'], main);
 
 
 function main(
-    fileModule,
     logModule,
-    recordModule,
     runtimeModule,
     serverWidgetModule,
     urlModule,
@@ -35,9 +31,7 @@ function main(
     thisAppLibraryModule,
     papaModule
 ) {
-    file = fileModule;
     log = logModule;
-    record = recordModule;
     runtime = runtimeModule;
     serverWidget = serverWidgetModule;
     url = urlModule;
@@ -135,7 +129,21 @@ function main(
         let sqlVendorJitAvailQueryText = ThisAppLib.Queries.GET_VENDOR_JIT_SUMMARY.Query;
         let vendorJitResults = FCLib.sqlSelectAllRows(sqlVendorJitAvailQueryText);
 
-        let tableHtml = buildVendorSelectList(context, vendorJitResults);
+        // Build the table html
+        const fieldDefs = ThisAppLib.Ui.Step1.Sublists.SELECT_VENDORS_TO_ZERO.Fields;
+        const tableFields = [
+            fieldDefs.CB_Select,
+            fieldDefs.VendorInternalId,
+            fieldDefs.VendorName,
+            fieldDefs.VendorHasJitItemsRemaining,
+            fieldDefs.VendorItemCountJitRemaining,
+        ];
+
+        let tableHtml = FCLib.updatedConvertLookupTableToHTMLTable({
+            data: vendorJitResults,
+            fieldDefs: tableFields,
+            ...FCLib.Ui.TableStyles.Style1
+        });
 
         // Add an inline html field to the assistant and inject the table html
         let vendorTable = assistant.addField({
@@ -150,15 +158,14 @@ function main(
     function writeStep2ReviewAndConfirm(context, assistant) {
         let params = context.request.parameters;
 
-        // FIX: Get these search functions into an FCLib function?
-        let vendorsSelected = Object.entries(params).reduce(
-            (matched, [paramName, value]) => {
-                if (ThisAppLib.Settings.Ui.Parameters.SELECT_VENDOR_CHECKBOX_ID.looksLike(paramName)) {
-                    return [...matched, value];
-                }
-                return matched;
-            }, []
+        // Get the selected vendors
+        const vendorSelectedParams = FCLib.extractParametersFromRequest(
+            params,
+            ThisAppLib.Ui.Step1.Parameters.SELECT_VENDOR_CHECKBOX_ID.looksLike,
+            ThisAppLib.Ui.Step1.Parameters.SELECT_VENDOR_CHECKBOX_ID.parse,
         );
+
+        const vendorsSelected = Object.values(vendorSelectedParams);
 
         // Add an inline html field to the assistant and inject the table html
         let itemTable = assistant.addField({
@@ -170,12 +177,28 @@ function main(
 
         // If the user selected vendors, run a query to get the items for those vendors and build a table
         if (vendorsSelected.length > 0) {
-            let sqlVendorItemDetailQuery = ThisAppLib.buildQueryGetVendorItemDetails(
+            let sqlVendorItemDetailQuery = ThisAppLib.Queries.GET_VENDOR_ITEM_DETAILS.BuildQuery(
                 vendorsSelected
             );
 
             let vendorItemDetailResults = FCLib.sqlSelectAllRows(sqlVendorItemDetailQuery);
-            let tableHtml = buildVendorItemDetailTable(context, vendorItemDetailResults);
+            const fieldDefs = ThisAppLib.Ui.Step2.Sublists.SELECT_ITEMS_TO_ZERO.Fields;
+            const tableFields = [
+                fieldDefs.CB_Select,
+                fieldDefs.VendorName,
+                fieldDefs.ItemInternalId,
+                fieldDefs.ItemName,
+                fieldDefs.ItemDisplayName,
+                fieldDefs.RemainJitQty,
+                fieldDefs.StartJitQty,
+            ];
+
+            let tableHtml = FCLib.updatedConvertLookupTableToHTMLTable({
+                data: vendorItemDetailResults,
+                fieldDefs: tableFields,
+                ...FCLib.Ui.TableStyles.Style1
+            });
+
             itemTable.defaultValue = tableHtml;
         }
 
@@ -191,15 +214,14 @@ function main(
     function writeResult(context, assistant) {
         let params = context.request.parameters;
 
-        // FIX: Get these search functions into an FCLib function?
-        let itemsSelected = Object.entries(params).reduce(
-            (matched, [paramName, value]) => {
-                if (ThisAppLib.Settings.Ui.Parameters.SELECT_ITEM_CHECKBOX_ID.looksLike(paramName)) {
-                    return [...matched, value];
-                }
-                return matched;
-            }, []
+        // Get the selected vendors
+        const itemsSelectedParams = FCLib.extractParametersFromRequest(
+            params,
+            ThisAppLib.Ui.Step2.Parameters.SELECT_ITEM_CHECKBOX_ID.looksLike,
+            ThisAppLib.Ui.Step2.Parameters.SELECT_ITEM_CHECKBOX_ID.parse,
         );
+
+        const itemsSelected = Object.values(itemsSelectedParams);
 
         // Build a CSV file mapping every item to:
         //    startjitqty: 0
@@ -247,8 +269,6 @@ function main(
     }
 
 
-
-
     function writeCancel(context, assistant) {
         return `
             <h1>JIT PO Email Assistant cancelled</h1>
@@ -256,71 +276,10 @@ function main(
             `;
     }
 
-
-    function buildVendorSelectList(context, vendorQueryResults) {
-        let fieldDefs = ThisAppLib.Settings.Ui.Sublists.SELECT_VENDORS_TO_ZERO.Fields;
-
-        let formattedRows = FCLib.formatQueryRowsOnFieldDefs(fieldDefs, vendorQueryResults);
-
-
-        let tableHeaders = Object.keys(fieldDefs).map((key) => fieldDefs[key].Label);
-        let selectCheckboxInputSpecs = {
-            htmlElem: 'checkbox',
-            valueSourceField: fieldDefs.VendorInternalId.Label,
-            checkedSourceField: fieldDefs.Select.Label,
-            fieldDisplayName: fieldDefs.Select.Label,
-            idPrefixPart1Str: ThisAppLib.Settings.Ui.Parameters.SELECT_VENDOR_CHECKBOX_ID.prefix,
-            idPrefixPart2Str: '',
-            idUniqueSuffixSourceField: fieldDefs.VendorInternalId.Label,
-        };
-
-        let tableHtml = FCLib.convertObjToHTMLTableStylized({
-            fields: tableHeaders,
-            data: formattedRows,
-            specialElems: [selectCheckboxInputSpecs],
-            hideFields: {
-                [fieldDefs.Select.Label]: true,
-            },
-        });
-
-        return tableHtml;
-
-    }
-
-    function buildVendorItemDetailTable(context, itemQueryResults) {
-        let fieldDefs = ThisAppLib.Settings.Ui.Sublists.SELECT_ITEMS_TO_ZERO.Fields;
-        let formattedRows = FCLib.formatQueryRowsOnFieldDefs(fieldDefs, itemQueryResults);
-        let tableHeaders = Object.keys(fieldDefs).map((key) => fieldDefs[key].Label);
-
-        let selectCheckboxInputSpecs = {
-            htmlElem: 'checkbox',
-            valueSourceField: fieldDefs.ItemId.Label,
-            checkedSourceField: fieldDefs.Select.Label,
-            fieldDisplayName: fieldDefs.Select.Label,
-            idPrefixPart1Str: ThisAppLib.Settings.Ui.Parameters.SELECT_ITEM_CHECKBOX_ID.prefix,
-            idPrefixPart2Str: '',
-            idUniqueSuffixSourceField: fieldDefs.ItemId.Label,
-        };
-
-        let tableHtml = FCLib.convertObjToHTMLTableStylized({
-            fields: tableHeaders,
-            data: formattedRows,
-            specialElems: [selectCheckboxInputSpecs],
-            hideFields: {
-                [fieldDefs.Select.Label]: true,
-            },
-        });
-
-        return tableHtml;
-
-    }
-
     function createSessionSubfolder(context, date = new Date()) {
         const curDateTimeStr = FCLib.getStandardDateTimeString1(date);
-        // const curDateTime = new Date();
-        // const curDateTimeStr = curDateTime.toISOString().replace(/:/g, '-');
         var resultsFolderName = ThisAppLib.Settings.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
-        var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.Ids.Folders.RESULTS);
+        var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.Ids.Folders.RESULTS.GetId());
 
         return resultsFolderId;
     }

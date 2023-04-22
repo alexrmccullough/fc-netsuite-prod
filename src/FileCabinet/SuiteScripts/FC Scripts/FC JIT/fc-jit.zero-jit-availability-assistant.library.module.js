@@ -35,6 +35,9 @@ function main(serverWidgetModule, urlModule) {
                     ORDER BY 
                         Vendor.companyname
                 `,
+                BuildQuery: function () {
+                    return this.Query;
+                },
                 FieldSet1: {
                     VendorInternalId: {
                         fieldid: 'vendorid',
@@ -80,14 +83,14 @@ function main(serverWidgetModule, urlModule) {
                         Item.displayName
                 `,
                 Filters: {
-                    VendorIds: {
-                        ParamPlaceholder: '@@VENDOR_IDS@@',
-                        QueryLinePlaceholders: {
-                            '@@VENDOR_ID_FILTER1@@': 'AND ItemVendor.vendor IN (@@VENDOR_IDS@@)',
-                            // '@@PO_ID_FILTER_2@@': 'WHERE (InventoryAssignment.transaction = @@PO_ID@@)',
-                        },
-                    },
+                    VendorIds: 'AND ItemVendor.vendor IN (@@VENDOR_IDS@@)',
                 },
+                BuildQuery: function (vendorIds = null) {
+                    const vendorIdStr = vendorIds ? vendorIds.map(id => `'${id}'`).join(',') : '';
+                    const vendorFilterLine = this.Filters.VendorIds.replace('@@VENDOR_IDS@@', vendorIdStr);
+                    return this.Query.replace('@@VENDOR_ID_FILTER1@@', vendorFilterLine);
+                },
+
                 FieldSet1: {
                     ItemId: {
                         fieldid: 'iteminternalid',
@@ -133,170 +136,151 @@ function main(serverWidgetModule, urlModule) {
         Folders: {
             // PROD
             // RESULTS: 8141,
-            RESULTS: 8546,
+            RESULTS: {
+                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                Sandbox: 8546,
+                Prod: '??',
+            },
         },
     };
     exports.Ids = Ids;
 
 
-    var Settings = {
-        SESSION_RESULTS_FOLDER_NAME_PREFIX: 'Zero_JIT_Availability_',
-        ZERO_AVAILABILITY_CSV_FILENAME_PREFIX: 'Zero_JIT_Availability_Items_',
-
-
-        Ui: {
+    var Ui = {
+        Step1: {
             Parameters: {
                 SELECT_VENDOR_CHECKBOX_ID: {
                     prefix: 'custpage_selectvendor_cb_',
-                    build: (poId) => { return 'custpage_selectvendor_cb_' + poId; },
+                    build: (vendorId) => { return 'custpage_selectvendor_cb_' + vendorId; },
                     looksLike: (val) => { return val.startsWith('custpage_selectvendor_cb_'); },
+                    parse: (val) => { return val.replace('custpage_selectvendor_cb_', ''); },
                 },
+            },
+            Sublists: {
+                SELECT_VENDORS_TO_ZERO: {
+                    Id: 'custpage_select_vendors_to_zero_sublist',
+                    Label: 'Select Vendors to Zero',
+                    Fields: {
+                        CB_Select: {
+                            Label: 'Select',
+                            GetTableElem: function (thisRow) {
+                                const queryFields = exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1;
+                                const vendorId = thisRow[queryFields.VendorInternalId.fieldid];
+                                const name = exports.Ui.Step1.Parameters.SELECT_VENDOR_CHECKBOX_ID.build(vendorId);
+                                const id = name;
+                                const value = vendorId;
+                                const style = FCLib.Ui.CheckboxStyles.Style1;
+                                const defaultState = '';
+
+                                return `<input type="checkbox" name="${name}" id="${id}" value="${value}" style="${style}" ${defaultState}>`;
+                            },
+                        },
+                        VendorInternalId: {
+                            Label: 'Vendor Internal ID',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1.VendorInternalId.fieldid] || '';
+                            },
+                        },
+                        VendorName: {
+                            Label: 'Vendor Name',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1.VendorName.fieldid] || '';
+                            },
+                        },
+                        VendorHasJitItemsRemaining: {
+                            Label: 'Has JIT Items with Availability?',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1.HasItemsJitRemaining.fieldid] || '';
+                            }
+                        },
+                        VendorItemCountJitRemaining: {
+                            Label: 'Count JIT Items with Availability',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1.CountItemsWithJitRemaining.fieldid] || '';
+                            }
+                        },
+                    },
+                },
+            },
+        },
+        Step2: {
+            Parameters: {
                 SELECT_ITEM_CHECKBOX_ID: {
                     prefix: 'custpage_selectitem_cb_',
                     build: (itemId) => { return 'custpage_selectitem_cb_' + itemId; },
                     looksLike: (val) => { return val.startsWith('custpage_selectitem_cb_'); },
+                    parse: (val) => { return val.replace('custpage_selectitem_cb_', ''); },
                 },
-            },
-            FieldDataFormat: {
             },
             Sublists: {
-                SELECT_VENDORS_TO_ZERO: {
-                    Id: 'custpage_sublist_vendor_jit_availability_summary',
-                    Label: 'Vendor JIT Availability Summary',
-                    Fields: {
-                        Select: {
-                            Type: ui.FieldType.CHECKBOX,
-                            Label: 'Select',
-                            Id: 'custpage_select_vendor_sublist_field_select',
-                            DefaultValue: 'unchecked',
-                            DisplayType: serverWidget.FieldDisplayType.NORMAL,
-                        },
-                        VendorInternalId: {
-                            Type: ui.FieldType.TEXT,
-                            Label: 'Vendor Internal ID',
-                            Id: 'custpage_select_vendor_sublist_field_vendorinternalid',
-                            QuerySource: exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1.VendorInternalId,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
-                        },
-                        VendorName: {
-                            Type: ui.FieldType.TEXT,
-                            Label: 'PO Internal ID',
-                            Id: 'custpage_select_vendor_sublist_field_vendorname',
-                            QuerySource: exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1.VendorName,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
-                        },
-                        VendorHasJitItemsRemaining: {
-                            Type: ui.FieldType.TEXT,
-                            Label: 'Has JIT Items with Availability?',
-                            Id: 'custpage_select_vendor_sublist_field_vendorhasjititemsremaining',
-                            QuerySource: exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1.HasItemsJitRemaining,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
-                        },
-                        VendorItemCountJitRemaining: {
-                            Type: ui.FieldType.TEXT,
-                            Label: 'Count of JIT Items with Availability',
-                            Id: 'custpage_select_vendor_sublist_field_vendoritemcountjitremaining',
-                            QuerySource: exports.Queries.GET_VENDOR_JIT_SUMMARY.FieldSet1.CountItemsWithJitRemaining,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
-
-                        },
-                    },
-                },
                 SELECT_ITEMS_TO_ZERO: {
-                    Id: 'custpage_sublist_select_items_to_zero',
-                    Label: 'Confirm Items to Zero',
+                    Id: 'custpage_select_items_to_zero_sublist',
+                    Label: 'Select Items to Zero',
                     Fields: {
-                        Select: {
-                            Type: ui.FieldType.CHECKBOX,
+                        CB_Select: {
                             Label: 'Select',
-                            Id: 'custpage_select_item_to_zero_select',
-                            DefaultValue: 'checked',
-                            DisplayType: serverWidget.FieldDisplayType.NORMAL,
+                            GetTableElem: function (thisRow) {
+                                const queryFields = exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1;
+                                const itemInternalId = thisRow[queryFields.ItemId.fieldid];
+                                const name = exports.Ui.Step2.Parameters.SELECT_ITEM_CHECKBOX_ID.build(itemInternalId);
+                                const id = name;
+                                const value = itemInternalId;
+                                const style = FCLib.Ui.CheckboxStyles.Style1;
+                                const defaultState = 'checked';
+
+                                return `<input type="checkbox" name="${name}" id="${id}" value="${value}" style="${style}" ${defaultState}>`;
+                            },
                         },
-                        // VendorInternalId: {
-                        //     Type: ui.FieldType.TEXT,
-                        //     Label: 'Vendor Internal ID',
-                        //     Id: 'custpage_select_vendor_sublist_field_vendorinternalid',
-                        //     QuerySource: exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.VendorInternalId,
-                        //     DisplayType: serverWidget.FieldDisplayType.DISABLED,
-                        // },
                         VendorName: {
-                            Type: ui.FieldType.TEXT,
                             Label: 'Vendor Name',
-                            Id: 'custpage_select_vendor_sublist_field_vendorname',
-                            QuerySource: exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.VendorName,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.VendorName.fieldid] || '';
+                            },
                         },
-                        ItemId: {
-                            Type: ui.FieldType.TEXT,
-                            Label: 'Item ID',
-                            Id: 'custpage_select_item_to_zero_field_itemid',
-                            QuerySource: exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.ItemId,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                        ItemInternalId: {
+                            Label: 'Item Internal ID',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.ItemId.fieldid] || '';
+                            },
                         },
                         ItemName: {
-                            Type: ui.FieldType.TEXT,
                             Label: 'Item Name',
-                            Id: 'custpage_select_item_to_zero_field_itemname',
-                            QuerySource: exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.ItemName,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.ItemName.fieldid] || '';
+                            },
                         },
                         ItemDisplayName: {
-                            Type: ui.FieldType.TEXT,
                             Label: 'Item Display Name',
-                            Id: 'custpage_select_item_to_zero_field_itemdisplayname',
-                            QuerySource: exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.ItemDisplayName,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.ItemDisplayName.fieldid] || '';
+                            },
                         },
                         RemainJitQty: {
-                            Type: ui.FieldType.TEXT,
-                            Label: 'Current Remain JIT Qty',
-                            Id: 'custpage_select_item_to_zero_field_remainjitqty',
-                            QuerySource: exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.RemainJitQty,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            Label: 'Remaining JIT Qty',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.RemainJitQty.fieldid] || '';
+                            },
                         },
                         StartJitQty: {
-                            Type: ui.FieldType.TEXT,
-                            Label: 'Current Start JIT Qty',
-                            Id: 'custpage_select_item_to_zero_field_startjitqty',
-                            QuerySource: exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.StartJitQty,
-                            DisplayType: serverWidget.FieldDisplayType.DISABLED,
+                            Label: 'Starting JIT Qty',
+                            GetTableElem: function (thisRow) {
+                                return thisRow[exports.Queries.GET_VENDOR_ITEM_DETAILS.FieldSet1.StartJitQty.fieldid] || '';
+                            },
                         },
-                        
                     },
                 },
             },
         },
     };
+    exports.Ui = Ui;
+
+
+    var Settings = {
+        SESSION_RESULTS_FOLDER_NAME_PREFIX: 'Zero_JIT_Availability_',
+        ZERO_AVAILABILITY_CSV_FILENAME_PREFIX: 'Zero_JIT_Availability_Items_',
+    };
     exports.Settings = Settings;
 
-
-    function buildQueryGetVendorItemDetails(vendorIds = null) {
-        let sqlQuery = exports.Queries.GET_VENDOR_ITEM_DETAILS.Query;
-
-        // Prepare filter varialbes
-        let vendorIdsStr = vendorIds === null ? '' : vendorIds.join(',');
-
-        // Build the filter strings and insert into query
-        for (let queryPlaceholder in exports.Queries.GET_VENDOR_ITEM_DETAILS.Filters.VendorIds.QueryLinePlaceholders) {
-            let filterText = '';
-            
-            if (vendorIdsStr !== '') {
-                filterText = exports.Queries.GET_VENDOR_ITEM_DETAILS.Filters.VendorIds.QueryLinePlaceholders[queryPlaceholder].replace(
-                    exports.Queries.GET_VENDOR_ITEM_DETAILS.Filters.VendorIds.ParamPlaceholder,
-                    vendorIdsStr
-                );
-            }
-
-            sqlQuery = sqlQuery.replace(
-                queryPlaceholder,
-                filterText
-            );
-        }
-
-        return sqlQuery;
-    }
-    exports.buildQueryGetVendorItemDetails = buildQueryGetVendorItemDetails;
 
 
     return exports;

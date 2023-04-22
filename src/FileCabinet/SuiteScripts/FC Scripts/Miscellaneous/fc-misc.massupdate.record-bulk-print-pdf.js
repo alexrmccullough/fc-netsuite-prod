@@ -18,7 +18,7 @@ define([
 
 		function each(params) {
 			try {
-				const OUTPUT_PARENT_FOLDER_ID = ThisAppLib.OUTPUT_FOLDER_ID;   
+				const OUTPUT_PARENT_FOLDER_ID = ThisAppLib.OUTPUT_FOLDER_ID;
 
 				// const condensedDate = FCLib.getStandardDateString1();
 				const condensedDate = dayjs().format('YYYYMMDD');
@@ -30,14 +30,14 @@ define([
 				let outfolderId = null;
 
 				const sqlOutfolderQuery = `
-				SELECT
-					MediaItemFolder.id
-				FROM
-					MediaItemFolder
-				WHERE
-					MediaItemFolder.parent = '${OUTPUT_PARENT_FOLDER_ID}' 
-					AND MediaItemFolder.name = '${outfolderName}'
-				`;
+					SELECT
+						MediaItemFolder.id
+					FROM
+						MediaItemFolder
+					WHERE
+						MediaItemFolder.parent = '${OUTPUT_PARENT_FOLDER_ID}' 
+						AND MediaItemFolder.name = '${outfolderName}'
+					`;
 				let sqlOutfolderResult = FCLib.sqlSelectAllRows(sqlOutfolderQuery);
 				if (sqlOutfolderResult && sqlOutfolderResult.length > 0) {
 					outfolderId = sqlOutfolderResult[0].id;
@@ -49,12 +49,12 @@ define([
 
 
 				let sqlFileCountQuery = `
-				SELECT
-					COUNT(File.id) AS filecount
-					FROM 
-						File 
-					WHERE ( Folder = ${outfolderId} ) AND ( Name LIKE '%.pdf' )
-			`;
+					SELECT
+						COUNT(File.id) AS filecount
+						FROM 
+							File 
+						WHERE ( Folder = ${outfolderId} ) AND ( Name LIKE '%.pdf' )
+					`;
 
 				let fileCount = FCLib.sqlSelectAllRows(sqlFileCountQuery)[0].filecount;
 
