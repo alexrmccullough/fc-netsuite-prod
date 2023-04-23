@@ -340,11 +340,6 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         // Save the record.
         var folderId = objRecord.save();
         return folderId;
-
-        // // Get the record.
-        // let result = record.load({ type: record.Type.FOLDER, id: folderId, isDynamic: false });
-
-        // return result;
     }
     exports.createFolderInFileCabinet = createFolderInFileCabinet;
 
@@ -379,12 +374,16 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         switch (type) {
             case 'csv':
                 type = file.Type.CSV;
+                break;
             case 'json':
                 type = file.Type.JSON;
+                break;
             case 'pdf':
                 type = file.Type.PDF;
+                break;
             case 'plain_text':
                 type = file.Type.PLAINTEXT;
+                break;
         }
 
         let fileObj = file.create({
@@ -1003,58 +1002,6 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         return null;
     }
     exports.getEnvSpecificFolderId = getEnvSpecificFolderId;
-
-    // function submitMapReduceTask(mrScriptId, mrDeploymentId, params) {
-    //     // Store the script ID of the script to submit
-    //     //
-    //     // Update the following statement so it uses the script ID
-    //     // of the map/reduce script record you want to submit
-    //     const mapReduceScriptId = mrScriptId;
-
-    //     // Create a map/reduce task
-    //     //
-    //     // Update the deploymentId parameter to use the script ID of
-    //     // the deployment record for your map/reduce script
-    //     let mrTask = task.create({
-    //         taskType: task.TaskType.MAP_REDUCE,
-    //         scriptId: mrScriptId,
-    //         deploymentId: mrDeploymentId,
-    //         params: params
-    //     });
-
-    //     // Submit the map/reduce task
-    //     let mrTaskId = mrTask.submit();
-
-    //     // Check the status of the task, and send an email if the
-    //     // task has a status of FAILED
-    //     //
-    //     // Update the authorId value with the internal ID of the user
-    //     // who is the email sender. Update the recipientEmail value
-    //     // with the email address of the recipient.
-    //     let taskStatus = task.checkStatus(mrTaskId);
-    //     if (taskStatus.status === 'FAILED') {
-    //         const authorId = -5;
-    //         const recipientEmail = 'notify@myCompany.com';
-    //         email.send({
-    //             author: authorId,
-    //             recipients: recipientEmail,
-    //             subject: 'Failure executing map/reduce job!',
-    //             body: 'Map reduce task: ' + mapReduceScriptId + ' has failed.'
-    //         });
-    //     }
-
-    //     // Retrieve the status of the search task
-    //     let taskStatus2 = task.checkStatus({
-    //         taskId: myTaskId
-    //     });
-
-    //     // Optionally, add logic that executes when the task is complete
-    //     if (taskStatus.status === task.TaskStatus.COMPLETE) {
-    //         // Add any code that is appropriate. For example, if this script created
-    //         // a saved search, you may want to delete it.
-    //     }
-    // }
-
 
 
     return exports;
