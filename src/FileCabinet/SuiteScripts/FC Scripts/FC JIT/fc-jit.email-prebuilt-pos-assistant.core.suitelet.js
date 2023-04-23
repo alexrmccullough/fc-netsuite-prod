@@ -26,16 +26,16 @@ var
 // stepSelectOptions;
 
 
-define(['N/file', 
-    'N/log', 
-    'N/query', 
-    'N/record', 
-    'N/runtime', 
-    'N/ui/serverWidget', 
-    'N/url', 
-    '../Libraries/fc-main.library.module', 
-    modulePathThisAppLibrary, 
-    modulePathShipLabelLibrary, 
+define(['N/file',
+    'N/log',
+    'N/query',
+    'N/record',
+    'N/runtime',
+    'N/ui/serverWidget',
+    'N/url',
+    '../Libraries/fc-main.library.module',
+    modulePathThisAppLibrary,
+    modulePathShipLabelLibrary,
     modulePathBulkEmailProcessLibrary
 ], main);
 
@@ -139,9 +139,9 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         var today = new Date();
 
         var captureSosStartDate = assistant.addField({
-            id: ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID,
+            id: ThisAppLib.Settings.Ui.Step1.Parameters.CAPTURE_SOS_START_DATE_ID,
             type: serverWidget.FieldType.DATE,
-            label: ThisAppLib.Settings.Ui.Fields.CAPTURE_SOS_START_DATE_LABEL,
+            label: ThisAppLib.Settings.Ui.Step1.Fields.CAPTURE_SOS_START_DATE_LABEL,
         });
         captureSosStartDate.isMandatory = true;
 
@@ -149,31 +149,56 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         // captureSosStartDate.defaultValue = today;
 
         var captureSosEndDate = assistant.addField({
-            id: ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID,
+            id: ThisAppLib.Settings.Ui.Step1.Parameters.CAPTURE_SOS_END_DATE_ID,
             type: serverWidget.FieldType.DATE,
-            label: ThisAppLib.Settings.Ui.Fields.CAPTURE_SOS_END_DATE_LABEL,
+            label: ThisAppLib.Settings.Ui.Step1.Fields.CAPTURE_SOS_END_DATE_LABEL,
         });
         captureSosEndDate.isMandatory = true;
 
 
         // Check if we have been passed a list of POs
         let poIds = null;
-        if (ThisAppLib.Settings.Ui.Parameters.INPUT_PREBUILT_PO_IDS in params) {
-            poIds = params[ThisAppLib.Settings.Ui.Parameters.INPUT_PREBUILT_PO_IDS].split(',');
+        if (ThisAppLib.Settings.Ui.Step1.Parameters.INPUT_PREBUILT_PO_IDS in params) {
+            poIds = params[ThisAppLib.Settings.Ui.Step1.Parameters.INPUT_PREBUILT_PO_IDS].split(',');
         }
 
-        let sqlQuery = ThisAppLib.buildQueryBasicUnsentJitPo({
-            // filterJitUnsent: poIds == null ? true : false,
-            filterJitUnsent: false,
-            poIds: poIds,
-        });
+        let sqlQuery = ThisAppLib.Queries.GET_BASIC_UNSENT_PO_INFO.BuildQuery(
+            false,
+            poIds
+        );
 
         // Run the query
         let queryResults = FCLib.sqlSelectAllRows(sqlQuery);
 
-        // Build an INLINEHTML field, create a PO table, and inject the HTML into the table
-        let tableHtml = buildPoSelectHtmlList(context, queryResults);
+        // Sort the results by due date > vendor name
+        queryResults = FCLib.sortArrayOfObjsByKeys(
+            queryResults,
+            [
+                ThisAppLib.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.duedate,
+                ThisAppLib.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.vendorname,
+            ],
+        );
 
+        // Build a HTML table to display the PO selection list
+        const fieldDefObj = ThisAppLib.Settings.Ui.Step1.Sublists.UNSENT_POS_SELECT.Fields;
+        const fieldDefs = [
+            fieldDefObj.CB_Select,
+            fieldDefObj.PoInternalId,
+            fieldDefObj.PoExternalId,
+            fieldDefObj.PoName,
+            fieldDefObj.TransactionDate,
+            fieldDefObj.DueDate,
+            fieldDefObj.VendorName,
+            fieldDefObj.TotalAmount,
+        ];
+
+        const tableStyle = FCLib.Ui.TableStyles.Style1;
+
+        const tableHtml = FCLib.updatedConvertLookupTableToHTMLTable({
+            data: queryResults,
+            fieldDefs: fieldDefs,
+            ...tableStyle,
+        });
 
 
         let poTable = assistant.addField({
@@ -185,34 +210,23 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
 
 
         assistant.clientScriptModulePath = './fc-jit.email-prebuilt-pos-assistant.core.client.js';
-
-
     }
 
+
+
     function writeStep2ReviewAndConfirm(context, assistant) {
-        // Get date parameters
-        // var persistentParams = {
-        //     [ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
-        //     [ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
-        //     [ThisAppLib.Settings.Ui.Parameters.SELECT_PO_IDS_FINAL]: context.request.parameters[ThisAppLib.Settings.Ui.Parameters.SELECT_PO_IDS_FINAL],
-        // };
-
-        // var soStartDate = context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID];
-        // var soEndDate = context.request.parameters[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID];
-        // var sendAllPosByDefault = context.request.parameters[ThisAppLib.Settings.Ui.Parameters.ENABLE_SEND_ALL_POS_BY_DEFAULT_ID];
-
         let debugHtml = '';
         let params = context.request.parameters;
 
         // Get PO IDs from checkbox values submitted via POST
-        let poIdsSelected = Object.entries(params).reduce(
-            (matched, [paramName, value]) => {
-                if (ThisAppLib.Settings.Ui.Parameters.SELECT_PO_ID_CHECKBOX_ID.looksLike(paramName)) {
-                    return [...matched, value];
-                }
-                return matched;
-            }, []
+        let poIdsSelected = [];
+
+        let checkboxesSelected = FCLib.extractParametersFromRequest(
+            params,
+            ThisAppLib.Settings.Ui.Step1.Parameters.SELECT_PO_ID_CHECKBOX_ID.looksLike,
         );
+
+        poIdsSelected = Object.values(checkboxesSelected);
 
         // If no POs selected, write a simple message and return
         if (poIdsSelected.length == 0) {
@@ -232,7 +246,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
             return;
         }
 
-
         // Build list of PO items counts
         //   Item Internal ID / Item Quantity
         //   Filter by:
@@ -244,7 +257,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         //  2. Run query/search for JIT label data
 
         // Run query on PO transactions for JIT items
-        let sqlQuery = ThisAppLib.buildQueryGetItemInfoFromPos(poIdsSelected);
+        let sqlQuery = ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.BuildQuery(poIdsSelected);
 
         debugHtml += `<pre>sqlQuery: ${sqlQuery}</pre><br><br>`;
 
@@ -279,8 +292,8 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         let soShipLabelSearchFilters = {
             vendorInternalIds: Object.values(vendorInfo),
             itemIsJit: true,
-            soShipStartDate: params[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_START_DATE_ID],
-            soShipEndDate: params[ThisAppLib.Settings.Ui.Parameters.CAPTURE_SOS_END_DATE_ID],
+            soShipStartDate: params[ThisAppLib.Settings.Ui.Step1.Parameters.CAPTURE_SOS_START_DATE_ID],
+            soShipEndDate: params[ThisAppLib.Settings.Ui.Step1.Parameters.CAPTURE_SOS_END_DATE_ID],
         };
 
         let soShipLabelSearchResults = FCShipLabelLib.runLotNumberedShippingLabelSearch(soShipLabelSearchFilters);
@@ -344,8 +357,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
 
         // Now we have the summarized item totals. 
         //   Add them into our label item summary dict
-        // let labelSearchQuantityHeader = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.SOLineQuantity.nsSsFieldId;
-
         for (let lineCount of Object.values(lineCounts)) {
             let itemId = lineCount.itemId;
             let vendorName = lineCount.vendorName;
@@ -521,8 +532,8 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         }
 
         var persistentParams = {
-            [ThisAppLib.Settings.Ui.Parameters.SELECT_PO_IDS_FINAL]: poIdsSelected,
-            [ThisAppLib.Settings.Ui.Parameters.LABEL_JSON_FILE_IDS]: labelJsonFileIds,
+            [ThisAppLib.Settings.Ui.Step2.Parameters.SELECT_PO_IDS_FINAL]: poIdsSelected,
+            [ThisAppLib.Settings.Ui.Step2.Parameters.LABEL_JSON_FILE_IDS]: labelJsonFileIds,
         };
 
         FCLib.addPersistentParamsField(assistant, persistentParams);
@@ -536,8 +547,8 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         // let poIdsSelected = persistentParams[ThisAppLib.Settings.Ui.Parameters.SELECT_PO_IDS_FINAL].split(',');
         // let labelJsonFileIds = JSON.parse(persistentParams[ThisAppLib.Settings.Ui.Parameters.LABEL_JSON_FILE_IDS]);
 
-        let poIdsSelected = persistentParams[ThisAppLib.Settings.Ui.Parameters.SELECT_PO_IDS_FINAL];
-        let labelJsonFileIds = persistentParams[ThisAppLib.Settings.Ui.Parameters.LABEL_JSON_FILE_IDS];
+        let poIdsSelected = persistentParams[ThisAppLib.Settings.Ui.Step2.Parameters.SELECT_PO_IDS_FINAL];
+        let labelJsonFileIds = persistentParams[ThisAppLib.Settings.Ui.Step2.Parameters.LABEL_JSON_FILE_IDS];
 
         let outHtml = '';
 
@@ -585,75 +596,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         // });
 
         return outHtml;
-
-    }
-
-
-    // FIX: This should be in FC LIB
-    //      We also use it in zero-jit-availability
-    function buildPoSelectHtmlList(context, poQueryResults) {
-        let fieldDefs = ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields;
-        let fieldHeaders = Object.keys(fieldDefs).map(key => fieldDefs[key].Label);
-
-
-        let selectCheckboxInputSpecs = {
-            htmlElem: 'checkbox',
-            valueSourceField: fieldDefs.PoInternalId.Label,
-            checkedSourceField: fieldDefs.Select.Label,
-            fieldDisplayName: 'Select',
-            idPrefixPart1Str: ThisAppLib.Settings.Ui.Parameters.SELECT_PO_ID_CHECKBOX_ID.prefix,
-            idPrefixPart2Str: '',
-            idUniqueSuffixSourceField: fieldDefs.PoInternalId.Label,
-        };
-
-        // First, sort the list by PO ID
-        let sortFields = [
-            ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields.DueDate.QuerySource.fieldid,
-            ThisAppLib.Settings.Ui.Sublists.SELECT_POS.Fields.VendorName.QuerySource.fieldid,
-
-        ];
-        let poQueryResultsSorted = FCLib.sortArrayOfObjsByKeys(
-            poQueryResults,
-            sortFields,
-            true
-        );
-
-        let formattedRows = [];
-
-        // Loop through sorted query results and add them to the list
-        for (let i = 0; i < poQueryResultsSorted.length; i++) {
-            let queryRow = poQueryResultsSorted[i];
-            let formattedRow = {};
-
-            for (let fieldDef of Object.values(fieldDefs)) {
-                let fieldId = fieldDef.Id;
-                let fieldLabel = fieldDef.Label;
-                let fieldVal = ('DefaultValue' in fieldDef) ? fieldDef.DefaultValue : '';
-
-                if ('QuerySource' in fieldDef) {
-                    let lookupVal = queryRow[fieldDef.QuerySource.fieldid];
-                    if ((lookupVal !== null) && (lookupVal !== undefined) && (lookupVal != '')) {
-                        fieldVal = lookupVal;
-
-                        if ('RecastFunc' in fieldDef) { fieldVal = fieldDef.RecastFunc(fieldVal); }
-
-                    }
-                }
-
-                formattedRow[fieldLabel] = fieldVal;
-
-            }
-            formattedRows.push(formattedRow);
-        }
-
-        let tableHtml = FCLib.convertObjToHTMLTableStylized({
-            fields: fieldHeaders,
-            data: formattedRows,
-            specialElems: [selectCheckboxInputSpecs],
-            hideFields: { [fieldDefs.Select.Label]: true }
-        });
-
-        return tableHtml;
 
     }
 

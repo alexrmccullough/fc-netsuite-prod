@@ -1,4 +1,4 @@
-define([], function () {
+define(['../Libraries/fc-client.library.module'], function (FCClientLib) {
     /**
      * Sample Client Script
      * @NApiVersion 2.1
@@ -25,7 +25,7 @@ define([], function () {
      */
     function pageInit(context) {
         console.log("pageInit Triggered!");
-        let checkboxPrefix = 'custpage_selectpo_cb_';
+        let checkboxPrefix = FCClientLib.Ui.FC_CHECKBOX_PREFIX;
         // Credit: Daniel Hoppener, https://codepen.io/danielhoppener/pen/xxKVbey
         const checkboxes = window.document.querySelectorAll(`input[id^='${checkboxPrefix}']`);
         
