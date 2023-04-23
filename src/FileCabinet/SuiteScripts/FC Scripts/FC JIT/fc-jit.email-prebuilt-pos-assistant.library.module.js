@@ -321,7 +321,82 @@ function main(fcLibModule, fcClientLibModule) {
                     SELECT_PO_IDS_FINAL: 'custpage_select_po_ids_final',
                 },
                 Sublists: {
-
+                    VENDOR_ITEM_DETAIL: {
+                        Id: 'custpage_vendor_item_detail',
+                        Label: 'Vendor Item Detail',
+                        StyleFuncs: {
+                            HIGHLIGHT_ROW_DISCREPANCIES: function (row) {
+                                let qtyOnLabels = Number(row[
+                                    outputHeaders[5]
+                                ]);
+                                let qtyOnPos = Number(row[
+                                    exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemquantity.fieldid
+                                ]);
+                                if (qtyOnLabels != qtyOnPos) {
+                                    return 'background-color: #ffcccc;';
+                                }
+                                else { return ''; }
+                            },
+                        },
+                        Fields: {
+                            ItemId: {
+                                Label: 'Item ID',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemid.fieldid];
+                                    return rawValue ? rawValue : '';
+                                },
+                            },
+                            ItemName: {
+                                Label: 'Item Name',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemname.fieldid];
+                                    return rawValue ? rawValue : '';
+                                },
+                            },
+                            ItemDisplayName: {
+                                Label: 'Item Display Name',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemdisplayname.fieldid];
+                                    return rawValue ? rawValue : '';
+                                },
+                            },
+                            VendorId: {
+                                Label: 'Vendor ID',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorid.fieldid];
+                                    return rawValue ? rawValue : '';
+                                },
+                            },
+                            VendorName: {
+                                Label: 'Vendor Name',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorname.fieldid];
+                                    return rawValue ? rawValue : '';
+                                },
+                            },
+                            QuantityOnLabels: {
+                                Label: 'Qty on Labels',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[this.Label];
+                                    return rawValue ? rawValue : '';
+                                },
+                            },
+                            QuantityOnPos: {
+                                Label: 'Qty on POs',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemquantity.fieldid];
+                                    return rawValue ? rawValue : '';
+                                },
+                            },
+                            QuantitiesPerPo: {
+                                Label: 'Quantities per PO',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.qtyperpodisplay.fieldid];
+                                    return rawValue ? rawValue : '';
+                                },
+                            },
+                        },
+                    },
                 },
 
             },

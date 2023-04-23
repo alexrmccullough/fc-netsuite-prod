@@ -339,7 +339,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
             let itemDisplayName = labelSearchLine[labelSsItemDisplayNameHeader];
             let itemName = labelSearchLine[labelSsItemNameHeader];
 
-
             // Take the first instance of the unique line key / line qty combo
             if (!(lineUniqueKey in lineCounts)) {
                 lineQty = lineQty ? lineQty : 0;
@@ -386,15 +385,18 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         //    highlight discrepancies between PO and label quantities
 
         let outputTables = {};
-        let outputHeaders = [
-            ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemid.label,
-            ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemname.label,
-            ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemdisplayname.label,
-            ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorid.label,
-            ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorname.label,
-            'Quantity on Labels',
-            'Quantity on POs',
-            'Quantities per PO'
+        const fieldSetObj = ThisAppLib.Settings.Ui.Step2.Sublists.VENDOR_ITEM_DETAIL.Fields;
+
+        // let outputHeaders = [
+        let tableFieldSet = [
+            fieldSetObj.ItemId,
+            fieldSetObj.ItemName,
+            fieldSetObj.ItemDisplayName,
+            fieldSetObj.VendorId,
+            fieldSetObj.VendorName,
+            fieldSetObj.QuantityOnLabels,
+            fieldSetObj.QuantityOnPos,
+            fieldSetObj.QuantitiesPerPo,
         ];
 
         for (let vendorName of Object.keys(poTransSearchResults)) {
@@ -410,12 +412,12 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
 
 
             // Start by adding all the results of the PO query 
+            const queryFieldSet = ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1;
+
             for (let poQueryResult of poTransSearchResults[vendorName]) {
-                let itemId = poQueryResult[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemid.fieldid];
-                let itemName = poQueryResult[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemname.fieldid];
+                let itemId = poQueryResult[queryFieldSet.itemid.fieldid];
+
                 let qtyOnPos = poQueryResult[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemquantity.fieldid];
-                let itemDisplayName = poQueryResult[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemdisplayname.fieldid];
-                let vendorId = poQueryResult[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.vendorid.fieldid];
                 let qtyPerPoDisplay = poQueryResult[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.qtyperpodisplay.fieldid];
 
                 let shipLabelQty = 0;
@@ -425,7 +427,13 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
                 }
 
                 let outputRow = {
-                    [outputHeaders[0]]: itemId,
+                    [queryFieldSet.itemid.fieldid]: poQueryResult[queryFieldSet.itemid.fieldid],
+                    [queryFieldSet.itemname.fieldid]: poQueryResult[queryFieldSet.itemname.fieldid],
+                    [queryFieldSet.itemdisplayname.fieldid]: poQueryResult[queryFieldSet.itemdisplayname.fieldid],
+                    [queryFieldSet.vendorid.fieldid]: poQueryResult[queryFieldSet.vendorid.fieldid],
+                    [queryFieldSet.vendorname.fieldid]: poQueryResult[queryFieldSet.vendorname.fieldid],
+                    
+                    
                     [outputHeaders[1]]: itemName,
                     [outputHeaders[2]]: itemDisplayName,
                     [outputHeaders[3]]: vendorId,
