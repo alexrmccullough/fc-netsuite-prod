@@ -1,15 +1,20 @@
-var log, query,
+var log, 
     task,
     runtime,
     email,
     ui,
     FCLib;
 
-define(['N/log', 'N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', '../Libraries/fc-main.library.module'], main);
+define(['N/log', 
+    'N/task', 
+    'N/runtime', 
+    'N/email', 
+    'N/ui/serverWidget', 
+    '../Libraries/fc-main.library.module'
+], main);
 
-function main(logModule, queryModule, taskModule, runtimeModule, emailModule, uiModule, fcLibModule) {
+function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLibModule) {
     log = logModule;
-    query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
@@ -536,15 +541,22 @@ function main(logModule, queryModule, taskModule, runtimeModule, emailModule, ui
         SESSION_RESULTS_FOLDER_NAME_PREFIX: 'JIT_Availability_Update_',
         CSV_ORIGINALS_SUBFOLDER_NAME: 'Originals',
         CSV_FINAL_CHANGES_FILENAME: 'JIT_Availability_Update_Final.csv',
+        ZERO_AVAILABILITY_CSV_FILENAME_PREFIX: 'Zero_Availability_Items_',
         FolderIds: {
-            // PROD
-            // INPUT: 8142,
-            // RESULTS: 8141,
-            INPUT: 8544,
-            RESULTS: 8546,
+            INPUT: {
+                Sandbox: 8544,
+                Prod: 8142,
+                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+            },
+            RESULTS: {
+                Sandbox: 8546,
+                Prod: 8141,
+                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+            },
         },
     };
     exports.IO = IO;
+
 
     var Parameters = {
         Step1: {
@@ -666,7 +678,6 @@ function main(logModule, queryModule, taskModule, runtimeModule, emailModule, ui
                     return body;
                 },
 
-                AuthorId: runtime.getCurrentUser().id,
                 RecipientsEmails: [],
                 CcEmails: [],
                 // RecipientsEmails: ['procurement@foodconnects.org'],
@@ -845,19 +856,19 @@ function main(logModule, queryModule, taskModule, runtimeModule, emailModule, ui
                                 },
                             },
                             ItemStandingJitQty: {
-                                Label: 'Item Standing JIT Qty',
+                                Label: 'Current Item Standing JIT Qty',
                                 GetTableElem: function (thisRow) {
                                     return thisRow[exports.Queries.GET_JIT_ITEM_DETAILS.FieldSet1.ItemStandingJitQty.fieldid] || '';
                                 },
                             },
                             ItemStartJitQty: {
-                                Label: 'Item Start JIT Qty',
+                                Label: 'Current Item Start JIT Qty',
                                 GetTableElem: function (thisRow) {
                                     return thisRow[exports.Queries.GET_JIT_ITEM_DETAILS.FieldSet1.ItemStartJitQty.fieldid] || '';
                                 },
                             },
                             ItemRemainJitQty: {
-                                Label: 'Item Remain JIT Qty',
+                                Label: 'Current Item Remain JIT Qty',
                                 GetTableElem: function (thisRow) {
                                     return thisRow[exports.Queries.GET_JIT_ITEM_DETAILS.FieldSet1.ItemRemainJitQty.fieldid] || '';
                                 },
@@ -1208,6 +1219,31 @@ function main(logModule, queryModule, taskModule, runtimeModule, emailModule, ui
     exports.Settings = Settings;
 
 
+    function submitItemUpdateMRJob(csvFileId) {
+        var mrTaskId;
+        try {
+            // Launch the MR task using the JIT CSV upload ID passed as a parameter
+            let mrParams = {
+                [exports.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID]: csvFileId,
+            };
+
+            let mrTask = task.create({
+                taskType: task.TaskType.MAP_REDUCE,
+                scriptId: ThisAppLib.Ids.Scripts.MR_JIT_UPDATE,
+                deploymentId: ThisAppLib.Ids.Deployments.MR_JIT_UPDATE,
+                params: mrParams
+            });
+
+            // Submit the map/reduce task
+            mrTaskId = mrTask.submit();
+
+        } catch (e) {
+            log.error({ title: 'Error submitting MR task', details: e });
+        }
+
+        return mrTaskId;
+    }
+    exports.submitItemUpdateMRJob = submitItemUpdateMRJob;
 
     return exports;
 }

@@ -7,7 +7,15 @@ var query,
     FCLib;
 
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', 'N/format', 'N/record', '../Libraries/fc-main.library.module'], main);
+define(['N/query', 
+    'N/task', 
+    'N/runtime', 
+    'N/email', 
+    'N/ui/serverWidget', 
+    'N/format', 
+    'N/record', 
+    '../Libraries/fc-main.library.module'
+], main);
 
 function main(queryModule, taskModule, runtimeModule, emailModule, serverWidgetModule, formatModule, fcLibModule) {
     query = queryModule;

@@ -3,7 +3,10 @@ var record,
     FCLib;
 
 
-define(['N/record', '../Libraries/dayjs.min.js', '../Libraries/fc-main.library.module.js'], main);
+define(['N/record', 
+    '../Libraries/dayjs.min', 
+    '../Libraries/fc-main.library.module'
+], main);
 
 function main(recordModule, dayjsModule, fcLibModule) {
     record = recordModule;

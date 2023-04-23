@@ -8,8 +8,8 @@ define([
     'N/search',
     'N/query',
     'N/record',
-    '../Libraries/dayjs.min.js',
-    '../Libraries/fc-main.library.module.js'
+    '../Libraries/dayjs.min',
+    '../Libraries/fc-main.library.module'
 ], main);
 
 function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule) {

@@ -27,7 +27,11 @@ AND AllAddresses.defaultshipping = 'T'
 //    Use the Accounting Preferences default Sales Order location for the new mapping.
 
 
-define(['N/query', 'N/record', 'N/runtime', 'SuiteScripts/FC Scripts/Libraries/fc-main.library.module.js'], 
+define(['N/query', 
+    'N/record', 
+    'N/runtime', 
+    'SuiteScripts/FC Scripts/Libraries/fc-main.library.module'
+], 
     function (query, record, runtime, FCLib) {
 
 

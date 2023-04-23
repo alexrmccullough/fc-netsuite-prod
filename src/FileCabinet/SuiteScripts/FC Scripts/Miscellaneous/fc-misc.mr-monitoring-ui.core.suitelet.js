@@ -15,7 +15,7 @@ define([
     'N/runtime',
     'N/ui/serverWidget',
     'N/url',
-    '../Libraries/fc-main.library.module.js',
+    '../Libraries/fc-main.library.module',
 ], main);
 
 

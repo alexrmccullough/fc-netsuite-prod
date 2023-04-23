@@ -4,7 +4,6 @@
 * @NModuleScope SameAccount
 * @copyright 2023 Food Connects
 * @author Alex McCullough alex.mccullough@gmail.com
-* @description 
 */
 
 var
@@ -20,9 +19,9 @@ define([
     'N/runtime',
     'N/email',
     'N/record',
-    '../Libraries/fc-main.library.module.js',
-    './fc-misc.general-lot-mgmt.library.module.js',
-    './fc-misc.assign-so-lot-numbers-assistant.library.module.js'
+    '../Libraries/fc-main.library.module',
+    './fc-misc.general-lot-mgmt.library.module',
+    './fc-misc.assign-so-lot-numbers-assistant.library.module'
 ], main);
 
 

@@ -4,8 +4,8 @@
 * @NModuleScope SameAccount
 */
 
-var modulePathJitAvailUpdateLibrary = './fc-jit.update-jit-availablity.library.module.js';
-var modulePathThisAppLibrary = './fc-jit.zero-jit-availability-assistant.library.module.js';
+var modulePathJitAvailUpdateLibrary = './fc-jit.advanced-update-jit-availablity.library.module';
+var modulePathThisAppLibrary = './fc-jit.zero-jit-availability-assistant.library.module';
 
 var
     log,
@@ -18,7 +18,15 @@ var
     Papa;
 
 
-define(['N/log', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitAvailUpdateLibrary, modulePathThisAppLibrary, '../Libraries/papaparse.min.js'], main);
+define(['N/log',
+    'N/runtime',
+    'N/ui/serverWidget',
+    'N/url',
+    '../Libraries/fc-main.library.module',
+    modulePathJitAvailUpdateLibrary,
+    modulePathThisAppLibrary,
+    '../Libraries/papaparse.min'
+], main);
 
 
 function main(
@@ -241,7 +249,7 @@ function main(
         let csvFormattedText = Papa.unparse(csvRawRows);
 
         let csvFileName = FCLib.generateTimestampedFilename(
-            FCUpdateJitAvailLib.Settings.ZERO_AVAILABILITY_CSV_FILENAME_PREFIX,
+            FCUpdateJitAvailLib.IO.Settings.ZERO_AVAILABILITY_CSV_FILENAME_PREFIX,
             '.csv'
         );
 

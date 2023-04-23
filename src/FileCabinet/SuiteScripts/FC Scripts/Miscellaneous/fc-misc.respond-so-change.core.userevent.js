@@ -17,7 +17,14 @@ var record,
     dayjs,
     FCLotMgmtLib;
 
-define(['N/record', 'N/query', 'N/search', 'N/runtime', '../Libraries/fc-main.library.module.js', '../Libraries/dayjs.min.js', './fc-misc.general-lot-mgmt.library.module.js'], main);
+define(['N/record', 
+    'N/query', 
+    'N/search', 
+    'N/runtime', 
+    '../Libraries/fc-main.library.module', 
+    '../Libraries/dayjs.min', 
+    './fc-misc.general-lot-mgmt.library.module'
+], main);
 
 
 

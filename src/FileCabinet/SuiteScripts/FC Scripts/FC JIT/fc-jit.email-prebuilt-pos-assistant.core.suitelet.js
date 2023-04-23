@@ -4,9 +4,9 @@
 * @NModuleScope SameAccount
 */
 
-var modulePathThisAppLibrary = './fc-jit.email-prebuilt-pos-assistant.library.module.js';
-var modulePathShipLabelLibrary = '../FC Shipping Labels/fc-shipping-labels.library.module.js';
-var modulePathBulkEmailProcessLibrary = './fc-jit.bulk-email-jit-pos-labels.process-emails.library.module.js';
+var modulePathThisAppLibrary = './fc-jit.email-prebuilt-pos-assistant.library.module';
+var modulePathShipLabelLibrary = '../FC Shipping Labels/fc-shipping-labels.library.module';
+var modulePathBulkEmailProcessLibrary = './fc-jit.bulk-email-jit-pos-labels.process-emails.library.module';
 
 var
     file,
@@ -26,7 +26,18 @@ var
 // stepSelectOptions;
 
 
-define(['N/file', 'N/log', 'N/query', 'N/record', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathThisAppLibrary, modulePathShipLabelLibrary, modulePathBulkEmailProcessLibrary], main);
+define(['N/file', 
+    'N/log', 
+    'N/query', 
+    'N/record', 
+    'N/runtime', 
+    'N/ui/serverWidget', 
+    'N/url', 
+    '../Libraries/fc-main.library.module', 
+    modulePathThisAppLibrary, 
+    modulePathShipLabelLibrary, 
+    modulePathBulkEmailProcessLibrary
+], main);
 
 
 function main(fileModule, logModule, queryModule, recordModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, thisAppLibModule, shipLabelModule, bulkEmailProcessModule) {

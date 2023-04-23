@@ -28,9 +28,9 @@ define([
     'N/query',
     'N/render',
     'N/ui/serverWidget',
-    '../Libraries/fc-main.library.module.js',
-    './fc-misc.assign-so-lot-numbers-assistant.library.module.js',
-    '../Libraries/papaparse.min.js'
+    '../Libraries/fc-main.library.module',
+    './fc-misc.assign-so-lot-numbers-assistant.library.module',
+    '../Libraries/papaparse.min'
 ], main);
 
 
@@ -208,7 +208,7 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
             'json',
             ThisAppLib.MRSettings.SELECTED_SO_JSON_FILE.BuildName(),
             JSON.stringify(soInternalIdsSelected),
-            ThisAppLib.MRSettings.SELECTED_SO_JSON_FILE.OutFolderId
+            ThisAppLib.MRSettings.SELECTED_SO_JSON_FILE.OutFolderId()
         );
 
 

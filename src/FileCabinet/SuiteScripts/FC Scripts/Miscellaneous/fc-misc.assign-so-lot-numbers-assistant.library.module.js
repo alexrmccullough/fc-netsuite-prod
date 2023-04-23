@@ -5,7 +5,13 @@ var query,
     ui,
     FCLib;
 
-define(['N/query', 'N/task', 'N/runtime', 'N/email', 'N/ui/serverWidget', '../Libraries/fc-main.library.module'], main);
+define(['N/query', 
+    'N/task', 
+    'N/runtime', 
+    'N/email', 
+    'N/ui/serverWidget', 
+    '../Libraries/fc-main.library.module'
+], main);
 
 function main(queryModule, taskModule, runtimeModule, emailModule, uiModule, fcLibModule) {
     query = queryModule;
@@ -173,7 +179,9 @@ function main(queryModule, taskModule, runtimeModule, emailModule, uiModule, fcL
                     'json'
                 );
             },
-            OutFolderId: FCLib.Ids.Folders.MAIN_TEMP_CACHE_FOLDER.GetId()
+            OutFolderId: () => {
+                return FCLib.Ids.Folders.MAIN_TEMP_CACHE_FOLDER.GetId();
+            }
 
         },
 
@@ -212,7 +220,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule, uiModule, fcL
                     return body;
                 },
 
-                AuthorId: runtime.getCurrentUser().id,
                 RecipientsEmails: [],
                 CcEmails: [],
                 // RecipientsEmails: ['warehouse@foodconnects.org'],

@@ -8,7 +8,16 @@ var record,
     serverWidget,
     dayjs;
 
-define(['N/record', 'N/query', 'N/task', 'N/runtime', 'N/email', 'N/search', 'N/file', 'N/ui/serverWidget', './dayjs.min.js'], main);
+define(['N/record',
+    'N/query',
+    'N/task',
+    'N/runtime',
+    'N/email',
+    'N/search',
+    'N/file',
+    'N/ui/serverWidget',
+    './dayjs.min'
+], main);
 
 function main(recordModule, queryModule, taskModule, runtimeModule, emailModule, searchModule, fileModule, serverWidgetModule, dayjsModule) {
     record = recordModule;
@@ -116,7 +125,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         Folders: {
             // MAIN_TEMP_CACHE_FOLDER: 9114,   // PROD
             MAIN_TEMP_CACHE_FOLDER: {
-                GetId: function () { return getEnvSpecificFolderId( this.Sandbox, this.Prod ); },
+                GetId: function () { return getEnvSpecificFolderId(this.Sandbox, this.Prod); },
                 Sandbox: 8605,
                 Prod: 9114
             },

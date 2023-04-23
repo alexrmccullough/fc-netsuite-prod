@@ -7,9 +7,9 @@
 * @description 
 */
 
-var modulePathJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module.js';
-var modulePathJitBulkEmailLibrary = './fc-jit.bulk-email-jit-pos-labels.process-emails.library.module.js';
-var modulePathShipLabelLibrary = '../FC Shipping Labels/fc-shipping-labels.library.module.js';
+var modulePathJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module';
+var modulePathJitBulkEmailLibrary = './fc-jit.bulk-email-jit-pos-labels.process-emails.library.module';
+var modulePathShipLabelLibrary = '../FC Shipping Labels/fc-shipping-labels.library.module';
 
 var
     runtime,
@@ -22,7 +22,16 @@ var
 
 
 
-define(['N/runtime', 'N/query', 'N/render', 'N/file', '../Libraries/fc-main.library.module.js', modulePathJitBulkEmailLibrary, modulePathJitPoUtilityLibrary, modulePathShipLabelLibrary, '../Libraries/dayjs.min.js'], main);
+define(['N/runtime', 
+    'N/query', 
+    'N/render', 
+    'N/file', 
+    '../Libraries/fc-main.library.module', 
+    modulePathJitBulkEmailLibrary, 
+    modulePathJitPoUtilityLibrary, 
+    modulePathShipLabelLibrary, 
+    '../Libraries/dayjs.min'
+], main);
 
 function main(runtimeModule, queryModule, renderModule, fileModule, fcMainLibModule, fcBulkEmailLibModule, fcJITPoLibModule, fcShipLabelLibModule, dayjsModule) {
 
@@ -213,7 +222,10 @@ function reduce(context) {
 
 
         // Send email
+        let currentUser = runtime.getCurrentUser();
         let emailRecipients = thisPoInfo.email.split(/[,;]+/).map(email => email.trim());
+        emailRecipients.push(currentUser.email);
+
         let formattedDueDate = dayjs(thisPoInfo.dueDate).format('M/D/YYYY');
 
         log.debug({ title: 'reduce - emailRecipients', details: emailRecipients });
@@ -251,7 +263,7 @@ function reduce(context) {
 
 
         email.send({
-            author: FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.AuthorId,
+            author: currentUser.id,
             recipients: emailRecipients,
             // cc: ,
             // bcc: ,

@@ -14,7 +14,7 @@ var
 
 
 
-define(['N/query', 'N/record', './Libraries/FC_MainLibrary'], main);
+define(['N/query', 'N/record', '../Libraries/fc-main.library.module'], main);
 
 function main(queryModule, recordModule, fcMainLib) {
 

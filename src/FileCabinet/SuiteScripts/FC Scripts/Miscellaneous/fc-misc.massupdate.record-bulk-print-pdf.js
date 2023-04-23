@@ -7,9 +7,9 @@ define([
 	'N/record',
 	'N/search',
 	'N/render',
-	'../Libraries/dayjs.min.js',
-	'../Libraries/fc-main.library.module.js',
-	'./fc-misc.massupdate.record-bulk-print-pdf.library.module.js'
+	'../Libraries/dayjs.min',
+	'../Libraries/fc-main.library.module',
+	'./fc-misc.massupdate.record-bulk-print-pdf.library.module'
 ],
 
 	function (record, search, render, dayjs, FCLib, ThisAppLib) {

@@ -16,7 +16,14 @@ var
     ThisAppLib,
     Papa;
 
-define(['N/runtime', 'N/record', 'N/task', 'N/file', '../Libraries/fc-main.library.module', './fc-jit.advanced-update-jit-availablity.library.module.js', '../Libraries/papaparse.min.js'], main);
+define(['N/runtime', 
+    'N/record', 
+    'N/task', 
+    'N/file', 
+    '../Libraries/fc-main.library.module', 
+    './fc-jit.advanced-update-jit-availablity.library.module', 
+    '../Libraries/papaparse.min'
+], main);
 
 function main(runtimeModule, recordModule, taskModule, fileModule, fcMainLibModule, fcJITUploadLibModule, papaParseModule) {
     runtime = runtimeModule;

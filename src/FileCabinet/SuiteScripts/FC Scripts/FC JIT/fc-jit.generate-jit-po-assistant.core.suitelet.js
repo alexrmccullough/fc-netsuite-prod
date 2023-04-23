@@ -4,7 +4,7 @@
 * @NModuleScope SameAccount
 */
 
-var modulePathJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module.js';
+var modulePathJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module';
 var
     file,
     log,
@@ -17,7 +17,16 @@ var
     Papa;
 
 
-define(['N/file', 'N/log', 'N/query', 'N/runtime', 'N/ui/serverWidget', 'N/url', '../Libraries/fc-main.library.module.js', modulePathJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
+define(['N/file', 
+    'N/log', 
+    'N/query', 
+    'N/runtime', 
+    'N/ui/serverWidget', 
+    'N/url', 
+    '../Libraries/fc-main.library.module', 
+    modulePathJitPoUtilityLibrary, 
+    '../Libraries/papaparse.min'
+], main);
 
 
 function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetModule, urlModule, fcLibModule, jitPoLibModule, papaparseModule) {

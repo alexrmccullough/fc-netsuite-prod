@@ -103,10 +103,6 @@ function main(queryModule, runtimeModule, ) {
                     DUEDATE: '{{dueDate}}'
                 }
             },
-            AuthorId: runtime.getCurrentUser().id,
-            // RecipientsEmails: [],
-            // CcEmails: [],
-            // BccEmails: [],
         },
 
         SUMMARIZE_EMAIL: {
@@ -129,7 +125,6 @@ function main(queryModule, runtimeModule, ) {
                     POS_FAILED: '{{POS_FAILED}}',
                 }
             },
-            AuthorId: runtime.getCurrentUser().id,
             RecipientsEmails: ['procurement@foodconnects.org'],
             CcEmails: [],
             BccEmails: [],

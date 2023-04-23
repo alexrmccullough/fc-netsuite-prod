@@ -1,4 +1,4 @@
-var fcLibModulePath = '../Libraries/fc-main.library.module.js';
+var fcLibModulePath = '../Libraries/fc-main.library.module';
 
 var query,
     task,

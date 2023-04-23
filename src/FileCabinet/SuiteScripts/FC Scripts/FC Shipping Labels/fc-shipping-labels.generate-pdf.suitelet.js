@@ -3,7 +3,7 @@
  * @NScriptType Suitelet
  */
 
-var modulePathShippingLabelLibrary = './fc-shipping-labels.library.module.js';
+var modulePathShippingLabelLibrary = './fc-shipping-labels.library.module';
 
 var
     ui,

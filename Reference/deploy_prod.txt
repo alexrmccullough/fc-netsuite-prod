@@ -1,0 +1,38 @@
+
+
+
+
+
+Email JIT PO Form Button UE
+
+
+
+
+
+
+
+
+DONE--------------
+______________________________________
+
+Advanced JIT Update Suitelet
+Advanced JIT Update MR
+
+Bulk Update Item Prefix MR
+Set Emails on Transactions UE
+
+
+Assign SO Lot Numbers Suitelet
+Assign SO Lot Numbers MR
+
+Generate JIT PO Suitelet
+Generate JIT PO MR
+
+Zero JIT Avail Suitelet
+
+Email Prebuilt POs Suitelet
+
+Bulk Email JIT PO MR
+
+
+

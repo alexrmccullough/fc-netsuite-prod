@@ -35,9 +35,9 @@ define([
     'N/ui/serverWidget',
     'N/url',
     'N/redirect',
-    '../Libraries/fc-main.library.module.js',
+    '../Libraries/fc-main.library.module',
     './fc-jit.advanced-update-jit-availablity.library.module',
-    '../Libraries/papaparse.min.js'
+    '../Libraries/papaparse.min'
 ], main);
 
 
@@ -154,17 +154,15 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
     function writeStep1SelectCsvFiles(context, assistant) {
         // Get the list of files currently in the Input folder and display
-        let sql = ThisAppLib.Queries.GET_ALL_CSV_FILES_IN_FOLDER_BY_ID.BuildQuery(
-            ThisAppLib.IO.FolderIds.INPUT,
-        );
+        const inputFolderId = ThisAppLib.IO.FolderIds.INPUT.GetId();
+
+        let sql = ThisAppLib.Queries.GET_ALL_CSV_FILES_IN_FOLDER_BY_ID.BuildQuery(inputFolderId);
         let csvFileQueryResults = FCLib.sqlSelectAllRows(sql);
-
-
 
         let tableHtml = '';
         if (!csvFileQueryResults || csvFileQueryResults.length === 0) {
             tableHtml = '<p>No csv files found in the Input folder.</p>';
-            log.debug({ title: 'parseJITCSVs - no files found', details: { 'folderId': folderId } });
+            log.debug({ title: 'parseJITCSVs - no files found', details: { 'folderId': inputFolderId } });
         }
         else {
             let fieldSet = [
@@ -269,7 +267,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         }
 
         // Create a folder to store output files for this session
-        let sessionSubfolder = createSessionSubfolder(context)
+        let sessionSubfolder = createSessionSubfolder(context);
 
 
         // Build HTML for error tables
@@ -853,28 +851,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
             log.error({ title: 'Error saving final CSV file', details: e });
         }
 
-
-        var mrTaskId;
-        try {
-            // Launch the MR task using the JIT CSV upload ID passed as a parameter
-            let mrParams = {
-                [ThisAppLib.Ids.Parameters.JIT_ITEM_UPDATE_CSV_FILEID]: finalUpdateCsvId,
-            };
-
-            let mrTask = task.create({
-                taskType: task.TaskType.MAP_REDUCE,
-                scriptId: ThisAppLib.Ids.Scripts.MR_JIT_UPDATE,
-                deploymentId: ThisAppLib.Ids.Deployments.MR_JIT_UPDATE,
-                params: mrParams
-            });
-
-            // Submit the map/reduce task
-            mrTaskId = mrTask.submit();
-
-        } catch (e) {
-            log.error({ title: 'Error submitting MR task', details: e });
-        }
-
+        let mrTaskId = ThisAppLib.submitItemUpdateMRJob(finalUpdateCsvId);
 
 
         // var monitoringSuitelet = url.resolveScript({
@@ -1081,7 +1058,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
     function createSessionSubfolder(context, date = new Date()) {
         const curDateTimeStr = FCLib.getStandardDateTimeString1(date);
         var resultsFolderName = ThisAppLib.IO.SESSION_RESULTS_FOLDER_NAME_PREFIX + curDateTimeStr;
-        var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.IO.FolderIds.RESULTS);
+        var resultsFolderId = FCLib.createFolderInFileCabinet(resultsFolderName, ThisAppLib.IO.FolderIds.RESULTS.GetId());
         var originalsFolderId = FCLib.createFolderInFileCabinet(ThisAppLib.IO.CSV_ORIGINALS_SUBFOLDER_NAME, resultsFolderId);
 
         return {

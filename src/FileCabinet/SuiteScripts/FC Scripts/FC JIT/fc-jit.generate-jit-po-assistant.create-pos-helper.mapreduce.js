@@ -7,8 +7,7 @@
 * @description 
 */
 
-var modulePathGenerateJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module.js';
-var modulePathJitBulkEmailLibrary = './fc-jit.bulk-email-jit-pos-labels.process-emails.library.module.js';
+var modulePathGenerateJitPoUtilityLibrary = './fc-jit.generate-jit-po-assistant.library.module';
 
 var
     runtime,
@@ -18,15 +17,21 @@ var
     task,
     file,
     FCLib,
-    FCJITBulkEmailLib,
     FCJITGenPoLib,
     Papa;
 
+define(['N/runtime', 
+    'N/email', 
+    'N/query', 
+    'N/record', 
+    'N/task', 
+    'N/file', 
+    '../Libraries/fc-main.library.module', 
+    modulePathGenerateJitPoUtilityLibrary, 
+    '../Libraries/papaparse.min'
+], main);
 
-
-define(['N/runtime', 'N/email', 'N/query', 'N/record', 'N/task', 'N/file', '../Libraries/fc-main.library.module.js', modulePathJitBulkEmailLibrary, modulePathGenerateJitPoUtilityLibrary, '../Libraries/papaparse.min.js'], main);
-
-function main(runtimeModule, emailModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcBulkEmailLibModule, fcGenerateJITPoLibModule, papaParseModule) {
+function main(runtimeModule, emailModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcGenerateJITPoLibModule, papaParseModule) {
 
     runtime = runtimeModule;
     email = emailModule;
@@ -35,7 +40,6 @@ function main(runtimeModule, emailModule, queryModule, recordModule, taskModule,
     task = taskModule;
     file = fileModule;
     FCLib = fcMainLibModule;
-    FCJITBulkEmailLib = fcBulkEmailLibModule;
     FCJITGenPoLib = fcGenerateJITPoLibModule;
     Papa = papaParseModule;
 
@@ -367,26 +371,6 @@ function summarize(context) {
         title: 'Generated JIT POs - summary',
         details: emailBody
     });
-
-
-    // // Launch the JIT PO Email process
-    // if (Object.keys(posToEmail).length > 0) {
-    //     let emailTask = task.create({
-    //         taskType: task.TaskType.MAP_REDUCE,
-    //         scriptId: FCJITBulkEmailLib.Ids.Scripts.FC_BULK_EMAIL_JIT_POS_MR,
-    //         deploymentId: FCJITBulkEmailLib.Ids.Scripts.FC_BULK_EMAIL_JIT_POS_MR,
-    //         params: {
-    //             custscript_jit_po_email_pos: JSON.stringify(posToEmail)
-    //         }
-    //     });
-
-    //     let emailTaskId = emailTask.submit();
-    //     log.audit({
-    //         title: 'JIT PO Email task submitted',
-    //         details: emailTaskId
-    //     });
-    // }
-
 }
 
 

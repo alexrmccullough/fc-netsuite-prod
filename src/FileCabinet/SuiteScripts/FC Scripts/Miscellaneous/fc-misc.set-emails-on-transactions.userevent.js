@@ -1,7 +1,5 @@
 /**
  * Module Description...
- *
- * @file FC_SetEmailByContacts.js
  * @copyright 2023 Food Connects
  * @author Alex McCullough alex.mccullough@gmail.com
  * @description This Userevent script on the configuration auto-populates certain Transaction records (SO, Invoice, PO) with multiple email recipients. It pulls email address from Contacts associated with the Transaction's associated Entity, filtered by whether that Contact has the "Email SO/Invoice/PO" flag set. 
@@ -73,7 +71,7 @@
             entityId
         ];
         var commTypeFilter = [
-            runtime.getCurrentScript().getParameter('custscriptcommunicationtypeswitchfield'),
+            runtime.getCurrentScript().getParameter('custscript_commtype_switch'),
             search.Operator.IS, 
             'T'
         ];
