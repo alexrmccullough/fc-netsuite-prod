@@ -1,25 +1,14 @@
-var query,
-    task,
-    runtime,
-    email,
-    ui,
-    FCLib;
+var FCLib;
+var FCClientLib;
 
-define(['N/query', 
-    'N/task', 
-    'N/runtime', 
-    'N/email', 
-    'N/ui/serverWidget', 
-    '../Libraries/fc-main.library.module'
+define([
+    '../Libraries/fc-main.library.module',
+    '../Libraries/fc-client.library.module'
 ], main);
 
-function main(queryModule, taskModule, runtimeModule, emailModule, uiModule, fcLibModule) {
-    query = queryModule;
-    task = taskModule;
-    runtime = runtimeModule;
-    email = emailModule;
-    ui = uiModule;
+function main(fcLibModule, fcClientLibModule) {
     FCLib = fcLibModule;
+    FCClientLib = fcClientLibModule;
 
     var exports = {
         Form: {
@@ -289,9 +278,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, uiModule, fcL
                 },
                 Parameters: {
                     SELECT_SO_CHECKBOX_ID: {
-                        prefix: 'custpage_selectso_cb_',
-                        build: (fileId) => { return 'custpage_selectso_cb_' + fileId; },
-                        looksLike: (val) => { return val.startsWith('custpage_selectso_cb_'); },
+                        build: (fileId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectso_' + fileId; },
+                        looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectso_'); },
                     },
                 },
                 Fields: {
@@ -303,41 +291,67 @@ function main(queryModule, taskModule, runtimeModule, emailModule, uiModule, fcL
                         Id: 'custpage_so_table_sublist',
                         Label: 'Sales Orders with Unassigned Lots',
                         Fields: {
-                            Select: {
+                            CB_Select: {
                                 Label: 'Select',
-                                DefaultValue: '',
+                                GetTableElem: function (thisRow) {
+                                    const queryFields = exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1;
+                                    const soId = thisRow[queryFields.TranInternalId.fieldid];
+                                    const name = exports.Settings.Ui.Step1.Parameters.SELECT_SO_CHECKBOX_ID.build(soId);
+                                    const id = name;
+                                    const value = soId;
+                                    const style = FCLib.Ui.CheckboxStyles.Style1;
+                                    const defaultState = '';
+
+                                    return `<input type="checkbox" name="${name}" id="${id}" value="${value}" style="${style}" ${defaultState}>`;
+                                },
                             },
                             TranInternalId: {
                                 Label: 'Transaction Internal ID',
-                                QuerySource: exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.TranInternalId,
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.TranInternalId.fieldid] || '';
+                                },
                             },
                             TranId: {
                                 Label: 'Transaction ID',
-                                QuerySource: exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.TranId,
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.TranId.fieldid] || '';
+                                },
                             },
                             ShipDate: {
                                 Label: 'Ship Date',
-                                QuerySource: exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.ShipDate,
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.ShipDate.fieldid] || '';
+                                },
                             },
                             CustomerInternalId: {
                                 Label: 'Customer Internal ID',
-                                QuerySource: exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.CustomerInternalId,
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.CustomerInternalId.fieldid] || '';
+                                },
                             },
                             CustomerName: {
                                 Label: 'Customer Name',
-                                QuerySource: exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.CustomerName,
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.CustomerName.fieldid] || '';
+                                },
                             },
                             TotalQuantity: {
                                 Label: 'Total Quantity',
-                                QuerySource: exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.TotalQuantity,
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.TotalQuantity.fieldid] || '';
+                                },
                             },
                             TotalLottedQuantity: {
                                 Label: 'Total Lotted Quantity',
-                                QuerySource: exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.TotalLottedQuantity,
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.TotalLottedQuantity.fieldid] || '';
+                                },
                             },
                             QtyRemainingToBeLotted: {
-                                Label: 'Qty to be Lotted',
-                                QuerySource: exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.QtyRemainingToBeLotted,
+                                Label: 'Qty Remaining to be Lotted',
+                                GetTableElem: function (thisRow) {
+                                    return thisRow[exports.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.FieldSet1.QtyRemainingToBeLotted.fieldid] || '';
+                                },
                             },
                         },
                     },

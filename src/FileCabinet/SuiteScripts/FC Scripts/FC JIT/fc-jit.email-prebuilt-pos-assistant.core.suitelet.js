@@ -209,7 +209,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         poTable.defaultValue = tableHtml;
 
 
-        assistant.clientScriptModulePath = './fc-jit.email-prebuilt-pos-assistant.core.client.js';
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
     }
 
 
@@ -258,6 +258,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
 
         // Run query on PO transactions for JIT items
         let sqlQuery = ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.BuildQuery(poIdsSelected);
+        log.debug({title: 'GET_SUMMARIZED_ITEM_INFO_FROM_PO', details: sqlQuery});
 
         debugHtml += `<pre>sqlQuery: ${sqlQuery}</pre><br><br>`;
 
@@ -269,6 +270,8 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
             sqlQuery,
             nestingKeys
         );
+
+        log.debug({title: 'poTransSearchResults', details: poTransSearchResults});
 
         debugHtml += `<pre>queryResults: ${JSON.stringify(poTransSearchResults)}</pre><br><br>`;
 
@@ -417,9 +420,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
             for (let poQueryResult of poTransSearchResults[vendorName]) {
                 let itemId = poQueryResult[queryFieldSet.itemid.fieldid];
 
-                let qtyOnPos = poQueryResult[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemquantity.fieldid];
-                let qtyPerPoDisplay = poQueryResult[ThisAppLib.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.qtyperpodisplay.fieldid];
-
                 let shipLabelQty = 0;
                 if (vendorHasShipLabels && itemId in itemsInShipLabelResults) {
                     shipLabelQty = itemsInShipLabelResults[itemId].quantity;
@@ -427,64 +427,51 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
                 }
 
                 let outputRow = {
-                    [queryFieldSet.itemid.fieldid]: poQueryResult[queryFieldSet.itemid.fieldid],
+                    [queryFieldSet.itemid.fieldid]: itemId,
                     [queryFieldSet.itemname.fieldid]: poQueryResult[queryFieldSet.itemname.fieldid],
                     [queryFieldSet.itemdisplayname.fieldid]: poQueryResult[queryFieldSet.itemdisplayname.fieldid],
                     [queryFieldSet.vendorid.fieldid]: poQueryResult[queryFieldSet.vendorid.fieldid],
                     [queryFieldSet.vendorname.fieldid]: poQueryResult[queryFieldSet.vendorname.fieldid],
-                    
-                    
-                    [outputHeaders[1]]: itemName,
-                    [outputHeaders[2]]: itemDisplayName,
-                    [outputHeaders[3]]: vendorId,
-                    [outputHeaders[4]]: vendorName,
-                    [outputHeaders[5]]: shipLabelQty,
-                    [outputHeaders[6]]: qtyOnPos,
-                    [outputHeaders[7]]: qtyPerPoDisplay,
+                    [queryFieldSet.itemquantity.fieldid]: poQueryResult[queryFieldSet.itemquantity.fieldid],
+                    [queryFieldSet.qtyperpodisplay.fieldid]: poQueryResult[queryFieldSet.qtyperpodisplay.fieldid],
+                    [fieldSetObj.QuantityOnLabels.Label]: shipLabelQty,
                 };
 
                 outputTables[vendorName].push(outputRow);
             }
 
-            // Now add any label search results that weren't already added. 
+            // Now add any label search results that weren't present in the PO query results 
             for (let itemId of Object.keys(itemsInShipLabelResults)) {
                 if (!itemsInShipLabelResults[itemId].visited) {
                     let item = itemsInShipLabelResults[itemId];
                     let vendorName = item.vendorName;
 
                     let outputRow = {
-                        [outputHeaders[0]]: itemId,
-                        [outputHeaders[1]]: item.itemName,
-                        [outputHeaders[2]]: item.itemDisplayName,
-                        [outputHeaders[3]]: vendorInfo[vendorName],
-                        [outputHeaders[4]]: vendorName,
-                        [outputHeaders[5]]: item.quantity,
-                        [outputHeaders[6]]: 0,              // Nothing on POs by definition
-                        [outputHeaders[7]]: '',             // Nothing on POs by definition
+                        [queryFieldSet.itemid.fieldid]: itemId,
+                        [queryFieldSet.itemname.fieldid]: item.itemName,
+                        [queryFieldSet.itemdisplayname.fieldid]: item.itemDisplayName,
+                        [queryFieldSet.vendorid.fieldid]: vendorInfo[vendorName],
+                        [queryFieldSet.vendorname.fieldid]: vendorName,
+                        [queryFieldSet.itemquantity.fieldid]: 0,            // Nothing on POs by definition
+                        [queryFieldSet.qtyperpodisplay.fieldid]: '',        // Nothing on POs by definition
+                        [fieldSetObj.QuantityOnLabels.Label]: item.quantity,             
                     };
 
                     outputTables[vendorName].push(outputRow);
                 }
             }
-
         }
 
-        // Build a function for styling <tr> elements to highlight rows where the PO and label quantities don't match.
-        let highlightRowDiscrepancies = function (row) {
-            let qtyOnLabels = Number(row[outputHeaders[5]]);
-            let qtyOnPos = Number(row[outputHeaders[6]]);
-            if (qtyOnLabels != qtyOnPos) {
-                return 'background-color: #ffcccc;';
-            }
-            else { return ''; }
-        };
+        const tableStyle = FCLib.Ui.TableStyles.Style1;
 
         // We have our output tables. Write them to separate Field Groups within the assistant.
         for (let vendorName of Object.keys(outputTables).sort()) {
-            var vendorComparisonTableHtml = FCLib.convertObjToHTMLTableStylized({
-                fields: outputHeaders,
+            // Generate the html table
+            const htmlTable = FCLib.updatedConvertLookupTableToHTMLTable({
                 data: outputTables[vendorName],
-                trStyleFuncs: [highlightRowDiscrepancies]
+                fieldDefs: tableFieldSet,
+                trStyleFuncs: [ThisAppLib.Settings.Ui.Step2.Sublists.VENDOR_ITEM_DETAIL.RowStyleFuncs.HIGHLIGHT_ROW_DISCREPANCIES],
+                ...tableStyle
             });
 
             let simplifiedVendorName = FCLib.condenseSimplifyString(vendorName)
@@ -502,16 +489,12 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
                 label: vendorName,
                 container: 'custpage_comptable_field_group_' + simplifiedVendorName
             });
-            comparisonTableHtmlField.defaultValue = vendorComparisonTableHtml;
+            comparisonTableHtmlField.defaultValue = htmlTable;
         }
-
-
-
 
         // If we got here, then we have at least one PO to send
         // Create a session folder to store data to be passed to PO sending script
         let labelJsonFileIds = {};
-        // let vendorNameHeader = FCShipLabelLib.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields.PreferredVendor.nsSsFieldId;
 
         let sessionFolderId = ThisAppLib.createSessionSubfolder(context);
 
@@ -560,7 +543,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
 
         let outHtml = '';
 
-
         let debugHtml = `POs submitted for sending: ${poIdsSelected}<br><br>`;
         debugHtml += `Label JSON file IDs: ${JSON.stringify(labelJsonFileIds)}<br><br>`;
 
@@ -580,7 +562,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         let paramShippingLabelJsonIds = FCBulkEmailProcessLib.Ids.Parameters.SHIPPING_LABEL_JSON_FILE_IDS;
         let paramSessionOutputFolderId = FCBulkEmailProcessLib.Ids.Parameters.SESSION_OUTPUT_FOLDER_ID;
 
-
         let jitPoSendTask = task.create({
             taskType: task.TaskType.MAP_REDUCE,
             scriptId: bulkEmailMrScriptId,
@@ -598,10 +579,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
             <h1>JIT Email Sending Triggered</h1>
             <p>POs have been sent to JIT vendors. PO IDs: ${poIdsSelected}</p>
             `;
-
-        // let jitPoSendTaskStatus = task.checkStatus({
-        //     taskId: jitPoSendTaskId
-        // });
 
         return outHtml;
 

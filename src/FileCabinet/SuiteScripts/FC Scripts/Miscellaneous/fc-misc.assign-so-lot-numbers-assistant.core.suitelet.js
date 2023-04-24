@@ -16,6 +16,7 @@ var
     scriptURL,
     url,
     FCLib,
+    FCClientLib,
     ThisAppLib,
     Papa;
 // assistant, 
@@ -29,18 +30,20 @@ define([
     'N/render',
     'N/ui/serverWidget',
     '../Libraries/fc-main.library.module',
+    '../Libraries/fc-client.library.module',
     './fc-misc.assign-so-lot-numbers-assistant.library.module',
     '../Libraries/papaparse.min'
 ], main);
 
 
-function main(fileModule, logModule, queryModule, renderModule, serverWidgetModule, fcLibModule, fcJITUploadLibModule, papaparseModule) {
+function main(fileModule, logModule, queryModule, renderModule, serverWidgetModule, fcLibModule, fcClientLibModule, fcJITUploadLibModule, papaparseModule) {
     file = fileModule;
     log = logModule;
     query = queryModule;
     render = renderModule;
     serverWidget = serverWidgetModule;
     FCLib = fcLibModule;
+    FCClientLib = fcClientLibModule;
     ThisAppLib = fcJITUploadLibModule;
     Papa = papaparseModule;
 
@@ -124,8 +127,11 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
         //    so number, so id, customer, ship date, quantity, amount, 
 
         // Run query to get sales orders
-        let sqlSoQuery = ThisAppLib.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.Query;
+        let sqlSoQuery = ThisAppLib.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.BuildQuery();
+        log.debug({ title: 'GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO', details: sqlSoQuery });
+        
         let soQueryResults = FCLib.sqlSelectAllRows(sqlSoQuery);
+        log.debug({ title: 'soQueryResults', details: soQueryResults });
 
         // Filter out results with no unassigned lots
         soQueryResults = soQueryResults.filter((so) =>
@@ -139,7 +145,25 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
             log.debug({ title: 'No open SOs found with unassigned lots.', details: '' });
         }
         else {
-            tableHtml = buildSoSelectList(soQueryResults);
+            let fieldDefObj = ThisAppLib.Settings.Ui.Step1.Sublists.SO_TABLE.Fields;
+            let fieldDefs = [
+                fieldDefObj.CB_Select,
+                fieldDefObj.TranInternalId,
+                fieldDefObj.TranId,
+                fieldDefObj.ShipDate,
+                fieldDefObj.CustomerInternalId,
+                fieldDefObj.CustomerName,
+                fieldDefObj.TotalQuantity,
+                fieldDefObj.TotalLottedQuantity,
+                fieldDefObj.QtyRemainingToBeLotted,
+            ];
+            let tableStyle = FCLib.Ui.TableStyles.Style1;
+
+            tableHtml = FCLib.updatedConvertLookupTableToHTMLTable({
+                data: soQueryResults,
+                fieldDefs: fieldDefs,
+                ...tableStyle
+            });
         }
 
         // Build the Form field to hold the table
@@ -151,39 +175,7 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
         soTableField.defaultValue = tableHtml;
 
 
-        function buildSoSelectList(soQueryResults) {
-            let fieldDefs = ThisAppLib.Settings.Ui.Step1.Sublists.SO_TABLE.Fields;
-            let formattedRows = FCLib.formatQueryRowsOnFieldDefs(fieldDefs, soQueryResults);
-            let tableHeaders = Object.keys(fieldDefs).map((key) => fieldDefs[key].Label);
-
-            let selectCheckboxInputSpecs = {
-                htmlElem: 'checkbox',
-                valueSourceField: fieldDefs.TranInternalId.Label,
-                checkedSourceField: fieldDefs.Select.Label,
-                fieldDisplayName: fieldDefs.Select.Label,
-                idPrefixPart1Str: ThisAppLib.Settings.Ui.Step1.Parameters.SELECT_SO_CHECKBOX_ID.prefix,
-                idPrefixPart2Str: '',
-                idUniqueSuffixSourceField: fieldDefs.TranInternalId.Label,
-            };
-
-            tableHtml = FCLib.convertObjToHTMLTableStylized({
-                fields: tableHeaders,
-                data: formattedRows,
-                specialElems: [selectCheckboxInputSpecs],
-                hideFields: {
-                    [fieldDefs.Select.Label]: true,
-                },
-            });
-
-            return tableHtml;
-        }
-    }
-
-
-
-    function writeStep2ReviewCsvParse(context, assistant) {
-        let params = context.request.parameters;
-
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
 
     }
 
@@ -192,15 +184,20 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
     function writeResult(context, assistant) {
         let params = context.request.parameters;
 
-        // Get selected sales orders
-        let soInternalIdsSelected = Object.entries(params).reduce(
-            (matched, [paramName, value]) => {
-                if (ThisAppLib.Settings.Ui.Step1.Parameters.SELECT_SO_CHECKBOX_ID.looksLike(paramName)) {
-                    return [...matched, value];
-                }
-                return matched;
-            }, []
+        let soInternalIdsSelected = FCLib.extractParametersFromRequest(
+            params,
+            ThisAppLib.Settings.Ui.Step1.Parameters.SELECT_SO_CHECKBOX_ID.looksLike,
         );
+
+        // // Get selected sales orders
+        // let soInternalIdsSelected = Object.entries(params).reduce(
+        //     (matched, [paramName, value]) => {
+        //         if (ThisAppLib.Settings.Ui.Step1.Parameters.SELECT_SO_CHECKBOX_ID.looksLike(paramName)) {
+        //             return [...matched, value];
+        //         }
+        //         return matched;
+        //     }, []
+        // );
 
         // Write the selected sales orders to a JSON file to pass to the MR script that will 
         //    apply the lot assignments. 

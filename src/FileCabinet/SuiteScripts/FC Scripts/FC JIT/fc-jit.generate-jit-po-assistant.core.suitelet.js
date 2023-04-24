@@ -240,6 +240,8 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
         });
         vendorSelectFormField.defaultValue = htmlVendorTable;
 
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
+
         // Pass the options from Step 1 to the next step. Write persistent parameters to the assistant
         FCLib.addPersistentParamsField(assistant, persistentParams);
     }
@@ -368,6 +370,9 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
 
         }
 
+        // Attach our client script to enable keyboard shortcuts on the page
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
+
 
         // Add a hidden field to hold persistentParams to be passed to next step
         FCLib.addPersistentParamsField(assistant, persistentParams);
@@ -392,17 +397,6 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
 
         // INSTEAD
         // Rerun query to get up-to-date item data
-
-        // var jitSOItemQueryResults = runFutureSOItemQuery(
-        //     ['vendorid', 'itemid'],
-        //     persistentParams[ThisAppLib.Ui.General.Parameters.CAPTURE_SOS_START_DATE_ID],
-        //     persistentParams[ThisAppLib.Ui.General.Parameters.CAPTURE_SOS_END_DATE_ID],
-        //     persistentParams[ThisAppLib.Ui.General.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID],
-        // );
-
-
-
-
 
         // Build lookup data for parameters
         let finalItemQuantities = {};
@@ -657,6 +651,9 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
         // Add the Accepted and Rejected HTML to their respective fields
         posAcceptedDataField.defaultValue = posAcceptedHtml ? posAcceptedHtml : 'No POs accepted';
         posRejectedDataField.defaultValue = posRejectedHtml ? posRejectedHtml : 'No POs rejected';
+
+        // Attach our client script to enable keyboard shortcuts
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
 
         // Add the persistent params to the assistant
         FCLib.addPersistentParamsField(assistant, persistentParams);

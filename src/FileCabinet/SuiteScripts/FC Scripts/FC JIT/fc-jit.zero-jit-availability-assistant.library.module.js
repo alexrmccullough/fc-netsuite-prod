@@ -1,10 +1,14 @@
-var ui, url;
+var ui, 
+    FCClientLib;
 
-define(['N/ui/serverWidget', 'N/url'], main);
+define([
+    'N/ui/serverWidget', 
+    '../Libraries/fc-client.library.module',
+], main);
 
-function main(serverWidgetModule, urlModule) {
+function main(serverWidgetModule, fcClientLibModule) {
     ui = serverWidgetModule;
-
+    FCClientLib = fcClientLibModule;
 
     var exports = {
         Queries: {
@@ -151,9 +155,9 @@ function main(serverWidgetModule, urlModule) {
             Parameters: {
                 SELECT_VENDOR_CHECKBOX_ID: {
                     prefix: 'custpage_selectvendor_cb_',
-                    build: (vendorId) => { return 'custpage_selectvendor_cb_' + vendorId; },
-                    looksLike: (val) => { return val.startsWith('custpage_selectvendor_cb_'); },
-                    parse: (val) => { return val.replace('custpage_selectvendor_cb_', ''); },
+                    looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectvendor_'); },
+                    build: (vendorId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectvendor_' + vendorId; },
+                    parse: (param) => { return param.split('_').pop()},
                 },
             },
             Sublists: {
@@ -207,9 +211,9 @@ function main(serverWidgetModule, urlModule) {
             Parameters: {
                 SELECT_ITEM_CHECKBOX_ID: {
                     prefix: 'custpage_selectitem_cb_',
-                    build: (itemId) => { return 'custpage_selectitem_cb_' + itemId; },
-                    looksLike: (val) => { return val.startsWith('custpage_selectitem_cb_'); },
-                    parse: (val) => { return val.replace('custpage_selectitem_cb_', ''); },
+                    looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectitem_'); },
+                    build: (itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectitem_' + itemId; },
+                    parse: (val) => { return val.split('_').pop(); },
                 },
             },
             Sublists: {

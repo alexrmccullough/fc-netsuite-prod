@@ -210,12 +210,12 @@ function main(fcLibModule, fcClientLibModule) {
             MAIN: {
                 GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
                 Sandbox: 8541,
-                Prod: '??',
+                Prod: 8138,
             },
             SESSION_RESULTS: {
                 GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
                 Sandbox: 8620,
-                Prod: '??',
+                Prod: 9193,
             },
         },
         CSVImportMappings: {
@@ -324,10 +324,10 @@ function main(fcLibModule, fcClientLibModule) {
                     VENDOR_ITEM_DETAIL: {
                         Id: 'custpage_vendor_item_detail',
                         Label: 'Vendor Item Detail',
-                        StyleFuncs: {
+                        RowStyleFuncs: {
                             HIGHLIGHT_ROW_DISCREPANCIES: function (row) {
                                 let qtyOnLabels = Number(row[
-                                    outputHeaders[5]
+                                    this.Fields.QuantityOnLabels.Label
                                 ]);
                                 let qtyOnPos = Number(row[
                                     exports.Queries.GET_SUMMARIZED_ITEM_INFO_FROM_PO.FieldSet1.itemquantity.fieldid

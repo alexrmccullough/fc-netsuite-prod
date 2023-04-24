@@ -161,6 +161,9 @@ function main(
         });
         vendorTable.defaultValue = tableHtml;
 
+        // Attach our client script to enable keyboard shortcuts
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
+
     }
 
     function writeStep2ReviewAndConfirm(context, assistant) {
@@ -215,6 +218,8 @@ function main(
             itemTable.defaultValue = "No vendors selected. Click Back to select vendors.";
         }
 
+        // Attach our client script to enable keyboard shortcuts
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
 
     }
 

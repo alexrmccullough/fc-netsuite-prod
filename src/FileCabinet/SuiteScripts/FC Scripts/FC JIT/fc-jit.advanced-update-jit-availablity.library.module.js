@@ -3,23 +3,26 @@ var log,
     runtime,
     email,
     ui,
-    FCLib;
+    FCLib,
+    FCClientLib;
 
 define(['N/log', 
     'N/task', 
     'N/runtime', 
     'N/email', 
     'N/ui/serverWidget', 
-    '../Libraries/fc-main.library.module'
+    '../Libraries/fc-main.library.module',
+    '../Libraries/fc-client.library.module'
 ], main);
 
-function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLibModule) {
+function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLibModule, fcClientLibModule) {
     log = logModule;
     task = taskModule;
     runtime = runtimeModule;
     email = emailModule;
     ui = uiModule;
     FCLib = fcLibModule;
+    FCClientLib = fcClientLibModule;
 
     var exports = {
         Form: {
@@ -561,24 +564,18 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
     var Parameters = {
         Step1: {
             SELECT_CSV_CHECKBOX: {
-                prefix: 'custpage_selectcsv_cb_',
-                looksLike: (val) => { return val.startsWith('custpage_selectcsv_cb_'); },
-                build: (itemId) => { return `custpage_selectcsv_cb_${itemId}`; },
-                parse: (val) => { return val.replace('custpage_selectcsv_cb_', ''); },
+                looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectcsv_'); },
+                build: (itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectcsv_' + itemId; },
+                parse: (param) => { return param.split('_').pop(); },
             },
         },
         // FIX: Apply this new setup to the other parameters across other apps  
         Step2: {
             // SUCCESSFUL_ITEM_CACHE_FILE_FIELD_ID: 'custpage_successful_item_cache_file',
             SELECT_ITEM_CHECKBOX: {
-                prefix: 'custpage_selectitem_cb_',
-                looksLike: (val) => { return val.startsWith(this.prefix); },
-                build: (itemId) => { return `${this.prefix}${itemId}`; },
-                parse: (val) => { return val.replace(this.prefix, ''); },
-                // looksLike: (val) => { return val.startsWith('custpage_selectitem_cb_'); },
-                // build: (itemId) => { return `custpage_selectitem_cb_${itemId}`; },
-                // parse: (val) => { return val.replace('custpage_selectitem_cb_', ''); },
-
+                looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectitem_'); },
+                build: (itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectitem_' + itemId; },
+                parse: (param) => { return  param.split('_').pop(); },
             },
         },
         Step3: {
@@ -598,22 +595,20 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
                 },
             },
             VENDOR_SUBTRACTFUTURESOS_CHECKBOX: {
-                prefix: 'custpage_subtractfuturesos_cb_',
-                looksLike: (val) => { return val.startsWith('custpage_subtractfuturesos_cb_'); },
-                build: (vendorId) => { return 'custpage_subtractfuturesos_cb_' + vendorId; },
-                parse: (val) => { return val.replace('custpage_subtractfuturesos_cb_', ''); },
+                looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_subtractfuturesos_'); },
+                build: (vendorId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_subtractfuturesos_' + vendorId; },
+                parse: (param) => { return param.split('_').pop(); },
             },
             VENDOR_APPLYCSV_CHECKBOX: {
-                prefix: 'custpage_applycsv_cb_',
-                looksLike: (val) => { return val.startsWith('custpage_applycsv_cb_'); },
-                build: (vendorId) => { return 'custpage_applycsv_cb_' + vendorId; },
-                parse: (val) => { return val.replace('custpage_applycsv_cb_', ''); },
+                looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_applycsv_'); },
+                build: (vendorId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_applycsv_' + vendorId; },
+                parse: (param) => { return param.split('_').pop(); },
             },
             CSV_ITEMS_SELECTED_FROM_STEP2_HIDDENFIELD: {
-                prefix: 'custpage_csvitemsselected_cb_',
-                looksLike: (val) => { return val.startsWith('custpage_csvitemsselected_cb_'); },
-                build: (itemId) => { return 'custpage_csvitemsselected_cb_' + itemId; },
-                parse: (val) => { return val.replace('custpage_csvitemsselected_cb_', ''); },
+                prefix: FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_csvitemsselected_',
+                looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_csvitemsselected_'); },
+                build: (itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_csvitemsselected_' + itemId; },
+                parse: (param) => { return param.split('_').pop(); },
             },
         },
         Step4: {

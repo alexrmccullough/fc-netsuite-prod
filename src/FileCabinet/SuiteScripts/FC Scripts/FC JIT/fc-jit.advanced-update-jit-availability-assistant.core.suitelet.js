@@ -17,6 +17,7 @@ var
     url,
     redirect,
     FCLib,
+    FCClientLib,
     ThisAppLib,
     Papa;
 // assistant, 
@@ -36,12 +37,13 @@ define([
     'N/url',
     'N/redirect',
     '../Libraries/fc-main.library.module',
+    '../Libraries/fc-client.library.module',
     './fc-jit.advanced-update-jit-availablity.library.module',
     '../Libraries/papaparse.min'
 ], main);
 
 
-function main(fileModule, httpsModule, logModule, messageModule, queryModule, recordModule, renderModule, runtimeModule, serverWidgetModule, urlModule, redirectModule, fcLibModule, fcJITUploadLibModule, papaparseModule) {
+function main(fileModule, httpsModule, logModule, messageModule, queryModule, recordModule, renderModule, runtimeModule, serverWidgetModule, urlModule, redirectModule, fcLibModule, fcClientLibModule, fcJITUploadLibModule, papaparseModule) {
     file = fileModule;
     https = httpsModule;
     log = logModule;
@@ -54,6 +56,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
     url = urlModule;
     redirect = redirectModule;
     FCLib = fcLibModule;
+    FCClientLib = fcClientLibModule;
     ThisAppLib = fcJITUploadLibModule;
     Papa = papaparseModule;
 
@@ -199,6 +202,8 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         catch (e) {
             log.debug({ title: 'writeStep1SelectCsvFiles - error in creating form fields', details: { 'error': e } });
         }
+
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
 
     }
 
@@ -379,6 +384,9 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         successfulResultsField.defaultValue = successTableHtml;
 
 
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
+
+
         // Save the selected CSV file IDs + our sessionSubfolder id to a persistentParams object
         let persistentParams = {
             csvFileIdsSelected: csvFileIdsSelected,
@@ -525,6 +533,8 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // });
 
         csvItemsSelectedFormField.defaultValue = csvItemsSelectedHtml;
+
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
 
         // Write persistentParams to a field to carry through to next step 
         FCLib.addPersistentParamsField(assistant, persistentParams);
@@ -755,6 +765,8 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
 
         log.debug({ title: 'itemUpdateMaster', details: itemUpdateMaster });
         let zero = 0;
+
+        assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
 
         // Write the persistentParams to a field to carry to next step
         FCLib.addPersistentParamsField(assistant, persistentParams);

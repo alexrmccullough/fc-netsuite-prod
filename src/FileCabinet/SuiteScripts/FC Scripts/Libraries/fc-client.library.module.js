@@ -8,7 +8,7 @@ function main() {
 
     var exports = {
         Ui: {
-            FC_CHECKBOX_PREFIX: 'custpage_fc_checkbox_',
+            FC_CHECKBOX_PREFIX: 'custpagefccheckbox',
         },
     };
 

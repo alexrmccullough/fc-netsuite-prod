@@ -1,6 +1,6 @@
-define(['../Libraries/fc-client.library.module'], function (FCClientLib) {
+define(['./fc-client.library.module'], function (FCClientLib) {
     /**
-     * Sample Client Script
+     *  Client Script
      * @NApiVersion 2.1
      * @NModuleScope Public
      * @NScriptType ClientScript

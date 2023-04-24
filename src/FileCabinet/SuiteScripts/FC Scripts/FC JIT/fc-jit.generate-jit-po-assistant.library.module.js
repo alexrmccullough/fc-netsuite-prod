@@ -1,17 +1,20 @@
 var record,
     dayjs,
-    FCLib;
+    FCLib, 
+    FCClientLib;
 
 
 define(['N/record', 
     '../Libraries/dayjs.min', 
-    '../Libraries/fc-main.library.module'
+    '../Libraries/fc-main.library.module',
+    '../Libraries/fc-client.library.module'
 ], main);
 
-function main(recordModule, dayjsModule, fcLibModule) {
+function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
     record = recordModule;
     dayjs = dayjsModule;
     FCLib = fcLibModule;
+    FCClientLib = fcClientLibModule;
 
     var exports = {
         Queries: {
@@ -202,11 +205,10 @@ function main(recordModule, dayjsModule, fcLibModule) {
             JIT_CREATE_POS_HELPER_MAPREDUCE: 'customdeploy_fc_am_jit_mr_createpos',
         },
         Folders: {
-            // MAIN: 9116,
             RESULTS: {
                 GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
-                Sandbox: 8543, // SB
-                Prod: '??'
+                Sandbox: 8543, 
+                Prod: 9116,
             },
         },
         Parameters: {
@@ -246,7 +248,6 @@ function main(recordModule, dayjsModule, fcLibModule) {
                 receiveByDate: 'Receive By Date',
                 // emailOnceCreated: 'Email Once Created',
             },
-
         },
     };
     exports.Settings = Settings;
@@ -443,36 +444,37 @@ function main(recordModule, dayjsModule, fcLibModule) {
 
     Ui.Step2.Parameters = {
         VENDOR_SELECT_CHECKBOX: {
-            prefix: 'custpage_vendorselect_',
-            looksLike: (val) => { return val.startsWith('custpage_vendorselect_'); },
-            build: (vendorId) => { return `custpage_vendorselect_${vendorId}`; },
+            // prefix: 'custpage_vendorselect_',
+            looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_vendorselect_'); },
+            build: (vendorId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_vendorselect_' + vendorId; },
             parse: (val) => {
-                return val.split('_')[2];
+                return val.split('_').pop();
             },
         },
     };
 
     Ui.Step3.Parameters = {
         FINAL_PO_QTY_INPUT: {
-            prefix: 'custpage_finalpoqty_',
-            looksLike: (val) => { return val.startsWith('custpage_finalpoqty_'); },
-            build: (vendorId, itemId) => { return `custpage_finalpoqty_${vendorId}_${itemId}`; },
+            // prefix: 'custpage_finalpoqty_',
+            looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_finalpoqty_'); },
+            build: (vendorId, itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_finalpoqty_' + `${vendorId}_${itemId}`; },
             parse: (val) => {
                 let split = val.split('_');
                 return { vendorId: split[2], itemId: split[3] };
             },
         },
         CREATE_PO_CHECKBOX: {
-            prefix: 'custpage_create_po_',
-            looksLike: (val) => { return val.startsWith('custpage_create_po_'); },
-            build: (vendorid) => `custpage_create_po_${vendorid}`,
-            parse: (param) => param.match(/^custpage_create_po_(.+)$/),
+            // prefix: 'custpage_create_po_',
+            looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_createpo_' ); },
+            build: (vendorid) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_createpo_' + vendorid; },
+            parse: (param) => { return param.split('_').pop(); },
+                
         },
         PO_MEMO_FIELD: {
-            prefix: 'custpage_po_memo_',
-            looksLike: (val) => { return val.startsWith('custpage_po_memo_'); },
-            build: (vendorid) => `custpage_po_memo_${vendorid}`,
-            parse: (param) => param.match(/^custpage_po_memo_(.+)$/),
+            // prefix: 'custpage_po_memo_',
+            looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_pomemo_'); },
+            build: (vendorid) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_pomemo_' + vendorid; },
+            parse: (param) => { return param.split('_').pop(); },
         },
     };
 
