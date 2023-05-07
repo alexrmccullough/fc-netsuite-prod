@@ -113,37 +113,37 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
                     totalbackordered: {
                         label: 'Total Backordered',
                         fieldid: 'totalbackordered',
-                        // includeInCsv: false,
+                        includeInCsv: false,
                     },
                     totalqty: {
                         label: 'Total Demand',
                         fieldid: 'totalqty',
-                        // includeInCsv: false,
+                        includeInCsv: false,
                     },
                     iteminternalid: {
                         label: 'Item Internal ID',
                         fieldid: 'iteminternalid',
-                        // includeInCsv: true,
+                        includeInCsv: true,
                     },
                     itemid: {
                         label: 'Item ID',
                         fieldid: 'itemid',
-                        // includeInCsv: true,
+                        includeInCsv: true,
                     },
                     itemdisplayname: {
                         label: 'Item Name',
                         fieldid: 'itemdisplayname',
-                        // includeInCsv: true,
+                        includeInCsv: true,
                     },
                     vendorid: {
                         label: 'Vendor ID',
                         fieldid: 'vendorid',
-                        // includeInCsv: true,
+                        includeInCsv: true,
                     },
                     vendorentityid: {
                         label: 'Vendor Name',
                         fieldid: 'vendorentityid',
-                        // includeInCsv: true,
+                        includeInCsv: true,
                     },
                 }
             },
@@ -206,7 +206,7 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
         },
         Folders: {
             RESULTS: {
-                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
                 Sandbox: 8543, 
                 Prod: 9116,
             },
@@ -448,7 +448,7 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
             looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_vendorselect_'); },
             build: (vendorId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_vendorselect_' + vendorId; },
             parse: (val) => {
-                return val.split('_').pop();
+                return val.split('_')[2];
             },
         },
     };
@@ -467,14 +467,14 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
             // prefix: 'custpage_create_po_',
             looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_createpo_' ); },
             build: (vendorid) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_createpo_' + vendorid; },
-            parse: (param) => { return param.split('_').pop(); },
+            parse: (param) => { return param.split('_')[2]; },
                 
         },
         PO_MEMO_FIELD: {
             // prefix: 'custpage_po_memo_',
             looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_pomemo_'); },
             build: (vendorid) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_pomemo_' + vendorid; },
-            parse: (param) => { return param.split('_').pop(); },
+            parse: (param) => { return param.split('_')[2]; },
         },
     };
 
@@ -526,14 +526,14 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
                 formatFunc: (date) => { return dayjs(date).format('M/D/YYYY') },
             },
 
-            [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.iteminternalid.display]: {
+            [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.iteminternalid.label]: {
                 typeFunc: (value) => { return value.toString() },
                 record: 'item',
                 nsFieldId: 'item',
             },
             // [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.display]: ,
             // [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.display]: ,
-            [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.display]: {
+            [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.label]: {
                 typeFunc: (value) => { return value.toString() },
                 record: 'transaction',
                 nsFieldId: 'entity',
@@ -640,6 +640,7 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
         // Set the PO mainline fields
         // FIX;
         var csvToNsFieldMapKeys = Object.keys(MRSettings.CsvToNsFieldMap);
+        log.debug({ title: 'csvToNsFieldMapKeys', details: csvToNsFieldMapKeys });
         var poMainlineHeaders = csvToNsFieldMapKeys.filter(
             (header) => { return MRSettings.CsvToNsFieldMap[header].record === 'transaction' }
         );
@@ -649,7 +650,12 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
         for (let header of poMainlineHeaders) {
             let nsFieldId = MRSettings.CsvToNsFieldMap[header].nsFieldId;
             let typeFunc = MRSettings.CsvToNsFieldMap[header].typeFunc;
+            log.debug({ title: 'header', details: header });
+            log.debug({ title: 'nsFieldId', details: nsFieldId });
+
             let nsValue = typeFunc(csvRows[0][header]);
+
+            log.debug({ title: 'nsValue', details: nsValue });
 
             poRecord.setValue({
                 fieldId: nsFieldId,

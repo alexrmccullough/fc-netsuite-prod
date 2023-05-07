@@ -102,7 +102,7 @@ function main(serverWidgetModule, runtimeModule, recordModule, renderModule, xml
 
                 // labelXml = labelXml.replace(/</g, '&#60;').replace(/>/g, '&#62;');
                 // debugHtml += `<h3>Label XML</h3><pre>${labelXml}</pre>`;
-                // context.response.write(labelXml);
+                // context.response.write(debugHtml + '<br>' + labelXml);
                 // context.response.write(debugHtml);
 
                 context.response.renderPdf(labelXml);

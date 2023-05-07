@@ -125,7 +125,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         Folders: {
             // MAIN_TEMP_CACHE_FOLDER: 9114,   // PROD
             MAIN_TEMP_CACHE_FOLDER: {
-                GetId: function () { return getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                GetId: function () { return getEnvSpecificFileId(this.Sandbox, this.Prod); },
                 Sandbox: 8605,
                 Prod: 9114
             },
@@ -213,7 +213,9 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
                         SELECT 
                             ROWNUM AS ROWNUMBER, 
                             * 
-                        FROM (${sql}) 
+                        FROM (
+                            ${sql}
+                            ) 
                         ) 
                     WHERE ( 
                         ROWNUMBER BETWEEN ${paginatedRowBegin} AND ${paginatedRowEnd}
@@ -720,6 +722,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     }
     exports.addDaysToDate = addDaysToDate;
 
+    
     function convertCSVStringToHTMLTableStylized({
         csvString = '',
         headerBGColor = '#009879',
@@ -995,14 +998,26 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     }
     exports.extractParametersFromRequest = extractParametersFromRequest;
 
-    function getEnvSpecificFolderId(folderIdSb, folderIdProd) {
+    function getEnvSpecificFileId(fileIdSb, fileIdProd) {
         const env = runtime.envType;
-        if (env === runtime.EnvType.SANDBOX) { return folderIdSb; }
-        if (env === runtime.EnvType.PRODUCTION) { return folderIdProd; }
+        if (env === runtime.EnvType.SANDBOX) { return fileIdSb; }
+        if (env === runtime.EnvType.PRODUCTION) { return fileIdProd; }
         return null;
     }
-    exports.getEnvSpecificFolderId = getEnvSpecificFolderId;
+    exports.getEnvSpecificFileId = getEnvSpecificFileId;
 
+    function escapeXml(unsafe) {
+        return unsafe.replace(/[<>&'"]/g, function (c) {
+            switch (c) {
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '&': return '&amp;';
+                case '\'': return '&apos;';
+                case '"': return '&quot;';
+            }
+        });
+    }
+    exports.escapeXml = escapeXml;
 
     return exports;
 }

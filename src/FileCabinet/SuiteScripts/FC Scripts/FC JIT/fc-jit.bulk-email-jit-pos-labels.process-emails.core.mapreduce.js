@@ -33,7 +33,16 @@ define(['N/runtime',
     '../Libraries/dayjs.min'
 ], main);
 
-function main(runtimeModule, queryModule, renderModule, fileModule, fcMainLibModule, fcBulkEmailLibModule, fcJITPoLibModule, fcShipLabelLibModule, dayjsModule) {
+function main(
+    runtimeModule, 
+    queryModule, 
+    renderModule, 
+    fileModule, 
+    fcMainLibModule, 
+    fcBulkEmailLibModule, 
+    fcJITPoLibModule, 
+    fcShipLabelLibModule, 
+    dayjsModule) {
 
     runtime = runtimeModule;
     query = queryModule;
@@ -182,37 +191,49 @@ function reduce(context) {
 
         let shippingLabelJsonFileId = thisPoInfo.shippingLabelJsonFileId;        // Assuming a single value per poInternalId
 
+        log.debug({ title: 'reduce - shippingLabelJsonFileId', details: shippingLabelJsonFileId });
+
         let shippingLabelData = null;
         let shippingLabelPdf_1 = null;
         let shippingLabelPdf_2 = null;
 
         if (shippingLabelJsonFileId) {
             let jsonContents = FCLib.getTextFileContents(shippingLabelJsonFileId);
+            log.debug({ title: 'reduce - jsonContents', details: jsonContents });
             shippingLabelData = JSON.parse(jsonContents);
+            log.debug({ title: 'reduce - shippingLabelData', details: shippingLabelData });
             shippingLabelSearchResults = {
                 data: shippingLabelData
             };
 
+            log.debug({ title: 'reduce - shippingLabelSearchResults', details: shippingLabelSearchResults });
             // Generate and save the shipping label PDF file
             let shippingLabelPdfXml_1 = FCShipLabelLib.generateShippingLabelXmlFromSearchResults(
                 shippingLabelSearchResults,
                 'PDF_AVERY_8X11'
             );
 
+            log.debug({ title: 'reduce - shippingLabelPdfXml_1', details: shippingLabelPdfXml_1 });
+
             let shippingLabelPdfXml_2 = FCShipLabelLib.generateShippingLabelXmlFromSearchResults(
                 shippingLabelSearchResults,
                 'PDF_ZEBRA_2X4'
             );
 
+            log.debug({ title: 'reduce - shippingLabelPdfXml_2', details: shippingLabelPdfXml_2 });
+
             shippingLabelPdf_1 = render.xmlToPdf({
                 xmlString: shippingLabelPdfXml_1
             });
+            log.debug({ title: 'reduce - shippingLabelPdf_1', details: shippingLabelPdf_1 });
 
             shippingLabelPdf_2 = render.xmlToPdf({
                 xmlString: shippingLabelPdfXml_2
             });
         }
 
+
+        log.debug({ title: 'reduce - shippingLabelPdf_2', details: shippingLabelPdf_2 });
 
         // Generate the PO PDF file
         let poPdf = render.transaction({
@@ -221,10 +242,15 @@ function reduce(context) {
         });
 
 
+        log.debug({ title: 'reduce - poPdf', details: poPdf });
+
         // Send email
         let currentUser = runtime.getCurrentUser();
         let emailRecipients = thisPoInfo.email.split(/[,;]+/).map(email => email.trim());
         emailRecipients.push(currentUser.email);
+
+
+        log.debug({ title: 'reduce - currentUser', details: currentUser });
 
         let formattedDueDate = dayjs(thisPoInfo.dueDate).format('M/D/YYYY');
 
@@ -256,8 +282,14 @@ function reduce(context) {
 
 
         let emailAttachments = [poPdf];
-        if (shippingLabelPdf_1) { emailAttachments.push(shippingLabelPdf_1); }
-        if (shippingLabelPdf_2) { emailAttachments.push(shippingLabelPdf_2); }
+        if (shippingLabelPdf_1) { 
+            shippingLabelPdf_1.name = 'Shipping Labels - Avery 8x11.pdf';
+            emailAttachments.push(shippingLabelPdf_1); 
+        }
+        if (shippingLabelPdf_2) { 
+            shippingLabelPdf_2.name = 'Shipping Labels - Zebra 2x4.pdf';
+            emailAttachments.push(shippingLabelPdf_2); 
+        }
 
         log.debug({ title: 'reduce - emailAttachments', details: emailAttachments });
 

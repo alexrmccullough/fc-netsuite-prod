@@ -1,0 +1,10 @@
+<advancedpdftemplate scriptid="custtmpl_fc_jitpickingdetailbyitem_a">
+  <description></description>
+  <displaysourcecode>F</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>SEARCH</printtype>
+  <savedsearch>[scriptid=customsearch_fc_jitpickdetailbyitem1]</savedsearch>
+  <title>FC | JIT Picking Detail by Item A</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

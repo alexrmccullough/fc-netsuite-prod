@@ -17,12 +17,12 @@ var record,
     dayjs,
     FCLotMgmtLib;
 
-define(['N/record', 
-    'N/query', 
-    'N/search', 
-    'N/runtime', 
-    '../Libraries/fc-main.library.module', 
-    '../Libraries/dayjs.min', 
+define(['N/record',
+    'N/query',
+    'N/search',
+    'N/runtime',
+    '../Libraries/fc-main.library.module',
+    '../Libraries/dayjs.min',
     './fc-misc.general-lot-mgmt.library.module'
 ], main);
 
@@ -141,7 +141,7 @@ function doUpdateJitAvailabilities(context, oldRecord = null, newRecord = null) 
         (context.type == context.UserEventType.DELETE) ||
         (context.type == context.UserEventType.CANCEL) ||
         (oldApprovalStatus == 'B') && (newApprovalStatus == 'A')
-        ) {
+    ) {
         newRecord = null;
     }
 
@@ -199,10 +199,13 @@ function doUpdateJitAvailabilities(context, oldRecord = null, newRecord = null) 
                 sublistId: 'item',
                 fieldId: 'item', line: j
             });
-            let curItemIsJit = rec.getSublistValue({
-                sublistId: 'item',
-                fieldId: 'custcol3', line: j            // FIX: PROD
-            });
+
+            let curItemIsJit = search.lookupFields({
+                type: search.Type.ITEM,
+                id: curItemId,
+                columns: 'custitem_soft_comit'
+            }).custitem_soft_comit;
+
 
             if (FCLib.looksLikeNo(curItemIsJit)) {
                 continue;
@@ -234,7 +237,9 @@ function doUpdateJitAvailabilities(context, oldRecord = null, newRecord = null) 
 
     let jitItemInfo = runItemQuery(allItemIds);
 
-    // Update every JIT item record
+    // Update every JIT item record\
+    var changes = [];
+
     for (let [jitItemId, jitItem] of Object.entries(jitItemInfo)) {
         let itemBefore = itemBeforeAfter.befores.items[jitItemId];
         let itemAfter = itemBeforeAfter.afters.items[jitItemId];
@@ -284,10 +289,19 @@ function doUpdateJitAvailabilities(context, oldRecord = null, newRecord = null) 
                     }
                 });
 
-                // DO: Log all changes
+                changes.push({
+                    itemid: jitItemId,
+                    itemname: jitItem.itemname,
+                    qtyBefore: qtyBefore,
+                    qtyAfter: endingJitRemaining,
+                });
+
             }
         }
     }
+    
+    log.audit({ title: 'changes', details: changes });
+
 }
 
 

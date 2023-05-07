@@ -189,6 +189,7 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
 
     function doAssignSOLotNumbers(soRec) {
         let dynamic = soRec.isDynamic;
+        log.audit({title: 'doAssignSOLotNumbers', details: 'Starting...'});
 
         // For all items on SO
         //   If item is not lot tracked, skip
@@ -390,6 +391,7 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
                     // let lotNum = onHandLots[j][ThisAppLib.Queries.GET_ONHAND_LOTNUMS.FieldSet1.LotNum.Name];
                     let lotId = availableLots[j][exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.InvNumberInternalId.Name];
                     let lotQtyAvailable = availableLots[j][exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.QuantityAvailable.Name];
+
                     if (lotQtyAvailable <= 0) {
                         continue;
                     }
@@ -429,6 +431,7 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
                         invDetailSubrec.commitLine({
                             sublistId: 'inventoryassignment'
                         });
+                        
                     }
                     else {
                         invDetailSubrec.setSublistValue({
@@ -453,6 +456,8 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
                             value: 1
                         });
                     }
+
+                    log.debug({'title': 'doAssignSOLotNumbers', 'details': `Assigning ${lotQtyToAssign} of ${lotId} to item ${itemId} line ${i} `} );
 
                     quantityLeftToAssign -= lotQtyToAssign;
                     availableLots[j][exports.Queries.GET_ONHAND_LOTNUMS.FieldSet1.QuantityAvailable.Name] -= lotQtyToAssign;
@@ -509,6 +514,8 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
             //     }
             // }
         }
+
+        log.audit({title: 'doAssignSOLotNumbers', details: 'Finished.'});
 
         return true;
 

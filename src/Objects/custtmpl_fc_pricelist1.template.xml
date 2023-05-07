@@ -1,0 +1,134 @@
+<#ftl output_format="XML">
+<?xml version="1.0"?>
+<!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<pdf>
+	<head>
+		<link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}"
+			src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}"
+			src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
+		<macrolist>
+			<macro id="nlheader">
+				<table class="header" style="width: 100%;margin-bottom:10px;">
+					<tr>
+						<td rowspan="3">
+							<#if companyInformation.logoUrl?length != 0>
+								<img src="${companyInformation.logoUrl?no_esc}"
+									style="float: left; margin: 7px;" height="50px" width="90px"/>
+							</#if>
+							<span class="nameandaddress">${companyInformation.companyName}</span>
+							<br />
+							<span class="nameandaddress">${companyInformation.addressText}</span>
+						</td>
+						<td align="right">
+							<span class="title">${record@title}</span>
+						</td>
+					</tr>
+					<tr>
+						<td align="right"><span class="customername">${customer.entityid} </span></td>
+					</tr>
+					<tr>
+						<td align="right">${record.trandate}</td>
+					</tr>
+				</table>
+			</macro>
+			<macro id="nlfooter">
+				<table class="footer" style="width: 100%;">
+					<tr>
+						<td align="right"><pagenumber /> of <totalpages /></td>
+					</tr>
+				</table>
+			</macro>
+		</macrolist>
+		<style type="text/css">
+			* {
+				font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+				font-size: 9pt;
+				table-layout: fixed;
+			}
+			table {
+				font-size: 9pt;
+				table-layout: fixed;
+			}
+			th {
+				font-weight: bold;
+				font-size: 8pt;
+				vertical-align: middle;
+				padding: 5px 6px 3px;
+				background-color: #e3e3e3;
+				color: #333333;
+			}
+			td {
+				padding: 4px 6px;
+			}
+			td p { align:left }
+			b {
+				font-weight: bold;
+				color: #333333;
+			}
+			table.header td {
+				padding: 0;
+				font-size: 10pt;
+			}
+			table.footer td {
+				padding: 0;
+				font-size: 8pt;
+			}
+			table.itemtable th {
+				padding-bottom: 10px;
+				padding-top: 10px;
+			}
+			table.body td {
+				padding-top: 2px;
+			}
+			td.addressheader {
+					font-weight: bold;
+				font-size: 8pt;
+				padding-top: 6px;
+				padding-bottom: 2px;
+			}
+			td.address {
+				padding-top: 0px;
+			}
+			span.title {
+				font-size: 28pt;
+			}
+			span.customername{
+				font-size:20pt;
+			}
+			span.itemname {
+				font-weight: bold;
+				line-height: 150%;
+			}
+			hr {
+				width: 100%;
+				color: #d3d3d3;
+				background-color: #d3d3d3;
+				height: 1px;
+			}
+		</style>
+	</head>
+	<body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt"
+		padding="0.5in 0.5in 0.5in 0.5in" size="Letter-LANDSCAPE">
+		<#list record.pricelevels as lines>
+			<table class="itemtable" style="width: 100%; margin-top: 10px;">
+					<thead>
+						<tr>
+							<th colspan="3">SKU</th>
+							<th colspan="12">Item Description</th>
+							<th align="right" colspan="4">${lines.rate@label}</th>
+							
+						</tr>
+					</thead>
+			<#list lines as line>
+					<tr>
+						<td colspan="3">${line.custitem6?keep_before(' ')}</td>
+						<td colspan="12">${line.item}</td>
+						<td align="right" colspan="4">${line.rate}</td>
+
+					</tr>
+			</#list>
+				</table>
+
+		</#list>
+	</body>
+</pdf>

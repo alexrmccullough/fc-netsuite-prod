@@ -1,3 +1,4 @@
+<#ftl output_format="XML">
 <?xml version="1.0"?><!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
 <pdf>
 <head>
@@ -369,16 +370,16 @@
         <@openRow counter></@openRow>
 
         <@writeLabel 
-            customer=result.formulatext_2 
+            customer=result.formulatext_3?no_esc
             shipDate=result.shipdate
             route=result.custbody_rd_so_route
             itemId=result.itemid
             transId=result.tranid
             lotNum=result.inventorynumber
-            itemName=result.displayname
-            itemBrand=result.custitem_fc_brand
-            itemStub=result.custitem_fc_product_stub
-            itemMasterCase=result.custitem_fc_mastercase
+            itemName=result.displayname?no_esc
+            itemBrand=result.custitem_fc_brand?no_esc
+            itemStub=result.custitem_fc_product_stub?no_esc
+            itemMasterCase=result.custitem_fc_mastercase?no_esc
             labelQty=qtyforthislabel 
             labelPos=i
             totalLabelCt=numberoflabels
@@ -416,16 +417,16 @@
                 <@openRow counter></@openRow>
 
                 <@writeLabel 
-                    customer=result.formulatext_2
+                    customer=result.formulatext_3?no_esc
                     shipDate=result.shipdate
                     route=result.custbody_rd_so_route
                     itemId=result.itemid
                     transId=result.tranid
                     lotNum="---"
-                    itemName=result.displayname
-                    itemBrand=result.custitem_fc_brand
-                    itemStub=result.custitem_fc_product_stub
-                    itemMasterCase=result.custitem_fc_mastercase
+                    itemName=result.displayname?no_esc
+                    itemBrand=result.custitem_fc_brand?no_esc
+                    itemStub=result.custitem_fc_product_stub?no_esc
+                    itemMasterCase=result.custitem_fc_mastercase?no_esc
                     labelQty=qtyforthislabel 
                     labelPos=j
                     totalLabelCt=numberoflabels

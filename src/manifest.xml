@@ -10,19 +10,69 @@
       <feature required="true">SALESORDERS</feature>
       <feature required="true">RETURNAUTHS</feature>
       <feature required="true">PURCHASEORDERS</feature>
+      <feature required="false">SUBSIDIARIES</feature>
+      <feature required="false">WEBSERVICES</feature>
+      <feature required="true">ACCOUNTING</feature>
     </features>
     <objects>
+      <object>customrecord_scm_dps_userdisplay</object>
+      <object>customrecord_dt_tile</object>
+      <object>customrecord_scm_lc_profile_detail</object>
+      <object>customrecord_scm_printreportlog</object>
+      <object>customrecord_rd_route_stops</object>
+      <object>customsearch_fc_jitpickdetailbycust1</object>
+      <object>customrecord_ecsl_audit_trail_dtl</object>
+      <object>customrecord_rd_trucks</object>
+      <object>custitem_fc_storagetemp</object>
+      <object>customsearch_fc_am_customer_pricelist1</object>
+      <object>customrecord_scm_ecn_eco_type</object>
+      <object>customrecord_scm_item_substitute</object>
+      <object>customrecord_fc_product_brands</object>
+      <object>customrecord_scm_ecn_engr_change_order</object>
+      <object>customrecord_nav_shortcut</object>
+      <object>customrecord_online_filing</object>
+      <object>customsearch_fc_pickup_tickets_consolid2</object>
+      <object>customrecord_scm_ecn_implement_eco_log</object>
+      <object>customrecord_filing_config</object>
+      <object>customsearch_fc_ship_tickets_consolid2</object>
+      <object>customrecord_nav_shortcut_tooltip</object>
+      <object>customrecord_nav_shortcutgroup</object>
+      <object>customrecord_scm_dps_taskview</object>
+      <object>custbody_rd_so_route</object>
+      <object>customrecord_nav_category</object>
+      <object>customsearch_fc_shippinglabel_mainstatic</object>
+      <object>customrecord_filing_authorization</object>
+      <object>customrecord_ecsl_audit_trail_hdr</object>
+      <object>customrecord_rd_route_shipment_record</object>
+      <object>customrecord_tax_return_setup_item</object>
+      <object>customrecord_rd_route_address_location</object>
+      <object>customrecord_scm_lc_profile</object>
+      <object>customrecord_scm_customerpartnumber</object>
+      <object>customrecord_scm_lc_mapping</object>
       <object>custitem_fc_zone_static</object>
       <object>custitem_soft_comit</object>
       <object>custitem_fc_zen_itemiscatchweight</object>
-      <object>custbody_rd_so_route</object>
-      <object>custitem_fc_bin_staticfield</object>
-      <object>custitem_fc_storagetemp</object>
-      <object>customsearch_fc_shippinglabel_mainstatic</object>
-      <object>customsearch_fc_pickup_tickets_consolid2</object>
+      <object>customrecord_purchase_requisition</object>
+      <object>customrecord_vatonline_submittedperiod</object>
+      <object>customrecord_4599</object>
       <object>custitem_fc_brand</object>
-      <object>customsearch_fc_ship_tickets_consolid2</object>
+      <object>customrecord_filing_template</object>
+      <object>customsearch_fc_jitpickdetailbyitem1</object>
+      <object>customrecord_dt_translations</object>
       <object>customrecord_rd_route</object>
+      <object>customrecord_scm_preferences</object>
     </objects>
+    <applications>
+      <application id="com.suitesuccess.vendorcert">
+        <objects>
+          <object>customrecord_atlas_vendor_cert_rec</object>
+        </objects>
+      </application>
+      <application id="com.suitesuccess.erpcore">
+        <objects>
+          <object>customrecord_atlas_inv_adj_reasn</object>
+        </objects>
+      </application>
+    </applications>
   </dependencies>
 </manifest>

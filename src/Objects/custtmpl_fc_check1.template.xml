@@ -1,0 +1,48 @@
+<#ftl output_format="XML">
+<?xml version="1.0"?><!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<pdf>
+<head>
+	<link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}" src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}" src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
+
+    <style type="text/css">
+		* {
+		}
+        .check table {
+            position: relative;
+            overflow: hidden;
+            font-size: 8pt;
+        }
+		td p { align:left }
+</style>
+</head>
+<body padding="0.25in 0.25in 0.25in 0.25in" size="Letter">
+    <#list records as check>
+<div syle="position: relative;font-family: Helvetica,sans-serif;top= -11pt;height: 250pt;width: 612pt;page-break-inside: avoid;font-size: 8pt;">
+t
+<table style="position: absolute;overflow: hidden;left: 500pt;top: 25pt;height: 18pt;width: 108pt;"><tr>
+	<td><span style="font-size:14px;">${check.trandate}</span></td>
+	</tr></table>
+
+<table style="position: absolute;overflow: hidden;left: 75pt;top: 69pt;height: 18pt;width: 393pt;"><tr>
+	<td><span style="font-size:14px;">${check.entity?no_esc}</span></td>
+	</tr></table>
+
+<table style="position: absolute;overflow: hidden;left: 490pt;top: 69pt;height: 18pt;width: 111pt;"><tr>
+	<td><span style="font-size:14px;">**<#if (check.usertotal?length > 0)>${check.usertotal}<#else>${check.total}</#if></span></td>
+	</tr></table>
+
+<table style="position: absolute;overflow: hidden;left: 20pt;top: 93pt;height: 18pt;width: 572pt;"><tr>
+	<td><span style="font-size:12px;">${check.totalwords?no_esc}*********************************************************************</span></td>
+	</tr></table>
+
+<table style="position: absolute;overflow: hidden;left: 37pt;top: 122pt;height: 80pt;width: 537pt;"><tr>
+	<td><span style="font-size:11px;">${check.address?no_esc}</span></td>
+	</tr></table>
+
+<table style="position: absolute;overflow: hidden;left: 37pt;top: 172pt;height: 18pt;width: 572pt;"><tr>
+	<td><span style="font-size:12px;">${check.memo?no_esc}</span></td>
+	</tr></table>
+</div>
+</#list>
+</body>
+</pdf>

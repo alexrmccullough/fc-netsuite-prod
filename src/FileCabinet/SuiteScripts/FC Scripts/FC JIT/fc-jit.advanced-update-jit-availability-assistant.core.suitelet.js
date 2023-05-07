@@ -159,6 +159,8 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         // Get the list of files currently in the Input folder and display
         const inputFolderId = ThisAppLib.IO.FolderIds.INPUT.GetId();
 
+        log.debug({ title: 'STEP 1: parseJITCSVs - input folder id', details: { 'folderId': inputFolderId } })
+
         let sql = ThisAppLib.Queries.GET_ALL_CSV_FILES_IN_FOLDER_BY_ID.BuildQuery(inputFolderId);
         let csvFileQueryResults = FCLib.sqlSelectAllRows(sql);
 
@@ -254,23 +256,6 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         let validationOutput = validateCSVData(context, parsedCSVs, jitItemInfo);
         let successfulItemsParsed = validationOutput.itemsToUpdate;
 
-
-        // Run query to get details for successful itmes
-        let successItemNames = Object.keys(successfulItemsParsed);
-        let sqlGetItemDetails = ThisAppLib.Queries.GET_JIT_ITEM_DETAILS.BuildQuery(successItemNames);
-        let itemDetailQueryResults = FCLib.sqlSelectAllRows(sqlGetItemDetails);
-
-
-        // Inject the new JIT item quantities from the CSV uploads into the query results
-        let itemNameFieldId = ThisAppLib.Queries.GET_JIT_ITEM_DETAILS.FieldSet1.ItemName.fieldid;
-        let newJitQtyFieldId = ThisAppLib.Settings.Ui.Step2.Sublists.ITEMS_SUCCESSFULLY_PARSED_TABLE.Fields.NewJitStartQty.FieldId;
-
-
-        for (let row of itemDetailQueryResults) {
-            let itemName = row[itemNameFieldId];
-            row[newJitQtyFieldId] = successfulItemsParsed[itemName];
-        }
-
         // Create a folder to store output files for this session
         let sessionSubfolder = createSessionSubfolder(context);
 
@@ -305,79 +290,98 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         }
 
 
-        // Build HTML selection table for successful items
-        // let successCsvUrl = FCLib.getFileUrl(successfulItemsCsvFileId);
-        // let successCsvLinkHtml = successCsvUrl ? `<a href="${successCsvUrl}" target="_blank">Download CSV</a>` : '';
-        const successFieldDefObj = ThisAppLib.Settings.Ui.Step2.Sublists.ITEMS_SUCCESSFULLY_PARSED_TABLE.Fields;
-        const successTableFieldIds = [
-            successFieldDefObj.CB_Select,
-            successFieldDefObj.ItemInternalId,
-            successFieldDefObj.ItemName,
-            successFieldDefObj.ItemDisplayName,
-            successFieldDefObj.NewJitStartQty,
-            successFieldDefObj.ItemStandingJitQty,
-            successFieldDefObj.ItemStartJitQty,
-            successFieldDefObj.ItemRemainJitQty,
-        ];
+        let successTableHtml = '<p>No items successfully parsed from CSVs<p>';
+        if (successfulItemsParsed && Object.keys(successfulItemsParsed).length > 0) {
 
-        let successTableStyle = FCLib.Ui.TableStyles.Style1;
+            // Run query to get details for successful itmes
+            let successItemNames = Object.keys(successfulItemsParsed);
+            let sqlGetItemDetails = ThisAppLib.Queries.GET_JIT_ITEM_DETAILS.BuildQuery(successItemNames);
+            let itemDetailQueryResults = FCLib.sqlSelectAllRows(sqlGetItemDetails);
 
-        let successTableHtml = FCLib.updatedConvertLookupTableToHTMLTable({
-            data: itemDetailQueryResults,
-            fieldDefs: successTableFieldIds,
-            ...successTableStyle,
-        });
+            itemDetailQueryResults = FCLib.sortArrayOfObjsByKeys(
+                itemDetailQueryResults,
+                [ThisAppLib.Queries.GET_JIT_ITEM_DETAILS.FieldSet1.ItemDisplayName.fieldid]
+            );
+
+            // Inject the new JIT item quantities from the CSV uploads into the query results
+            let itemNameFieldId = ThisAppLib.Queries.GET_JIT_ITEM_DETAILS.FieldSet1.ItemName.fieldid;
+            let newJitQtyFieldId = ThisAppLib.Settings.Ui.Step2.Sublists.ITEMS_SUCCESSFULLY_PARSED_TABLE.Fields.NewJitStartQty.FieldId;
+
+
+            for (let row of itemDetailQueryResults) {
+                let itemName = row[itemNameFieldId];
+                row[newJitQtyFieldId] = successfulItemsParsed[itemName];
+            }
+
+
+            // Build HTML selection table for successful items
+            // let successCsvUrl = FCLib.getFileUrl(successfulItemsCsvFileId);
+            // let successCsvLinkHtml = successCsvUrl ? `<a href="${successCsvUrl}" target="_blank">Download CSV</a>` : '';
+            const successFieldDefObj = ThisAppLib.Settings.Ui.Step2.Sublists.ITEMS_SUCCESSFULLY_PARSED_TABLE.Fields;
+            const successTableFieldIds = [
+                successFieldDefObj.CB_Select,
+                successFieldDefObj.ItemInternalId,
+                successFieldDefObj.ItemName,
+                successFieldDefObj.ItemDisplayName,
+                successFieldDefObj.NewJitStartQty,
+                successFieldDefObj.ItemStandingJitQty,
+                successFieldDefObj.ItemStartJitQty,
+                successFieldDefObj.ItemRemainJitQty,
+            ];
+
+            let successTableStyle = FCLib.Ui.TableStyles.Style1;
+
+            successTableHtml = FCLib.updatedConvertLookupTableToHTMLTable({
+                data: itemDetailQueryResults,
+                fieldDefs: successTableFieldIds,
+                ...successTableStyle,
+            });
+        }
 
         // 
         // let successHtml = buildCsvItemSelectList(context, itemDetailQueryResults);
 
 
         // Write the HTML to the Form fields
-        try {
-            // Add a field group for the error results
-            var errorResultsFieldGroup = assistant.addFieldGroup({
-                id: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_ERROR_RESULTS_FIELD_GROUP_ID,
-                label: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_ERROR_RESULTS_FIELD_GROUP_LABEL
-            });
+        // Add a field group for the error results
+        var errorResultsFieldGroup = assistant.addFieldGroup({
+            id: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_ERROR_RESULTS_FIELD_GROUP_ID,
+            label: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_ERROR_RESULTS_FIELD_GROUP_LABEL
+        });
 
-            // Add a field group for the item update results
-            var itemUpdateResultsFieldGroup = assistant.addFieldGroup({
-                id: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_SUCCESS_RESULTS_FIELD_GROUP_ID,
-                label: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_SUCCESS_RESULTS_FIELD_GROUP_LABEL
-            });
+        // Add a field group for the item update results
+        var itemUpdateResultsFieldGroup = assistant.addFieldGroup({
+            id: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_SUCCESS_RESULTS_FIELD_GROUP_ID,
+            label: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_SUCCESS_RESULTS_FIELD_GROUP_LABEL
+        });
 
-            // Add a field to display the results of the file validation
-            var errorResultsField = assistant.addField({
-                id: ThisAppLib.Settings.Ui.Step2.Fields.CSV_ERROR_RESULTS_FIELD_ID,
-                type: serverWidget.FieldType.INLINEHTML,
-                label: ThisAppLib.Settings.Ui.Step2.Fields.CSV_ERROR_RESULTS_FIELD_LABEL,
-                container: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_ERROR_RESULTS_FIELD_GROUP_ID
-            });
-            errorResultsField.updateLayoutType({
-                layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
-            });
-            errorResultsField.updateBreakType({
-                breakType: serverWidget.FieldBreakType.STARTCOL
-            });
+        // Add a field to display the results of the file validation
+        var errorResultsField = assistant.addField({
+            id: ThisAppLib.Settings.Ui.Step2.Fields.CSV_ERROR_RESULTS_FIELD_ID,
+            type: serverWidget.FieldType.INLINEHTML,
+            label: ThisAppLib.Settings.Ui.Step2.Fields.CSV_ERROR_RESULTS_FIELD_LABEL,
+            container: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_ERROR_RESULTS_FIELD_GROUP_ID
+        });
+        errorResultsField.updateLayoutType({
+            layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
+        });
+        errorResultsField.updateBreakType({
+            breakType: serverWidget.FieldBreakType.STARTCOL
+        });
 
-            // Add a field to display the results of the item update
-            var successfulResultsField = assistant.addField({
-                id: ThisAppLib.Settings.Ui.Step2.Fields.CSV_SUCCESS_RESULTS_FIELD_ID,
-                type: serverWidget.FieldType.INLINEHTML,
-                label: ThisAppLib.Settings.Ui.Step2.Fields.CSV_SUCCESS_RESULTS_FIELD_LABEL,
-                container: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_SUCCESS_RESULTS_FIELD_GROUP_ID
-            });
-            successfulResultsField.updateLayoutType({
-                layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
-            });
-            successfulResultsField.updateBreakType({
-                breakType: serverWidget.FieldBreakType.STARTCOL
-            });
-
-        }
-        catch (e) {
-            log.error({ title: 'writeStep2ReviewCsvParse - error in creating form fields', details: { 'error': e } });
-        }
+        // Add a field to display the results of the item update
+        var successfulResultsField = assistant.addField({
+            id: ThisAppLib.Settings.Ui.Step2.Fields.CSV_SUCCESS_RESULTS_FIELD_ID,
+            type: serverWidget.FieldType.INLINEHTML,
+            label: ThisAppLib.Settings.Ui.Step2.Fields.CSV_SUCCESS_RESULTS_FIELD_LABEL,
+            container: ThisAppLib.Settings.Ui.Step2.FieldGroups.CSV_SUCCESS_RESULTS_FIELD_GROUP_ID
+        });
+        successfulResultsField.updateLayoutType({
+            layoutType: serverWidget.FieldLayoutType.OUTSIDEABOVE
+        });
+        successfulResultsField.updateBreakType({
+            breakType: serverWidget.FieldBreakType.STARTCOL
+        });
 
 
         errorResultsField.defaultValue = errorHtml;

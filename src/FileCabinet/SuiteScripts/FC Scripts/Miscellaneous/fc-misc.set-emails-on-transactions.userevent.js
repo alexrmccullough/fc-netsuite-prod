@@ -4,11 +4,18 @@
  * @author Alex McCullough alex.mccullough@gmail.com
  * @description This Userevent script on the configuration auto-populates certain Transaction records (SO, Invoice, PO) with multiple email recipients. It pulls email address from Contacts associated with the Transaction's associated Entity, filtered by whether that Contact has the "Email SO/Invoice/PO" flag set. 
  * 
- * @NApiVersion 2.x
+ * @NApiVersion 2.1
  * @NModuleScope SameAccount
  * @NScriptType UserEventScript
  */
- define(['N/record', 'N/search', 'N/runtime'], function(record, search, runtime) {
+ define([
+    'N/record', 
+    'N/search', 
+    'N/runtime',
+    '../Libraries/fc-main.library.module',
+
+], function(record, search, runtime, FCLib) {
+
     function beforeSubmit(context) {
         if ((context.type != context.UserEventType.CREATE) && (context.type != context.UserEventType.EDIT))
             return;
@@ -31,14 +38,37 @@
             return;
         };
 
+        var commTypeParam = runtime.getCurrentScript().getParameter('custscript_commtype_switch');
+
+
         // var recEmails = rec.getValue({
         //     fieldId: 'email'
         // }).split(';');
 
-        var entityEmails = entityFields['email'].split(';');
+        var entityEmails = entityFields['email'] ? entityFields['email'].split(';') : [];
+        
+        // if (context.newRecord.type === k)
+        
+        try {
+            var emailCbChecked = search.lookupFields({
+                type: search.Type.ENTITY,
+                id: entityId,
+                columns: [commTypeParam]
+            });
+
+            log.debug("beforeSubmit: emailCbChecked: " + emailCbChecked[commTypeParam]);
+
+            if (FCLib.looksLikeNo(emailCbChecked[commTypeParam])) {
+                entityEmails = [];     
+            } 
+
+        } catch (e) {
+            log.debug("No email switch found on Entity record: entityEmails: " + entityEmails);
+        }
+
     
         try {
-            var contactEmails = getEntityContactEmails(entityId);
+            var contactEmails = getEntityContactEmails(entityId, commTypeParam);
             var allEmails = contactEmails.concat(entityEmails);
             var dedupedEmails = dedupeList(allEmails);
     
@@ -63,7 +93,7 @@
     
     }
 
-    function getEntityContactEmails(entityId){
+    function getEntityContactEmails(entityId, commTypeParam){
 
         var companyFilter = [
             "company.internalid",
@@ -71,7 +101,7 @@
             entityId
         ];
         var commTypeFilter = [
-            runtime.getCurrentScript().getParameter('custscript_commtype_switch'),
+            commTypeParam,
             search.Operator.IS, 
             'T'
         ];
@@ -95,7 +125,6 @@
         // Iterate over each page
         var myPagedData = contactSearchObj.runPaged({ pageSize: 1000 });
         myPagedData.pageRanges.forEach(function(pageRange){
-
             // Fetch the results on the current page
             var myPage = myPagedData.fetch({index: pageRange.index});
 

@@ -15,68 +15,56 @@ function main(fcLibModule, fcClientLibModule) {
         Queries: {
             GET_BASIC_UNSENT_PO_INFO: {
                 Query: `
-                    SELECT 
-                        Transaction.id AS pointernalid,
+                    WITH SentMsg AS (
+                        SELECT Message.transaction AS transactionid
+                        FROM Message
+                        WHERE Message.transaction IS NOT NULL
+                            AND Message.Emailed = 'T'
+                        GROUP BY 
+                            Message.transaction
+                    )
+                    SELECT Transaction.id AS pointernalid,
                         Transaction.entity as vendorid,
                         Vendor.companyName as vendorname,
                         Transaction.tranDisplayName as podisplayname,
+                        Transaction.tranId as poid,
                         Transaction.dueDate as duedate,
                         Transaction.externalid as poexternalid,
                         Transaction.tranDate as transactiondate,
-                        SUM(TransactionLine.rate * TransactionLine.quantity) AS totalamount
-
-                    FROM
-                        Transaction
-                    
-                    LEFT OUTER JOIN Vendor ON Transaction.entity = Vendor.id
-                    LEFT OUTER JOIN TransactionLine ON TransactionLine.transaction = Transaction.id
-                    LEFT OUTER JOIN Message ON Message.transaction = Transaction.id
-                    
-                    WHERE
-                        Transaction.type = 'PurchOrd'
+                        SUM(TransactionLine.rate * TransactionLine.quantity) AS totalamount,
+                        NVL2(SentMsg.transactionid, 1, 0) AS transactionemailed
+                    FROM Transaction
+                        LEFT OUTER JOIN Vendor ON Transaction.entity = Vendor.id
+                        LEFT OUTER JOIN TransactionLine ON TransactionLine.transaction = Transaction.id
+                        LEFT OUTER JOIN SentMsg ON Transaction.id = SentMsg.transactionid
+                    WHERE Transaction.type = 'PurchOrd'
                         AND Vendor.custentity_fc_zen_soft_com_vendor = 'T'
                         @@PO_ID_FILTER_1@@
-                        @@JIT_PO_UNSENT_FILTER_1@@
-
-                        GROUP BY 
-                        Transaction.id,
+                    GROUP BY Transaction.id,
                         Transaction.entity,
                         Vendor.companyName,
                         Transaction.tranDisplayName,
+                        Transaction.tranId,
                         Transaction.dueDate,
                         Transaction.externalid,
-                        Transaction.tranDate
-
-                        ORDER BY
-                            Transaction.tranDisplayName
-                        
-                        
-                `,
-                BuildQuery: function (filterJitByUnsent = true, poIds = null) {
+                        Transaction.tranDate,
+                        NVL2(SentMsg.transactionid, 1, 0)
+                    ORDER BY Transaction.tranDisplayName
+        
+                    `,
+                BuildQuery: function (poIds = null) {
                     let thisQuery = this.Query;
                     const poIdsStr = poIds ? poIds.join(',') : '';
 
-                    let filterStrJitByUnsent = filterJitByUnsent ? this.Filters.JITPOUnsentOnly : '';
                     let filterStrPoIds = poIds ?
                         this.Filters.POIDS.replace('@@PO_IDS@@', poIdsStr) :
                         '';
 
                     thisQuery = thisQuery.replace('@@PO_ID_FILTER_1@@', filterStrPoIds);
-                    thisQuery = thisQuery.replace('@@JIT_PO_UNSENT_FILTER_1@@', filterStrJitByUnsent);
                     return thisQuery;
                 },
                 Filters: {
                     POIDS: 'AND (Transaction.id IN (@@PO_IDS@@))',
-                    JITPOUnsentOnly: `
-                        AND Vendor.custentity_fc_zen_soft_com_vendor = 'T'
-                        AND NOT EXISTS (
-                            SELECT 
-                                Message.id	
-                            FROM
-                                Message
-                                WHERE
-                                Message.transaction = Transaction.id AND Message.Emailed = 'T'
-                        )`,
                 },
                 FieldSet1: {
                     pointernalid: {
@@ -99,6 +87,10 @@ function main(fcLibModule, fcClientLibModule) {
                         fieldid: 'podisplayname',
                         label: 'PO Name',
                     },
+                    poid: {
+                        fieldid: 'poid',
+                        label: 'PO Name',
+                    },
                     duedate: {
                         fieldid: 'duedate',
                         label: 'PO Due Date',
@@ -110,6 +102,10 @@ function main(fcLibModule, fcClientLibModule) {
                     totalamount: {
                         fieldid: 'totalamount',
                         label: 'PO Total Amount',
+                    },
+                    transactionemailed: {
+                        fieldid: 'transactionemailed',
+                        label: 'PO Emailed',
                     }
                 },
             },
@@ -208,12 +204,12 @@ function main(fcLibModule, fcClientLibModule) {
     var Ids = {
         Folders: {
             MAIN: {
-                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
                 Sandbox: 8541,
                 Prod: 8138,
             },
             SESSION_RESULTS: {
-                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
                 Sandbox: 8620,
                 Prod: 9193,
             },
@@ -278,7 +274,7 @@ function main(fcLibModule, fcClientLibModule) {
                             PoName: {
                                 Label: 'PO Name',
                                 GetTableElem: function (thisRow) {
-                                    const rawValue = thisRow[exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.podisplayname.fieldid];
+                                    const rawValue = thisRow[exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.poid.fieldid];
                                     return rawValue ? rawValue : '';
                                 },
                             },
@@ -310,6 +306,13 @@ function main(fcLibModule, fcClientLibModule) {
                                     return rawValue ? rawValue : '';
                                 },
                             },
+                            PoEmailed: {
+                                Label: 'PO Emailed?',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.transactionemailed.fieldid];
+                                    return rawValue ? 'Already Emailed' : '';
+                                },
+                            }
                         },
                     },
                 }

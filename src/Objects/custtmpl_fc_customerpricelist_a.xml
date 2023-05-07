@@ -1,0 +1,10 @@
+<advancedpdftemplate scriptid="custtmpl_fc_customerpricelist_a">
+  <description></description>
+  <displaysourcecode>F</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>F</preferred>
+  <printtype>SEARCH</printtype>
+  <savedsearch>[scriptid=customsearch_fc_am_customer_pricelist1]</savedsearch>
+  <title>FC | Customer Price List A</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

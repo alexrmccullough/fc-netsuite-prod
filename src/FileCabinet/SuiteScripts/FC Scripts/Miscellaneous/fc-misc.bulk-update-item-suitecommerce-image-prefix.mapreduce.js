@@ -56,7 +56,7 @@ function getInputData(context) {
                 FROM
                     File
                 WHERE
-                    (File.folder = '4458' AND File.fileType LIKE '%IMAGE%')
+                    (File.folder = '9186' AND File.fileType LIKE '%IMAGE%')
             ) AS ImageFiles 
             ON Item.itemid = ImageFiles.itemid
         LEFT OUTER JOIN

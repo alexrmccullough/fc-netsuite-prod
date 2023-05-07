@@ -86,6 +86,7 @@ function getInputData(context) {
 
         let rawHeaders = parsedFile.meta.fields;
         rows = parsedFile.data;
+
     } catch (e) {
         log.error({ title: 'getInputData - error', details: e });
         sendTotalFailureEmail(
@@ -181,6 +182,10 @@ function reduce(context) {
         log.debug({ title: 'reduce - poItemRows', details: poItemRowsRaw });
 
         let poItemRowsParsed = poItemRowsRaw.map(JSON.parse);
+        poItemRowsParsed = FCLib.sortArrayOfObjsByKey(
+            poItemRowsParsed,
+            FCJITGenPoLib.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.label
+        );
 
 
         poRecord = FCJITGenPoLib.buildPoRecord(poItemRowsParsed);

@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_check1" standard="STDTMPLCHECK">
+  <description></description>
+  <displaysourcecode>T</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>TRANSACTION</printtype>
+  <title>FC | Check 1</title>
+  <trantype>CHECK</trantype>
+</advancedpdftemplate>

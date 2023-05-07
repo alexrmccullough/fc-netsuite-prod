@@ -1,188 +1,249 @@
-<?xml version="1.0"?><!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<#ftl output_format="XML">
+<?xml version="1.0"?>
+<!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
 <pdf>
-<head>
-	<link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}" src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}" src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
-    <macrolist>
-        <macro id="nlheader">
-            <table class="header" style="width: 100%;"><tr>
-	<td rowspan="3"><#if companyInformation.logoUrl?length != 0><img src="${companyInformation.logoUrl}" style="float: left; margin: 7px" /> </#if> <div style="align:right; vertical-align:bottom; font-size: 9pt;">
-   
-      <span class="nameandaddress">${companyInformation.companyName}</span><br /><span class="nameandaddress">${companyInformation.addressText}</span></div></td>
-	<td align="right"><span class="title">${record@title}</span></td>
-	</tr>
-	<tr>
-	<td align="right"><span class="number">#${record.tranid}</span></td>
-	</tr>
-	<tr>
-	<td align="right">${record.trandate}</td>
-	</tr></table>
-	</macro>
-	<macro id="nlfooter">
-		<table style="width: 100%; font-size: 8pt;"><tr>
-				<td style="padding: 0;width:85%;"></td>
-			<td align="right" style="padding: 0;width:15%;"><pagenumber/> of <totalpages/></td>
-			</tr></table>
-	</macro>
-    </macrolist>
-    <style type="text/css">* {
-			font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
-		}
-		table {
-			font-size: 9pt;
-			table-layout: fixed;
-		}
-        th {
+    <head>
+        <link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}"
+            src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}"
+            src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
+        <macrolist>
+            <macro id="nlheader">
+                <table class="header" style="width: 100%;">
+                    <tr>
+                        <td rowspan="3">
+                            <#if companyInformation.logoUrl?length != 0>
+                                <img src="${companyInformation.logoUrl?no_esc}"
+                                    style="float: left; margin: 7px" />
+                            </#if>
+                            <div style="align:right; vertical-align:bottom; font-size: 9pt;">
+
+                                <span class="nameandaddress">${companyInformation.companyName}</span>
+                                <br />
+                                <span class="nameandaddress">${companyInformation.addressText}</span>
+                            </div>
+                        </td>
+                        <td align="right">
+                            <span class="title">${record@title}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">
+                            <span class="number">#${record.tranid}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">${record.trandate}</td>
+                    </tr>
+                </table>
+            </macro>
+            <macro id="nlfooter">
+                <table style="width: 100%; font-size: 8pt;">
+                    <tr>
+                        <td style="padding: 0;width:85%;"></td>
+                        <td align="right" style="padding: 0;width:15%;"><pagenumber /> of <totalpages /></td>
+                    </tr>
+                </table>
+            </macro>
+        </macrolist>
+        <style type="text/css">* {
+            font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            }
+            table {
+            font-size: 9pt;
+            table-layout: fixed;
+            }
+            th {
             font-weight: bold;
             font-size: 8pt;
             vertical-align: middle;
             padding: 5px 6px 3px;
             background-color: #e3e3e3;
             color: #333333;
-        }
-        td {
+            }
+            td {
             padding: 4px 6px;
-        }
-		td p { align:left }
-        b {
+            }
+            td p { align:left }
+            b {
             font-weight: bold;
             color: #333333;
-        }
-        table.header td {
+            }
+            table.header td {
             padding: 0;
             font-size: 10pt;
-        }
-        table.footer td {
+            }
+            table.footer td {
             padding: 0;
             font-size: 8pt;
-        }
-        table.itemtable th {
+            }
+            table.itemtable th {
             padding-bottom: 10px;
             padding-top: 10px;
-        }
-        table.body td {
+            }
+            table.body td {
             padding-top: 2px;
-        }
-        table.total {
+            }
+            table.total {
             page-break-inside: avoid;
-        }
-        tr.totalrow {
+            }
+            tr.totalrow {
             background-color: #e3e3e3;
             line-height: 200%;
-        }
-        td.totalboxtop {
+            }
+            td.totalboxtop {
             font-size: 12pt;
             background-color: #e3e3e3;
-        }
-        td.addressheader {
+            }
+            td.addressheader {
             font-size: 9pt;
             padding-top: 6px;
             padding-bottom: 2px;
-        }
-        td.address {
+            }
+            td.address {
             padding-top: 0;
-        }
-        td.totalboxmid {
+            }
+            td.totalboxmid {
             font-size: 28pt;
             padding-top: 20px;
             background-color: #e3e3e3;
-        }
-        td.totalboxbot {
+            }
+            td.totalboxbot {
             background-color: #e3e3e3;
             font-weight: bold;
-        }
-        span.title {
+            }
+            span.title {
             font-size: 28pt;
-        }
-        span.number {
+            }
+            span.number {
             font-size: 16pt;
-        }
-        span.itemname {
+            }
+            span.itemname {
             font-weight: bold;
             line-height: 150%;
-        }
-        hr {
+            }
+            hr {
             width: 100%;
             color: #d3d3d3;
             background-color: #d3d3d3;
             height: 1px;
-        }
-</style>
-</head>
-<body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt" padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
-    <table style="width: 100%;"><tr>
-	<td class="addressheader" colspan="6">Ordering From:</td>
-	<td class="totalboxtop" colspan="5"><b>${record.total@label?upper_case}</b></td>
-	</tr>
-	<tr>
-	<td class="address" colspan="6" rowspan="2">${record.billaddress}</td>
-	<td align="right" class="totalboxmid" colspan="5">${record.total}</td>
-	</tr>
-	<tr>
-	<td align="right" class="totalboxbot" colspan="5"><b>${record.duedate@label}:</b> ${record.duedate}</td>
-	</tr></table>
+            }
+        </style>
+    </head>
+    <body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt"
+        padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
+        <table style="width: 100%;">
+            <tr>
+                <td class="addressheader" colspan="6">Ordering From:</td>
+                <td class="totalboxtop" colspan="5">
+                    <b>${record.total@label?upper_case}</b>
+                </td>
+            </tr>
+            <tr>
+                <td class="address" colspan="6" rowspan="2">${record.billaddress}</td>
+                <td align="right" class="totalboxmid" colspan="5">${record.total}</td>
+            </tr>
+            <tr>
+                <td align="right" class="totalboxbot" colspan="5"><b>${record.duedate@label}:</b>
+                    ${record.duedate}</td>
+            </tr>
+        </table>
 
-<#if record.memo?has_content>
-	<table style="width: 65%; margin-top: 10px; align:center;">
-		<tr>
-		<td style="padding: 5px;width:85%;background-color:#D3D3D3;border:1px black;"><strong>Memo:</strong> ${record.memo}</td>
-		</tr>
-	</table>
-</#if>
+        <#if record.memo?has_content>
+            <table style="width: 65%; margin-top: 10px; align:center;">
+                <tr>
+                    <td style="padding: 5px;width:85%;background-color:#D3D3D3;border:1px black;"><strong>
+                        Memo:</strong> ${record.memo}</td>
+                </tr>
+            </table>
+        </#if>
 
-<table class="body" style="width: 100%;"><tr>
-	<th>Date of Order</th>
-	<th>${record.otherrefnum@label}</th>
-	</tr>
-	<tr>
-	<td>${record.trandate}</td>
-	<td>${record.otherrefnum}</td>
-	</tr></table>
-<#if record.item?has_content>
+        <table class="body" style="width: 100%;">
+            <tr>
+                <th>Date of Order</th>
+                <th>${record.otherrefnum@label}</th>
+            </tr>
+            <tr>
+                <td>${record.trandate}</td>
+                <td>${record.otherrefnum}</td>
+            </tr>
+        </table>
+        <#if record.item?has_content>
+        <#assign itemCt = 0>
 
-<table class="itemtable" style="width: 100%;"><!-- start items --><#list record.item as item><#if item_index==0>
-<thead>
-	<tr>
-	<th align="center" colspan="3">${item.quantity@label}</th>
-	<th colspan="12">${item.item@label}</th>
-	<th align="right" colspan="4">${item.rate@label}</th>
-	<th align="right" colspan="4">Subtotal</th>
-	</tr>
-</thead>
-</#if><tr>
-	<td align="center" colspan="3" line-height="150%">${item.quantity}</td>
-	<#if item.vendorname?has_content>
-		<td colspan="12"><span class="itemname">${item.item}</span><br />${item.vendorname}</td>
-	<#else>
-		<td colspan="12"><span class="itemname">${item.item}</span><br />${item.description}</td>
-	</#if>
+            <table class="itemtable" style="width: 100%;"><!-- start items -->
+                <#list record.item as item>
+                    <#if item_index==0>
+                        <thead>
+                            <tr>
+                                <th align="center" colspan="3">${item.quantity@label}</th>
+                                <th colspan="12">${item.item@label}</th>
+                                <th align="right" colspan="4">${item.rate@label}</th>
+                                <th align="right" colspan="4">Subtotal</th>
+                            </tr>
+                        </thead>
+                    </#if>
+                    <tr>
+                        <td align="center" colspan="3" line-height="150%">${item.quantity}</td>
+                        <#assign itemCt = itemCt + item.quantity>
+                        <#assign itemname = item.item?keep_before(" ")>
+                        <#if item.vendorname?has_content>
+                            <td colspan="12"><span class="itemname">itemname</span><br />
+                                ${item.vendorname}</td>
+                        <#else>
+                            <td colspan="12"><span class="itemname">itemname</span><br />
+                                ${item.displayname}</td>
+                        </#if>
 
-	<td align="right" colspan="4">${item.rate}</td>
-	<td align="right" colspan="4">${item.amount}</td>
-	</tr>
-	</#list><!-- end items --></table>
-</#if><#if record.expense?has_content>
+                        <td align="right" colspan="4">${item.rate}</td>
+                        <td align="right" colspan="4">${item.amount}</td>
+                    </tr>
+                </#list>
+                <tr>
+                    <td colspan="3">Total Ct: ${itemCt}</td>
+                    <td colspan="12"></td>
+                    <td colspan="4"></td>
+                    <td colspan=></td>
 
-<table class="itemtable" style="width: 100%;"><!-- start expenses --><#list record.expense as expense ><#if expense_index==0>
-<thead>
-	<tr>
-	<th colspan="12">${expense.category@label}</th>
-	<th colspan="10">${expense.account@label}</th>
-	<th align="right" colspan="4">${expense.amount@label}</th>
-	</tr>
-</thead>
-</#if><tr>
-	<td colspan="12">${expense.category}</td>
-	<td colspan="10"><span class="itemname">${expense.account}</span></td>
-	<td align="right" colspan="4">${expense.amount}</td>
-	</tr>
-	</#list><!-- end expenses --></table>
-</#if>
+                </tr>
 
-<hr />
-<table class="total" style="width: 100%;"><tr class="totalrow">
-	<td background-color="#ffffff" colspan="4">&nbsp;</td>
-	<td align="right"><b>${record.total@label}</b></td>
-	<td align="right">${record.total}</td>
-	</tr></table>
-</body>
+
+                <!-- end items -->
+            </table>
+        </#if>
+        <#if record.expense?has_content>
+
+            <table class="itemtable" style="width: 100%;"><!-- start expenses -->
+                <#list record.expense as expense>
+                    <#if expense_index==0>
+                        <thead>
+                            <tr>
+                                <th colspan="12">${expense.category@label}</th>
+                                <th colspan="10">${expense.account@label}</th>
+                                <th align="right" colspan="4">${expense.amount@label}</th>
+                            </tr>
+                        </thead>
+                    </#if>
+                    <tr>
+                        <td colspan="12">${expense.category}</td>
+                        <td colspan="10">
+                            <span class="itemname">${expense.account}</span>
+                        </td>
+                        <td align="right" colspan="4">${expense.amount}</td>
+                    </tr>
+                </#list><!--
+                end expenses -->
+            </table>
+        </#if>
+
+        <hr />
+        <table class="total" style="width: 100%;">
+            <tr class="totalrow">
+                <td background-color="#ffffff" colspan="4">&nbsp;</td>
+                <td align="right">
+                    <b>${record.total@label}</b>
+                </td>
+                <td align="right">${record.total}</td>
+            </tr>
+        </table>
+    </body>
 </pdf>

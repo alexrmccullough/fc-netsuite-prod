@@ -336,7 +336,7 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
             const tableStyle = FCLib.Ui.TableStyles.Style1;
             let data = FCLib.sortArrayOfObjsByKey(
                 jitSOItemQueryResults[vendorEntityId],
-                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorentityid.fieldid
+                ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.fieldid
             );
 
             let thisHtmlTable = FCLib.updatedConvertLookupTableToHTMLTable({
@@ -419,7 +419,7 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
                 finalItemQuantities[vendorId][itemId] = paramVal;
             }
             else if (paramDefCreatePo.looksLike(paramName)) {
-                let vendorId = paramDefCreatePo.parse(paramName)[1];
+                let vendorId = paramDefCreatePo.parse(paramName);
 
                 if (paramVal == 'on' || FCLib.looksLikeYes(paramVal)) {
                     vendorsToInclude[vendorId] = true;
@@ -429,7 +429,7 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
                 }
             }
             else if (paramDefPoMemo.looksLike(paramName)) {
-                let vendorId = paramDefPoMemo.parse(paramName)[1];
+                let vendorId = paramDefPoMemo.parse(paramName);
                 vendorMemos[vendorId] = paramVal;
             }
         }
@@ -448,11 +448,14 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
             {}
         );
 
+        log.debug({title: 'ouputFieldsFromOrigQuery', details: ouputFieldsFromOrigQuery});
 
         let outputFieldHeaders = [
             ...Object.values(newOutputFields),
             ...Object.values(ouputFieldsFromOrigQuery)
         ];
+
+        log.debug({title: 'outputFieldHeaders', details: outputFieldHeaders});
 
         var poDataAccepted = {
             fields: outputFieldHeaders,
@@ -550,11 +553,12 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
         // Sort the accepted and rejected data by item id
         poDataAccepted.data = FCLib.sortArrayOfObjsByKey(
             poDataAccepted.data,
-            'itemid'
+            ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.label
         );
         poDataRejected.data = FCLib.sortArrayOfObjsByKey(
             poDataRejected.data,
-            'itemid'
+            ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.label
+            
         );
 
 

@@ -1,13 +1,10 @@
-var ui, 
-    FCClientLib;
+var FCClientLib;
 
 define([
-    'N/ui/serverWidget', 
     '../Libraries/fc-client.library.module',
 ], main);
 
-function main(serverWidgetModule, fcClientLibModule) {
-    ui = serverWidgetModule;
+function main(fcClientLibModule) {
     FCClientLib = fcClientLibModule;
 
     var exports = {
@@ -141,7 +138,7 @@ function main(serverWidgetModule, fcClientLibModule) {
             // PROD
             // RESULTS: 8141,
             RESULTS: {
-                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
                 Sandbox: 8546,
                 Prod: '??',
             },
@@ -157,7 +154,7 @@ function main(serverWidgetModule, fcClientLibModule) {
                     prefix: 'custpage_selectvendor_cb_',
                     looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectvendor_'); },
                     build: (vendorId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectvendor_' + vendorId; },
-                    parse: (param) => { return param.split('_').pop()},
+                    parse: (param) => { return param.split('_')[2]},
                 },
             },
             Sublists: {
@@ -213,7 +210,7 @@ function main(serverWidgetModule, fcClientLibModule) {
                     prefix: 'custpage_selectitem_cb_',
                     looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectitem_'); },
                     build: (itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectitem_' + itemId; },
-                    parse: (val) => { return val.split('_').pop(); },
+                    parse: (val) => { return val.split('_')[2]; },
                 },
             },
             Sublists: {

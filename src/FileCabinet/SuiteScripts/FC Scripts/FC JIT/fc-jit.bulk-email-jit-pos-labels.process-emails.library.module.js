@@ -1,12 +1,7 @@
-var query,
-    runtime;
 
+define([], main);
 
-define(['N/query', 'N/runtime'], main);
-
-function main(queryModule, runtimeModule, ) {
-    query = queryModule;
-    runtime = runtimeModule;
+function main() {
 
     var exports = {
         Queries: {

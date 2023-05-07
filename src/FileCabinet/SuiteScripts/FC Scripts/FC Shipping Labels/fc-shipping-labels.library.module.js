@@ -148,7 +148,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         nsSsFieldId: 'formulatext_1',
                         nsSsTargetGetType: 'value',
                         recastValueFunc: null,
-                        displayName: 'Is Last Lot of Line?',    
+                        displayName: 'Is Last Lot of Line?',
                     },
                     IsOrganic: {
                         nsSsFieldId: 'formulatext_2',
@@ -186,7 +186,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             LabelColsPerPage: 2,
             Path: './fc-shipping-labels.generate-pdf.template8x11.main.xml',
             // FileId: 27457,    // PROD
-            FileId: 28770,
+            FileId: {
+                Sandbox: 28770,
+                Prod: 27457,
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
+            },
             Placeholders: {
                 Body: '<!--@@BODY_XML@@-->',
             }
@@ -195,8 +199,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             LabelRowsPerPage: 1,
             LabelColsPerPage: 1,
             Path: './fc-shipping-labels.generate-pdf.template2x4zebra.main.xml',
-            // FileId: 27456,   // PROD
-            FileId: 28769,
+            FileId: {
+                Sandbox: 28769,
+                Prod: 27456,
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
+            },
             Placeholders: {
                 Body: '<!--@@BODY_XML@@-->',
             },
@@ -204,7 +211,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         XMLTemplate2x4Label: {
             Path: './fc-shipping-labels.generate-pdf.template_general.label.xml',
             // FileId: 27455,     // PROD
-            FileId: 28768,
+            FileId: {
+                Sandbox: 28768,
+                Prod: 27455,
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
+            },
             Placeholders: {
                 Customer: '<!--@@ENTITYNAME@@-->',
                 SOShipDate: '<!--@@SHIPDATE@@-->',
@@ -252,7 +263,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
     exports.LabelFormatting = LabelFormatting;
 
 
-    
+
     function generateShippingLabelXml(
         printFormat = 'PDF_AVERY_8X11',
         getFromDate = null,
@@ -267,11 +278,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         if (customerInternalIds && customerInternalIds.length) { searchParams.customerInternalIds = customerInternalIds; }
 
         let searchResults = runLotNumberedShippingLabelSearch(searchParams);
-        
+
         return generateShippingLabelXmlFromSearchResults(
             searchResults,
             printFormat
-            );
+        );
     }
     exports.generateShippingLabelXml = generateShippingLabelXml;
 
@@ -285,11 +296,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         // vendorInternalIds = [],
         // customerInternalIds = [],
     ) {
-    
+
         var xmlFinal = "";
         var xmlMainTemplateInfo;
         var xmlLabelTemplateInfo;
-    
+
         // TRY/CATCH
         try {
             if (!(printFormat in exports.LabelFormatting.PrintFormat)) {
@@ -302,16 +313,16 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             // Depending on the type chosen, we will load the appropriate XML and handle logic differently
             xmlMainTemplateInfo = printFormat.TemplateMain;
             xmlLabelTemplateInfo = printFormat.TemplateLabel;
-    
+
             // We can generate labels in two formats:
             //   1) 8x11 Avery sheet 5163 PDF > regular printer
             //   2) 2x4 single label/sheet PDF > Zebra printer
-    
+
             // Load in the xml for the main PDF body and the label
-            xmlMainTemplateInfo.Xml = FCLib.getTextFileContents(xmlMainTemplateInfo.FileId);
-            xmlLabelTemplateInfo.Xml = FCLib.getTextFileContents(xmlLabelTemplateInfo.FileId);
-    
-    
+            xmlMainTemplateInfo.Xml = FCLib.getTextFileContents(xmlMainTemplateInfo.FileId.GetId());
+            xmlLabelTemplateInfo.Xml = FCLib.getTextFileContents(xmlLabelTemplateInfo.FileId.GetId());
+
+
             const labelPlaceholders = [
                 [xmlLabelTemplateInfo.Placeholders.Customer],
                 [xmlLabelTemplateInfo.Placeholders.SOShipDate],
@@ -330,16 +341,16 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 [xmlLabelTemplateInfo.Placeholders.ShipToWidth],
             ];
             const labelPlaceholdersReplRegex = new RegExp(labelPlaceholders.join('|'), 'g');
-    
-    
+
+
             // let searchParams = {};
             // if (getFromDate) { searchParams.soShipStartDate = getFromDate; }
             // if (getToDate) { searchParams.soShipEndDate = getToDate; }
             // if (vendorInternalIds && vendorInternalIds.length) { searchParams.vendorInternalIds = vendorInternalIds; }
             // if (customerInternalIds && customerInternalIds.length) { searchParams.customerInternalIds = customerInternalIds; }
-    
+
             // let searchResults = runLotNumberedShippingLabelSearch(searchParams);
-    
+
             // If we have no results, return an empty string
             if (!searchResults || !searchResults.data || !searchResults.data.length) {
                 return xmlInjectBodyIntoTemplate(
@@ -347,28 +358,28 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                     '<h3>No results found!</h3>'
                 );
             }
-    
+
             let requiredFields = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.RequiredFields;
             let addedFields = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.AddedFields;
-    
-    
+
+
             let rowsPerPage = xmlMainTemplateInfo.LabelRowsPerPage;
             let colsPerPage = xmlMainTemplateInfo.LabelColsPerPage;
             let labelCountPerPage = rowsPerPage * colsPerPage;
-    
+
             let resultCount = searchResults.data.length;
             let labelCounter = 0;
             let resultIdx = 0;
-    
+
             let extras = [];
-    
-    
+
+
             while ((resultIdx < resultCount) || extras.length > 0) {
                 let result = {};
                 let quantityRemaining = 0;
                 let inExtras = false;
-    
-    
+
+
                 if (extras.length > 0) {
                     result = extras.pop();
                     inExtras = true;
@@ -376,31 +387,32 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                     result = searchResults.data[resultIdx];
                     inExtras = false;
                 }
-    
-    
-                let soShipDate = result[requiredFields.SOShipDate.nsSsFieldId];
-                let soLineQuantity = result[requiredFields.SOLineQuantity.nsSsFieldId];
-                let lineUniqueDBKey = result[requiredFields.TransLineUniqueKey.nsSsFieldId];
-                let soNumber = result[requiredFields.SONumber.nsSsFieldId];
-                let customer = result[requiredFields.CustomerNoHierarchy.nsSsFieldId];
-                let route = result[requiredFields.Route.nsSsFieldId];
-                let itemId = result[requiredFields.ItemId.nsSsFieldId];
-                let itemName = result[requiredFields.ItemName.nsSsFieldId];
-                let brand = result[requiredFields.Brand.nsSsFieldId];
-                let productStub = result[requiredFields.ProductStub.nsSsFieldId];
-                let masterCase = result[requiredFields.MasterCase.nsSsFieldId];
-                let qtyPerLabel = result[requiredFields.QtyPerLabel.nsSsFieldId];
-                let lotNumber = result[requiredFields.LotNumber.nsSsFieldId];
-                let lotQuantity = result[requiredFields.LotQuantity.nsSsFieldId];
-                let preferredVendor = result[requiredFields.PreferredVendor.nsSsFieldId];
-                let isOrganic = result[requiredFields.IsOrganic.nsSsFieldId];
-                let curLotQty = result[addedFields.CurLotQty.fieldId];
-    
-    
+
+                const escapeXml = FCLib.escapeXml;
+
+                let soShipDate = escapeXml(result[requiredFields.SOShipDate.nsSsFieldId]);
+                let soLineQuantity = escapeXml(result[requiredFields.SOLineQuantity.nsSsFieldId]);
+                let lineUniqueDBKey = escapeXml(result[requiredFields.TransLineUniqueKey.nsSsFieldId]);
+                let soNumber = escapeXml(result[requiredFields.SONumber.nsSsFieldId]);
+                let customer = escapeXml(result[requiredFields.CustomerNoHierarchy.nsSsFieldId]);
+                let route = escapeXml(result[requiredFields.Route.nsSsFieldId]);
+                let itemId = escapeXml(result[requiredFields.ItemId.nsSsFieldId]);
+                let itemName = escapeXml(result[requiredFields.ItemName.nsSsFieldId]);
+                let brand = escapeXml(result[requiredFields.Brand.nsSsFieldId]);
+                let productStub = escapeXml(result[requiredFields.ProductStub.nsSsFieldId]);
+                let masterCase = escapeXml(result[requiredFields.MasterCase.nsSsFieldId]);
+                let qtyPerLabel = escapeXml(result[requiredFields.QtyPerLabel.nsSsFieldId]);
+                let lotNumber = escapeXml(result[requiredFields.LotNumber.nsSsFieldId]);
+                let lotQuantity = escapeXml(result[requiredFields.LotQuantity.nsSsFieldId]);
+                let preferredVendor = escapeXml(result[requiredFields.PreferredVendor.nsSsFieldId]);
+                let isOrganic = escapeXml(result[requiredFields.IsOrganic.nsSsFieldId]);
+                let curLotQty = escapeXml(result[addedFields.CurLotQty.fieldId]);
+
+
                 if (!qtyPerLabel || qtyPerLabel <= 0) {
                     qtyPerLabel = 1;
                 }
-    
+
                 // FIX: This will probably fail if we have more than one partial-qty item
                 if (inExtras) {
                     quantityRemaining = curLotQty;
@@ -409,11 +421,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                 } else {
                     quantityRemaining = soLineQuantity;
                 }
-    
+
                 let lineLabelCount = Math.ceil(quantityRemaining / qtyPerLabel);
                 let hasUnlottedRemainder = false;
 
-                let ogTagReplacement = FCLib.looksLikeYes(isOrganic) ? 
+                let ogTagReplacement = FCLib.looksLikeYes(isOrganic) ?
                     Resources.OrganicTagHtml :
                     '';
 
@@ -421,22 +433,22 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                     Resources.ShipToWidthHtml :
                     '';
 
-    
-    
+
+
                 for (let i = 1; i <= lineLabelCount; i++) {  // individual label
                     labelCounter += 1;
                     let thisLabelQty = Math.min(quantityRemaining, qtyPerLabel);
-    
+
                     xmlFinal += xmlOpenTable(
                         labelCounter,
                         labelCountPerPage
                     );
-    
+
                     xmlFinal += xmlOpenRow(
                         labelCounter,
                         colsPerPage
                     );
-    
+
                     // Write the label div
                     let labelFieldValues = {
                         [xmlLabelTemplateInfo.Placeholders.Customer]: customer,
@@ -455,14 +467,14 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         [xmlLabelTemplateInfo.Placeholders.OGTag]: ogTagReplacement,
                         [xmlLabelTemplateInfo.Placeholders.ShipToWidth]: shipToWidthReplacement,
                     };
-    
+
                     let labelXml = xmlLabelTemplateInfo.Xml.replace(
                         labelPlaceholdersReplRegex, (matched) => labelFieldValues[matched]
                     );
-    
+
                     xmlFinal += '\n<td>' + labelXml + '\n</td>';
-    
-    
+
+
                     // Close row + table, if needed
                     let isLastResult = (resultIdx === (resultCount - 1));
                     let isLastLabelOfResult = (i >= lineLabelCount);
@@ -470,8 +482,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         !inExtras &&
                         (result[requiredFields.IsLastLotOfLine.nsSsFieldId] === 'True') &&
                         (result[requiredFields.TotalUnlottedQtyInLine.nsSsFieldId] > 0);
-    
-    
+
+
                     // // DEBUG: write all fields in plain text for debugging
                     // xmlFinal += '\n<td>';
                     // xmlFinal += `<p>quantityRemaining: ${quantityRemaining}</p>`;
@@ -487,8 +499,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                     // xmlFinal += `<p>inExtras: ${inExtras}</p>`;
                     // xmlFinal += `<p>resultObj: ${JSON.stringify(result)}</p>`;
                     // xmlFinal += '\n</td>';
-    
-    
+
+
                     xmlFinal += xmlCloseRow({
                         labelCounter: labelCounter,
                         colsPerPage: colsPerPage,
@@ -496,7 +508,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         isLastLabelOfResult: isLastLabelOfResult,
                         hasUnlottedRemainder: hasUnlottedRemainder
                     });
-    
+
                     xmlFinal += xmlCloseTable({
                         labelCounter: labelCounter,
                         labelsPerPage: labelCountPerPage,
@@ -504,41 +516,41 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         isLastLabelOfResult: isLastLabelOfResult,
                         hasUnlottedRemainder: hasUnlottedRemainder
                     })
-    
+
                     quantityRemaining -= qtyPerLabel;
                     // labelCounter += 1;
                 }
-    
+
                 if (hasUnlottedRemainder) {
                     let newLine = { ...result };
                     newLine[requiredFields.LotNumber.nsSsFieldId] = '';
                     newLine[addedFields.CurLotQty.fieldId] = result[requiredFields.TotalUnlottedQtyInLine.nsSsFieldId];
                     extras.push(newLine);
                 }
-    
+
                 if (!inExtras) {
                     resultIdx += 1;
                 }
-    
+
             }
-    
+
         } catch (e) {
             log.error({ title: 'Error in generateShippingLabels', details: e });
             throw e;
         }
-    
+
         xmlFinal = xmlInjectBodyIntoTemplate(xmlMainTemplateInfo, xmlFinal);
-    
+
         return xmlFinal;
     }
     exports.generateShippingLabelXmlFromSearchResults = generateShippingLabelXmlFromSearchResults;
 
-    
+
     function xmlInjectBodyIntoTemplate(xmlTemplateInfo, xmlBody) {
         return xmlTemplateInfo.Xml.replace(xmlTemplateInfo.Placeholders.Body, xmlBody);
     }
 
-    
+
     function xmlOpenRow(labelCounter, colsPerPage) {
         if ((labelCounter - 1) % colsPerPage == 0) {
             return `<tr>`;
@@ -560,7 +572,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         return '';
     }
 
-    
+
     function xmlOpenTable(labelCounter, labelsPerPage) {
         if (((labelCounter - 1) % labelsPerPage) == 0) {
             return `<table class="maintable">`
@@ -568,7 +580,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         return '';
     }
 
-    
+
     function xmlCloseTable({
         labelCounter = 0,
         labelsPerPage = 0,
@@ -576,15 +588,15 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
         isLastLabelOfResult = true,
         hasUnlottedRemainder = false
     } = {}) {
-    
+
         let retXml = '';
-    
+
         if (isLastResult && isLastLabelOfResult && !hasUnlottedRemainder) {
             retXml = `</table>`;
         } else if (labelCounter % labelsPerPage == 0) {
             retXml = `</table><pbr></pbr>`;
         }
-    
+
         return retXml;
     }
 
@@ -598,11 +610,11 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
     } = {}) {
 
         // Validate parameters
-        soShipStartDate = soShipStartDate ? 
-            FCLib.getStandardDisplayDateString1(new Date(soShipStartDate)) : 
+        soShipStartDate = soShipStartDate ?
+            FCLib.getStandardDisplayDateString1(new Date(soShipStartDate)) :
             null;
-        soShipEndDate = soShipEndDate ? 
-            FCLib.getStandardDisplayDateString1(new Date(soShipEndDate)) : 
+        soShipEndDate = soShipEndDate ?
+            FCLib.getStandardDisplayDateString1(new Date(soShipEndDate)) :
             null;
         if (itemIsJit !== null) {
             if (FCLib.looksLikeYes(itemIsJit)) {
@@ -778,24 +790,24 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
 
 
 
-    function getXMLTemplate8x11Main() {
-        var file = fileModule.load({
-            id: Resources.XMLTemplate8x11Main.FileId
-        });
+    // function getXMLTemplate8x11Main() {
+    //     var file = fileModule.load({
+    //         id: Resources.XMLTemplate8x11Main.FileId.GetId()
+    //     });
 
-        return file.getContents();
-    }
-    exports.getXMLTemplate8x11Main = getXMLTemplate8x11Main;
+    //     return file.getContents();
+    // }
+    // exports.getXMLTemplate8x11Main = getXMLTemplate8x11Main;
 
 
-    function getXMLTemplate8x11Label() {
-        var file = fileModule.load({
-            id: Resources.XMLTemplate8x11Label.FileId
-        });
+    // function getXMLTemplate8x11Label() {
+    //     var file = fileModule.load({
+    //         id: Resources.XMLTemplate8x11Label.FileId.GetId()
+    //     });
 
-        return file.getContents();
-    }
-    exports.getXMLTemplate8x11Label = getXMLTemplate8x11Label;
+    //     return file.getContents();
+    // }
+    // exports.getXMLTemplate8x11Label = getXMLTemplate8x11Label;
 
 
     return exports;

@@ -13,7 +13,6 @@ var
     log,
     query,
     record,
-    // render,
     runtime,
     serverWidget,
     url,
@@ -21,9 +20,6 @@ var
     ThisAppLib,
     FCShipLabelLib,
     FCBulkEmailProcessLib;
-// Papa;
-// assistant, 
-// stepSelectOptions;
 
 
 define(['N/file',
@@ -163,7 +159,6 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         }
 
         let sqlQuery = ThisAppLib.Queries.GET_BASIC_UNSENT_PO_INFO.BuildQuery(
-            false,
             poIds
         );
 
@@ -190,6 +185,7 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
             fieldDefObj.DueDate,
             fieldDefObj.VendorName,
             fieldDefObj.TotalAmount,
+            fieldDefObj.PoEmailed,
         ];
 
         const tableStyle = FCLib.Ui.TableStyles.Style1;

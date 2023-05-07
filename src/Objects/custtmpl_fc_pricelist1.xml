@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_pricelist1" standard="STDTMPLPRICELIST">
+  <description></description>
+  <displaysourcecode>F</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>PRICELIST</printtype>
+  <title>FC AM | Customer Price List 1</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

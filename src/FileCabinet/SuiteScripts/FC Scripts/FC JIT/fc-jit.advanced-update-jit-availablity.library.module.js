@@ -1,40 +1,21 @@
 var log, 
     task,
-    runtime,
-    email,
-    ui,
     FCLib,
     FCClientLib;
 
 define(['N/log', 
     'N/task', 
-    'N/runtime', 
-    'N/email', 
-    'N/ui/serverWidget', 
     '../Libraries/fc-main.library.module',
     '../Libraries/fc-client.library.module'
 ], main);
 
-function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLibModule, fcClientLibModule) {
+function main(logModule,  taskModule, fcLibModule, fcClientLibModule) {
     log = logModule;
     task = taskModule;
-    runtime = runtimeModule;
-    email = emailModule;
-    ui = uiModule;
     FCLib = fcLibModule;
     FCClientLib = fcClientLibModule;
 
     var exports = {
-        Form: {
-        },
-        Sublists: {
-        },
-        Searches: {
-        },
-        Urls: {
-        },
-        Lookups: {
-        },
         Queries: {
             GET_ALL_CSV_FILES_IN_FOLDER_BY_ID: {
                 Query: `
@@ -99,33 +80,19 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
                         @@ITEM_NAME_FILTER_1@@
                     `,
                 Filters: {
-                    ItemNames: {
-                        ParamPlaceholder: '@@ITEM_NAME_LIST@@',
-                        QueryLinePlaceholders: {
-                            '@@ITEM_NAME_FILTER_1@@': 'AND Item.itemid IN (@@ITEM_NAME_LIST@@)',
-                            // '@@PO_ID_FILTER_2@@': 'WHERE (InventoryAssignment.transaction = @@PO_ID@@)',
-                        },
-                    },
+                    ItemNames: 'AND Item.itemid IN (@@ITEM_NAME_LIST@@)',
                 },
                 // FIX: This is entirely generic -- it should be ported to FCLib
                 BuildQuery: function (itemNames) {
                     let sqlQuery = this.Query;
-                    if (itemNames && itemNames.length > 0) {
-                        let itemNamesStr = itemNames.map(itemName => `'${itemName}'`).join(',');
-                        let itemNameFilter = this.Filters.ItemNames;
-                        for (let key of Object.keys(itemNameFilter.QueryLinePlaceholders)) {
-                            let filterText = itemNameFilter.QueryLinePlaceholders[key].replace(
-                                itemNameFilter.ParamPlaceholder,
-                                itemNamesStr
-                            );
-                            sqlQuery = sqlQuery.replace(
-                                key,
-                                filterText
-                            );
-                        }
+                    let strItemNameFilter = '';
 
+                    if (itemNames && itemNames.length > 0) {
+                        let strItemNames = itemNames.map(function (item) { return "'" + item + "'"; }).join(',');
+                        strItemNameFilter = this.Filters.ItemNames.replace('@@ITEM_NAME_LIST@@', strItemNames);
                     }
-                    return sqlQuery;
+
+                    return sqlQuery.replace('@@ITEM_NAME_FILTER_1@@', strItemNameFilter);
                 },
                 FieldSet1: {
                     ItemName: {
@@ -228,12 +195,8 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
             },
             GET_JIT_VENDORS_WITHOUT_SUCCESS_CSV_ITEMS: {
                 Query: `
-                    SELECT *
-                    FROM (
-                            SELECT ROWNUM AS ROWNUMBER,
-                                *
-                            FROM (
-                                    WITH ExcudeVendors AS (
+ 
+                                    WITH ExcludeVendors AS (
                                         SELECT Vendor.id AS vendorinternalid
                                         FROM Item
                                             LEFT JOIN ItemVendor ON Item.id = ItemVendor.item
@@ -281,7 +244,7 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
                                             AND Item.custitem_soft_comit = 'T'
                                             AND Vendor.id NOT IN (
                                                 SELECT vendorinternalid
-                                                FROM ExcudeVendors
+                                                FROM ExcludeVendors
                                             )
                                         GROUP BY ItemVendor.vendor,
                                             Vendor.companyname
@@ -297,8 +260,6 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
                                     ORDER BY 
                                         T.hasstandingjit,
                                         T.vendorname
-                                )
-                        )
                         `,
                 BuildQuery: function (itemIds) {
                     let vendorFilter = ''
@@ -478,7 +439,7 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
             INPUT_JIT_ITEM_CSV: {
                 RequiredFieldSet: {
                     ExternalId: 'ExternalID',
-                    JitStartQty: 'Start Quantity'
+                    JitStartQty: 'Quantity'
                 },
                 GetFileHeaders: function () {
                     return Object.values(this.RequiredFieldSet);
@@ -549,12 +510,12 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
             INPUT: {
                 Sandbox: 8544,
                 Prod: 8142,
-                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
             },
             RESULTS: {
                 Sandbox: 8546,
                 Prod: 8141,
-                GetId: function () { return FCLib.getEnvSpecificFolderId(this.Sandbox, this.Prod); },
+                GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
             },
         },
     };
@@ -566,7 +527,7 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
             SELECT_CSV_CHECKBOX: {
                 looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectcsv_'); },
                 build: (itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectcsv_' + itemId; },
-                parse: (param) => { return param.split('_').pop(); },
+                parse: (param) => { return param.split('_')[2]; },
             },
         },
         // FIX: Apply this new setup to the other parameters across other apps  
@@ -575,7 +536,7 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
             SELECT_ITEM_CHECKBOX: {
                 looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectitem_'); },
                 build: (itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_selectitem_' + itemId; },
-                parse: (param) => { return  param.split('_').pop(); },
+                parse: (param) => { return  param.split('_')[2]; },
             },
         },
         Step3: {
@@ -597,18 +558,18 @@ function main(logModule,  taskModule, runtimeModule, emailModule, uiModule, fcLi
             VENDOR_SUBTRACTFUTURESOS_CHECKBOX: {
                 looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_subtractfuturesos_'); },
                 build: (vendorId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_subtractfuturesos_' + vendorId; },
-                parse: (param) => { return param.split('_').pop(); },
+                parse: (param) => { return param.split('_')[2]; },
             },
             VENDOR_APPLYCSV_CHECKBOX: {
                 looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_applycsv_'); },
                 build: (vendorId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_applycsv_' + vendorId; },
-                parse: (param) => { return param.split('_').pop(); },
+                parse: (param) => { return param.split('_')[2]; },
             },
             CSV_ITEMS_SELECTED_FROM_STEP2_HIDDENFIELD: {
                 prefix: FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_csvitemsselected_',
                 looksLike: (val) => { return val.startsWith(FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_csvitemsselected_'); },
                 build: (itemId) => { return FCClientLib.Ui.FC_CHECKBOX_PREFIX + '_csvitemsselected_' + itemId; },
-                parse: (param) => { return param.split('_').pop(); },
+                parse: (param) => { return param.split('_')[2]; },
             },
         },
         Step4: {
