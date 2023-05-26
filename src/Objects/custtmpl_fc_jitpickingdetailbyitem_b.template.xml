@@ -66,37 +66,52 @@
 			}
 
 			table.itemtable th.quantity {
-			width: 10%;
+			width: 9%;
+			align:right;
 			}
 
-			table.itemtable th.iteminfo {
-			width: 70%;
+			table.itemtable th.customername {
+			width: 50%;
+			}
+
+			table.itemtable th.so_shipdate {
+			align: left;
+			width: 15%;
 			}
 
 			table.itemtable th.sodetails {
-			width: 20%;
+			width: 12%;
 			align: right;
 			}
+
+			table.itemtable th.lotnumbers {
+			width: 14%;
+			align: right;
+			}
+
 
 			table.itemtable td.quantity {
 			align: right;
 			vertical-align:middle;
 			font-weight: bold;
 			font-size: 11pt;
-			width: 10%;
 			}
 
-			table.itemtable td.iteminfo {
+			table.itemtable td.customername {
 			align: left;
 			vertical-align:middle;
-			width: 70%;
+			}
+
+			table.itemtable td.so_shipdate {
+			align: left;
+			vertical-align:middle;
 			}
 
 			table.itemtable td.sodetails {
 			align: right;
 			vertical-align:middle;
-			width: 20%;
 			}
+
 
 			td.addressheader {
 			font-size: 8pt;
@@ -139,26 +154,26 @@
 			}
 
 			span.doctype {
-			font-size: 28pt;
-			align: left;
-			text-align: left;
+			font-size: 25pt;
+			align: right;
+			text-align: right;
 			font-weight:500;
 			}
 
-			span.customername {
+			span.shipdate_range {
+			font-size: 12pt;
+			}
+			span.vendorname {
 			font-size: 20pt;
 			align: right;
 			text-align: right;
 			}
-			span.routename {
-			font-size: 18pt;
-			align: right;
-			text-align: right;
+
+			span.po_duedate_header {
+			font-size: 15pt;
 			}
-			span.shipdate {
-			font-size: 18pt;
-			align: right;
-			text-align: right;
+			span.po_duedate {
+			font-size: 15pt;
 			}
 			span.number {
 			font-size: 16pt;
@@ -176,11 +191,22 @@
 		</style>
 	</head>
 
+	<#assign startDate = results?first.formuladate>
+	<#assign endDate = results?first.formuladate_1>
+
+	<#list results as result>
+	<#if (result.formuladate?has_content) && (result.formuladate
+	< startDate )>
+	<#assign startDate = result.formuladate>
+	</#if>
+	<#if (result.formuladate_1?has_content) && (result.formuladate_1> endDate)> <#assign startDate = result.formuladate_1>
+		</#if>
+	</#list>
+
 
 	<#assign last_shipmentid = ''>
 	<#assign last_sectionid = ''>
 
-	<#assign last_frozen = ''>
 	<#assign record_counter = 1>
 	<body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt"
 		padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
@@ -215,37 +241,31 @@
 		<#assign grandtotalcounter = 0>
 			<table class="header" style="width: 100%;">
 				<tr>
-					<td rowspan="2" colspan="2">
+					<td rowspan="4" colspan="2">
 						<#if companyInformation.logoUrl?length != 0>
 							<img src="${companyInformation.logoUrl?no_esc}"
 								style="float: left; margin: 7px; height: 75px; width 90px;" />
 						</#if>
 					</td>
-					<td align="left" colspan="3" text-align="left">
-						<span class="doctype">Shipping Ticket</span>
-					</td>
-
-				</tr>
-				<tr>
-					<td align="right" colspan="3" text-align="right">
-						<span class="customername">${result.entity?no_esc}</span>
+					<td align="right" colspan="4" text-align="left">
+						<span class="doctype">Picking Detail by Item</span>
 					</td>
 				</tr>
 				<tr>
-					<td colspan="2"></td>
-					<td align="right" colspan="3" text-align="right">
-						<span class="routename">${result.custbody_rd_so_route?no_esc}</span>
+					<td align="right" colspan="4">
+						<span class="shipdate_range">${startDate} - ${endDate}</span>
 					</td>
 				</tr>
 				<tr>
-					<td colspan="2"></td>
-					<td align="right" colspan="3" text-align="right">
-						<span class="shipdate">${result.shipdate}</span>
+					<td align="right" colspan="4" text-align="right">
+						<span class="vendorname">${result.vendor}</span>
 					</td>
 				</tr>
 				<tr>
-					<td colspan="5" style="padding-top:6px; font-weight: bold;">Ship To:
-						${result.shipaddress?no_esc}</td>
+					<td align="right" colspan="4" text-align="right">
+						<span class="po_duedate_header">Receive By: </span>
+						<span class="po_duedate">${result.formulatext_4}</span>
+					</td>
 				</tr>
 			</table>
 		</#if>
@@ -253,15 +273,19 @@
 		<#assign sectionqtycounter = 0>
 			<table class="darkmode" style="width: 100%; margin-top: 10px; margin-bottom: 0px;">
 				<tr>
-					<td style="width: 15%; font-weight: 700">${result.formulatext_3} </td>
+					<td style="width: 15%; font-weight: 700">${result.itemid} -
+						${result.displayname}</td>
 				</tr>
 			</table>
 			<table class="itemtable" style="width: 100%; margin-top: 0px;">
 			<thead>
 				<tr>
 					<th class="quantity">Quantity</th>
-					<th class="iteminfo">Item Name</th>
+					<th class="customername">Customer</th>
+					<th class="so_shipdate">SO Ship Date(s)</th>
 					<th class="sodetails">SO Detail</th>
+					<th class="lotnumbers">Lots</th>
+
 				</tr>
 			</thead>
 		</#if>
@@ -269,9 +293,11 @@
 
 		<tr>
 			<td class="quantity">${result.quantity}</td>
-			<td class="iteminfo"><span class="itemname">${result.itemid?no_esc}</span><br />
-				${result.displayname?no_esc}</td>
+			<td class="customername">${result.entity?no_esc}</td>
+			<td class="so_shipdate">${result.formulatext_3?no_esc}</td>
 			<td class="sodetails">${result.formulahtml?no_esc}</td>
+			<td class="lotnumbers">${result.formulahtml_1?no_esc}</td>
+
 		</tr>
 
 		<#assign sectionqtycounter = sectionqtycounter + result.quantity>
@@ -279,7 +305,6 @@
 
 		<#assign last_sectionid = result.formulatext_1>
 		<#assign last_shipmentid = result.formulatext_2>
-		<#assign last_frozen = result.formulatext_3>
 		<#assign record_counter++>
 		</#list>
 		</table>

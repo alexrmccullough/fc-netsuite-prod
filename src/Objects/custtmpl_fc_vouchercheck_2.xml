@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_vouchercheck_2" standard="STDTMPLUSVOUCHERCHECK">
+  <description></description>
+  <displaysourcecode>F</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>TRANSACTION</printtype>
+  <title>FC | Voucher Check 2</title>
+  <trantype>CHECK</trantype>
+</advancedpdftemplate>

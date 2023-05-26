@@ -1,5 +1,8 @@
 <#ftl output_format="XML">
 <?xml version="1.0"?><!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<pdfset>
+<#list records as check>
+
 <pdf>
 <head>
 	<link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}" src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}" src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
@@ -16,9 +19,8 @@
 </style>
 </head>
 <body padding="0.25in 0.25in 0.25in 0.25in" size="Letter">
-    <#list records as check>
-<div syle="position: relative;font-family: Helvetica,sans-serif;top= -11pt;height: 250pt;width: 612pt;page-break-inside: avoid;font-size: 8pt;">
-t
+<div style="position: relative;font-family: Helvetica,sans-serif;top= -11pt;height: 250pt;width: 612pt;page-break-inside: avoid;font-size: 8pt;">
+
 <table style="position: absolute;overflow: hidden;left: 500pt;top: 25pt;height: 18pt;width: 108pt;"><tr>
 	<td><span style="font-size:14px;">${check.trandate}</span></td>
 	</tr></table>
@@ -43,6 +45,7 @@ t
 	<td><span style="font-size:12px;">${check.memo?no_esc}</span></td>
 	</tr></table>
 </div>
-</#list>
 </body>
 </pdf>
+</#list>
+</pdfset>

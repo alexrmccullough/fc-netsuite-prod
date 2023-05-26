@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmplfc_fh_statement1" standard="STDTMPLSTATEMENT">
+  <description></description>
+  <displaysourcecode>F</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>STATEMENT</printtype>
+  <title>FC FH | Statement 1</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

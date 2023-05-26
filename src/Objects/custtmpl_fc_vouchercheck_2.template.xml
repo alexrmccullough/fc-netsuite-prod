@@ -1,0 +1,299 @@
+<#ftl output_format="XML">
+<?xml version="1.0"?>
+<!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<pdf>
+	<head>
+		<link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}"
+			src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}"
+			src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
+
+		<style type="text/css">
+			.check table, .voucher1 table, .voucher2 table {
+			position: relative;
+			overflow: hidden;
+			font-size: 8pt;
+			padding: 0;
+			}
+			td p { align:left }
+
+			table.appliedtable {
+			border: 1px solid black;
+			}
+
+			table.appliedtable td, th {
+			padding-left: 5px;
+			padding-right: 5px;
+			}
+
+			table.appliedtable thead {
+			display: table-header-group;
+			}
+
+			table.appliedtable thead tr {
+			background-color: #ddd;
+			display: table-row;
+			}
+
+			table.creditstable {
+			border: 1px solid black;
+			}
+
+			table.creditstable td, th {
+			padding-left: 5px;
+			padding-right: 5px;
+			}
+
+			table.creditstable thead {
+			display: table-header-group;
+			}
+
+			table.creditstable thead tr {
+			background-color: #ddd;
+			display: table-row;
+			}
+
+			td.trandate {
+			font-size: 14pt;
+			}
+			td.entity {
+			font-size: 14pt;
+			}
+			td.total {
+			font-size: 14pt;
+			}
+			td.totalwords {
+			font-size: 12pt;
+			}
+			td.address {
+			font-size: 11pt;
+			}
+			td.memo {
+			font-size: 12pt;
+			}
+
+		</style>
+	</head>
+	<body padding="0.25in 0.25in 0.25in 0.25in" size="Letter">
+		<#list records as check>
+			<div
+				style="position: relative;font-family: Helvetica,sans-serif;top= -11pt;height: 250pt;width: 612pt;page-break-inside: avoid;font-size: 8pt;">
+
+				<table
+					style="position: absolute;overflow: hidden;left: 466pt;top: 34pt;height: 18pt;width: 108pt;">
+					<tr>
+						<td class="trandate">${check.trandate}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 75pt;top: 69pt;height: 18pt;width: 393pt;">
+					<tr>
+						<td class="entity">${check.entity?no_esc}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 490pt;top: 69pt;height: 18pt;width: 111pt;">
+					<tr>
+						<td class="total">**<#if (check.usertotal?length> 0)>${check.usertotal}<#else>${check.total}</#if></td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 20pt;top: 93pt;height: 18pt;width: 572pt;">
+					<tr>
+						<td class="totalwords">
+							${check.totalwords}*********************************************************************</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 37pt;top: 122pt;height: 80pt;width: 537pt;">
+					<tr>
+						<td class="address">${check.address?no_esc}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 37pt;top: 172pt;height: 18pt;width: 572pt;">
+					<tr>
+						<td class="memo">${check.memo?no_esc}</td>
+					</tr>
+				</table>
+			</div>
+
+			<div
+				style="position: relative;font-family: Helvetica,sans-serif;height: 250pt;width: 612pt;page-break-before: avoid;font-size: 8pt;">
+				<table
+					style="position: absolute;overflow: hidden;left: 412pt;top: -2pt;height: 13pt;width: 70pt;">
+					<tr>
+						<td>${check.trandate}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 36pt;top: -2pt;height: 13pt;width: 157pt;">
+					<tr>
+						<td>${check.entity?no_esc}</td>
+					</tr>
+				</table>
+
+				<@applyTable check=check/>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 473pt;top: 204pt;height: 13pt;width: 67pt;">
+					<tr>
+						<td>${check.account?no_esc}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 148pt;top: 204pt;height: 13pt;width: 325pt;">
+					<tr>
+						<td>${check.memo?no_esc}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 9pt;top: 204pt;height: 13pt;width: 134pt;">
+					<tr>
+						<td>${check.total}</td>
+					</tr>
+				</table>
+			</div>
+
+			<div
+				style="position: relative;font-family: Helvetica,sans-serif;height: 250pt;width: 612pt;page-break-before: avoid;font-size: 8pt;">
+				<table
+					style="position: absolute;overflow: hidden;left: 412pt;top: -2pt;height: 13pt;width: 70pt;">
+					<tr>
+						<td>${check.trandate}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 36pt;top: -2pt;height: 13pt;width: 157pt;">
+					<tr>
+						<td>${check.entity?no_esc}</td>
+					</tr>
+				</table>
+
+				<@applyTable check=check/>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 473pt;top: 204pt;height: 13pt;width: 67pt;">
+					<tr>
+						<td>${check.account?no_esc}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 148pt;top: 204pt;height: 13pt;width: 325pt;">
+					<tr>
+						<td>${check.memo?no_esc}</td>
+					</tr>
+				</table>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 9pt;top: 204pt;height: 13pt;width: 134pt;">
+					<tr>
+						<td>${check.total}</td>
+					</tr>
+				</table>
+			</div>
+		</#list>
+	</body>
+</pdf>
+
+<#macro 
+
+
+<#macro applyTable check>
+
+				<#assign lineCounter = 0>
+				<#assign runningAmount = 0>
+				<#if ((check.apply?has_content) || (check.credit?has_content))>
+					<table
+						class="appliedtable"
+						style="position: absolute;overflow: hidden;left: 20pt;top: 15pt;width: 500pt;">
+						<thead>
+							<tr>
+								<th align="left" width="50pt">Date</th>
+								<th align="left" width="75pt">Type</th>
+								<th align="left" width="75pt">Ref Num</th>
+								<th align="left" width="75pt">Applied To</th>
+								<th align="left" width="75pt">Amount</th>
+								<th align="left" width="75pt">Balance Due</th>
+								<th align="left" width="75pt">Payment</th>
+							</tr>
+						</thead>
+						<tbody>
+
+
+							<#list check.apply as apply>
+							<#assign runningAmount = runningAmount + apply.amount>
+
+							<#if (lineCounter <= 13)>
+							<tr>
+								<td align="left">${apply.duedate}</td>
+								<td align="left">${apply.type}</td>
+								<td align="left">${apply.refnum?no_esc}</td>
+								<td></td>
+								<td align="left">${apply.total?string.currency}</td>
+								<td align="left">${apply.due?string.currency}</td>
+								<td align="left">${apply.amount?string.currency}</td>
+							</tr>
+							<#assign runningAmount = 0>
+							</#if>
+
+							<#assign lineCounter = lineCounter + 1>
+							</#list>
+
+							<#list check.credit as credit>
+							<#assign runningAmount = runningAmount - credit.amount>
+
+							<#if (lineCounter <= 13)>
+							<#assign alreadyApplied = credit.appliedto?has_content>
+							<tr>
+								<td align="left">${credit.creditdate}</td>
+								<td align="left">${credit.type}</td>
+								<td align="left">${credit.refnum?no_esc}</td>
+								<td align="left">
+									<#if alreadyApplied>
+										${credit.appliedto}
+									</#if>
+								</td>
+								<td align="left">
+									<#if alreadyApplied>
+										${(credit.amount * -1)?string.currency}
+									</#if>
+								</td>
+								<td align="left"></td>
+								<td align="left">
+									<#if alreadyApplied>
+									<#else>
+										${(credit.amount * -1)?string.currency}
+									</#if>
+								</td>
+							</tr>
+							<#assign runningAmount = 0>
+							</#if>
+
+							<#assign lineCounter = lineCounter + 1>
+							</#list>
+
+							<#if (lineCounter > 13)> <tr>
+									<td align="left"></td>
+									<td align="left">Remaining</td>
+									<td align="left"></td>
+									<td align="left"></td>
+									<td align="left"></td>
+									<td align="left">${runningAmount?string.currency}</td>
+								</tr>
+							</#if>
+						</tbody>
+					</table>
+				</#if>
+
+
+</#macro>

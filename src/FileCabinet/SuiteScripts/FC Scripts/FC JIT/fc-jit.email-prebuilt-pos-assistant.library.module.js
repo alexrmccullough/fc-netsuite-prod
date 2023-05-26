@@ -205,12 +205,12 @@ function main(fcLibModule, fcClientLibModule) {
         Folders: {
             MAIN: {
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
-                Sandbox: 8541,
+                Sandbox: 8138,
                 Prod: 8138,
             },
             SESSION_RESULTS: {
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
-                Sandbox: 8620,
+                Sandbox: 9193,
                 Prod: 9193,
             },
         },

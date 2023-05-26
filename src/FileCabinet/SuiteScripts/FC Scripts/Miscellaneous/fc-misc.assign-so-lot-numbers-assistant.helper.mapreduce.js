@@ -70,7 +70,7 @@ function getInputData(context) {
         // Convert it to an array of objects with keys matching the NS fields to be referenced when creating the POs
         let soList = FCLib.getTextFileContents(sosToUpdateJsonFileId);
         log.debug({ title: 'getInputData - soList', details: soList });
-        sosToUpdateInternalIds = Object.values(JSON.parse(soList))  ;
+        sosToUpdateInternalIds = Object.values(JSON.parse(soList));
         log.debug({ title: 'getInputData - sosToUpdateInternalIds', details: sosToUpdateInternalIds });
 
         // Query the DB to get more detailed main line info about the SOs that we're going to try to update.
@@ -81,6 +81,12 @@ function getInputData(context) {
 
         soListQueryResults = FCLib.sqlSelectAllRows(sqlSoListQuery);
         log.debug({ title: 'getInputData - soListQueryResults', details: soListQueryResults });
+
+        
+        soListQueryResults = FCLib.sortArrayOfObjsByKeys(
+            soListQueryResults,
+            [ThisAppLib.Queries.MR_GET_SOS_TO_UPDATE_DETAILS.FieldSet1.ShipDate.fieldid]
+        )
 
     } catch (e) {
         log.error({ title: 'getInputData - error', details: e });

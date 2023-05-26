@@ -135,12 +135,10 @@ function main(fcClientLibModule) {
             MR_JIT_UPDATE: 'customdeploy_fc_am_jit_mr_updateitemjit',
         },
         Folders: {
-            // PROD
-            // RESULTS: 8141,
             RESULTS: {
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
-                Sandbox: 8546,
-                Prod: '??',
+                Sandbox: 8141,
+                Prod: 8141,
             },
         },
     };

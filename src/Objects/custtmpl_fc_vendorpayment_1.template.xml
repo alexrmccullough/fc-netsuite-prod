@@ -1,0 +1,223 @@
+<#ftl output_format="XML">
+<?xml version="1.0"?>
+<!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<pdf>
+	<head>
+		<link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}"
+			src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}"
+			src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
+		<style type="text/css">
+			* {}
+			td p { align:left }
+		</style>
+	</head>
+	<body padding="0.25in 0.25in 0.25in 0.25in" size="Letter">
+		<div
+			style="position: relative;font-family: Helvetica,sans-serif;top= -11pt;height: 250pt;width: 612pt;page-break-inside: avoid;font-size: 8pt;">
+			<table
+				style="position: absolute;overflow: hidden;left: 466pt;top: 34pt;height: 18pt;width: 108pt;">
+				<tr>
+					<td>
+						<span style="font-size:14px;">${record.trandate}</span>
+					</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 75pt;top: 69pt;height: 18pt;width: 393pt;">
+				<tr>
+					<td>
+						<span style="font-size:14px;">${record.entity?no_esc}</span>
+					</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 490pt;top: 69pt;height: 18pt;width: 111pt;">
+				<tr>
+					<td>
+						<span style="font-size:14px;">**<#if (record.usertotal?length> 0)>${record.usertotal}<#else>
+								${record.total}</#if></span>
+					</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 20pt;top: 93pt;height: 18pt;width: 572pt;">
+				<tr>
+					<td>
+						<span style="font-size:12px;">
+							${record.totalwords?no_esc}*********************************************************************</span>
+					</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 37pt;top: 122pt;height: 80pt;width: 537pt;">
+				<tr>
+					<td>
+						<span style="font-size:11px;">${record.address?no_esc}</span>
+					</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 37pt;top: 172pt;height: 18pt;width: 572pt;">
+				<tr>
+					<td>
+						<span style="font-size:12px;">${record.memo?no_esc}</span>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		<div
+			style="position: relative;font-family: Helvetica,sans-serif;height: 250pt;width: 612pt;page-break-before: avoid;font-size: 8pt;">
+			<table
+				style="position: absolute;overflow: hidden;left: 403pt;top: -16pt;height: 7pt;width: 40pt;font-size: 5pt;">
+				<tr>
+					<td align="center">${record.otherrefnum?no_esc}</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 412pt;top: -2pt;height: 13pt;width: 70pt;">
+				<tr>
+					<td>${record.trandate}</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 36pt;top: -2pt;height: 13pt;width: 157pt;">
+				<tr>
+					<td>${record.entity?no_esc}</td>
+				</tr>
+			</table>
+			
+			<#if record.item?has_content || record.expense?has_content>
+
+				<table
+					style="position: absolute;overflow: hidden;left: 36pt;top: 90pt;width: 436pt;">
+					<#list record.expense as expense>
+						<tr>
+							<td>${expense.account}</td>
+							<td>${expense.date}</td>
+							<td>${expense.description?no_esc}</td>
+							<td align="right">${expense.amount}</td>
+						</tr>
+					</#list>
+					<#list record.item as item>
+						<tr>
+							<td>&nbsp;</td>
+							<td>${item.date}</td>
+							<td>${item.item}, ${item.description?no_esc}</td>
+							<td align="right">${item.amount}</td>
+						</tr>
+					</#list>
+				</table>
+			</#if>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 473pt;top: 204pt;height: 13pt;width: 67pt;">
+				<tr>
+					<td>${record.account?no_esc}</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 148pt;top: 204pt;height: 13pt;width: 325pt;">
+				<tr>
+					<td>${record.memo?no_esc}</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 9pt;top: 204pt;height: 13pt;width: 134pt;">
+				<tr>
+					<td>${record.total}</td>
+				</tr>
+			</table>
+		</div>
+
+		<div
+			style="position: relative;font-family: Helvetica,sans-serif;height: 250pt;width: 612pt;page-break-before: avoid;font-size: 8pt;">
+			<table
+				style="position: absolute;overflow: hidden;left: 403pt;top: -16pt;height: 7pt;width: 40pt;font-size: 5pt;">
+				<tr>
+					<td align="center">${record.otherrefnum}</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 412pt;top: -2pt;height: 13pt;width: 70pt;">
+				<tr>
+					<td>${record.trandate}</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 36pt;top: -2pt;height: 13pt;width: 157pt;">
+				<tr>
+					<td>${record.entity}</td>
+				</tr>
+			</table>
+
+			<table style="position: absolute;overflow: hidden;left: 36pt;top: 90pt;width: 436pt;"><!--
+								start apply sublist -->
+				<#list record.apply as apply>
+					<tr>
+						<td align="right">${apply.refnum@label}</td>
+						<td align="right">${apply.refnum?no_esc}</td>
+						<td align="right">${apply.amount}</td>
+					</tr>
+				</#list><!--
+								end apply -->
+			</table>
+
+
+			<#if record.item?has_content || record.expense?has_content>
+				<table
+					style="position: absolute;overflow: hidden;left: 36pt;top: 90pt;width: 436pt;">
+					<#list record.expense as expense>
+						<tr>
+							<td>${expense.account}</td>
+							<td>${expense.date}</td>
+							<td>${expense.description}</td>
+							<td align="right">${expense.amount}</td>
+						</tr>
+					</#list>
+					<#list record.item as item>
+						<tr>
+							<td>&nbsp;</td>
+							<td>${item.date}</td>
+							<td>${item.item}, ${item.description}</td>
+							<td align="right">${item.amount}</td>
+						</tr>
+					</#list>
+				</table>
+			</#if>
+
+
+			<table
+				style="position: absolute;overflow: hidden;left: 473pt;top: 204pt;height: 13pt;width: 67pt;">
+				<tr>
+					<td>${record.account}</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 148pt;top: 204pt;height: 13pt;width: 325pt;">
+				<tr>
+					<td>${record.memo}</td>
+				</tr>
+			</table>
+
+			<table
+				style="position: absolute;overflow: hidden;left: 9pt;top: 204pt;height: 13pt;width: 134pt;">
+				<tr>
+					<td>${record.total}</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</pdf>

@@ -328,15 +328,19 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
 
                     let invDetailLotNum;
                     if (dynamic) {
+                        let fields = invDetailSubrec.getSublistFields({
+                            sublistId: 'inventoryassignment',
+                        });
+
                         invDetailLotNum = invDetailSubrec.getCurrentSublistValue({
                             sublistId: 'inventoryassignment',
-                            fieldId: 'inventorynumber',
+                            fieldId: 'issueinventorynumber',
                         });
                     }
                     else {
                         invDetailLotNum = invDetailSubrec.getSublistValue({
                             sublistId: 'inventoryassignment',
-                            fieldId: 'inventorynumber',
+                            fieldId: 'issueinventorynumber',
                             line: j
                         });
                     }

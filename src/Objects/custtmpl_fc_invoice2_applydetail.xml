@@ -1,9 +1,9 @@
-<advancedpdftemplate scriptid="custtmpl_fc_vouchercheck_1" standard="STDTMPLUSVOUCHERCHECK">
+<advancedpdftemplate scriptid="custtmpl_fc_invoice2_applydetail" standard="STDTMPLCUSTINVC">
   <description></description>
   <displaysourcecode>F</displaysourcecode>
   <isinactive>F</isinactive>
   <preferred>F</preferred>
   <printtype>TRANSACTION</printtype>
-  <title>FC | Voucher Check 1</title>
-  <trantype>CHECK</trantype>
+  <title>FC AM | Invoice 2 w/Apply Detail</title>
+  <trantype>CUSTINVC</trantype>
 </advancedpdftemplate>

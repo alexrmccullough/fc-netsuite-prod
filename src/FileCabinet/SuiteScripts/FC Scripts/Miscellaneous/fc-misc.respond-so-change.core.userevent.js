@@ -10,17 +10,14 @@
  */
 
 var record,
-    query,
     search,
-    runtime,
     FCLib,
     dayjs,
     FCLotMgmtLib;
 
-define(['N/record',
-    'N/query',
+define([
+    'N/record',
     'N/search',
-    'N/runtime',
     '../Libraries/fc-main.library.module',
     '../Libraries/dayjs.min',
     './fc-misc.general-lot-mgmt.library.module'
@@ -28,11 +25,9 @@ define(['N/record',
 
 
 
-function main(recordModule, queryModule, searchModule, runtimeModule, fcMainLib, dayjsModule, fcLotMgmtLibModule) {
+function main(recordModule, searchModule, fcMainLib, dayjsModule,  fcLotMgmtLibModule) {
     record = recordModule;
-    query = queryModule;
     search = searchModule;
-    runtime = runtimeModule;
     FCLib = fcMainLib;
     dayjs = dayjsModule;
     FCLotMgmtLib = fcLotMgmtLibModule;
@@ -48,7 +43,7 @@ function main(recordModule, queryModule, searchModule, runtimeModule, fcMainLib,
 
     function beforeSubmit(context) {
         // const oldRecStatus = context.oldRecord.getValue({
-        //     fieldId: 'status'
+        //     fieldId: 'status'w
         // });
 
 
@@ -66,7 +61,7 @@ function main(recordModule, queryModule, searchModule, runtimeModule, fcMainLib,
 
         if ((context.type == context.UserEventType.CREATE) ||
             (context.type == context.UserEventType.APPROVE)) {
-            FCLotMgmtLib.doAssignSOLotNumbers(context.newRecord);
+            // FCLotMgmtLib.doAssignSOLotNumbers(context.newRecord);
         }
 
         // }
@@ -108,14 +103,13 @@ function main(recordModule, queryModule, searchModule, runtimeModule, fcMainLib,
 
     }
 
-
-
     return {
         // beforeSubmit: beforeSubmit,
         afterSubmit: afterSubmit
     };
 
 }
+
 
 function doUpdateJitAvailabilities(context, oldRecord = null, newRecord = null) {
     let jitSOItemInfo = {};
@@ -235,7 +229,7 @@ function doUpdateJitAvailabilities(context, oldRecord = null, newRecord = null) 
     }
 
 
-    let jitItemInfo = runItemQuery(allItemIds);
+    let jitItemInfo = runJitItemQuery(allItemIds);
 
     // Update every JIT item record\
     var changes = [];
@@ -299,14 +293,12 @@ function doUpdateJitAvailabilities(context, oldRecord = null, newRecord = null) 
             }
         }
     }
-    
+
     log.audit({ title: 'changes', details: changes });
 
 }
 
-
-
-function runItemQuery(itemIds) {
+function runJitItemQuery(itemIds) {
     // Do Query on Item IDs to find: 
     //    JIT status
     //    JIT qty fields

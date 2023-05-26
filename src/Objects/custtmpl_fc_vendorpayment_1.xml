@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_vendorpayment_1" standard="STDTMPLUSVENDPYMT">
+  <description></description>
+  <displaysourcecode>F</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>TRANSACTION</printtype>
+  <title>FC | Vendor Payment 1</title>
+  <trantype>VENDPYMT</trantype>
+</advancedpdftemplate>

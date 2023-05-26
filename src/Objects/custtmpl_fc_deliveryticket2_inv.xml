@@ -1,0 +1,10 @@
+<advancedpdftemplate scriptid="custtmpl_fc_deliveryticket2_inv">
+  <description></description>
+  <displaysourcecode>F</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>SEARCH</printtype>
+  <savedsearch>[scriptid=customsearch_fc_delivery_tickets_conso_2]</savedsearch>
+  <title>FC | Delivery Ticket 2 (Invoice)</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

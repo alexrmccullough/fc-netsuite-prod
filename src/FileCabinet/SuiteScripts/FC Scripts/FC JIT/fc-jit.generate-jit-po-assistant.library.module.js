@@ -33,6 +33,7 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
                         BUILTIN.CF(Transaction.status) IN ('SalesOrd:B', 'SalesOrd:D', 'SalesOrd:E')
                     )
                     AND (Item.custitem_soft_comit = 'T')
+                    AND (TransactionLine.isClosed = 'F')
                     @@EXTRA_FILTERS@@
 
                 GROUP BY 
@@ -84,6 +85,7 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
                             BUILTIN.CF(Transaction.status) IN ('SalesOrd:B', 'SalesOrd:D', 'SalesOrd:E')
                         )
                         AND (Item.custitem_soft_comit = 'T')
+                        AND (TransactionLine.isClosed = 'F')
                         @@VENDOR_ID_FILTER@@
                         @@DATE_FILTERS@@
 
@@ -207,7 +209,7 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
         Folders: {
             RESULTS: {
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
-                Sandbox: 8543, 
+                Sandbox: 9116, 
                 Prod: 9116,
             },
         },
@@ -324,7 +326,7 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
                             Label: 'Final PO Qty',
                             GetTableElem: function (thisRow) {
                                 const queryFields = exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1;
-                                const value = thisRow[queryFields.totalbackordered.fieldid];
+                                const value = thisRow[queryFields.totalqty.fieldid];
                                 const vendorId = thisRow[queryFields.vendorid.fieldid];
                                 const itemId = thisRow[queryFields.itemid.fieldid];
 
@@ -533,6 +535,9 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
             },
             // [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemid.display]: ,
             // [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.display]: ,
+            [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.label]: {
+                typeFunc: (value) => { return value.toString() },
+            },
             [exports.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorid.label]: {
                 typeFunc: (value) => { return value.toString() },
                 record: 'transaction',
@@ -615,8 +620,6 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
     exports.buildQueryGetItemInfoFromPO = buildQueryGetItemInfoFromPO;
 
 
-
-
     function buildPoRecord(csvRows) {
         // var csvRows = csvRowsRaw.map(JSON.parse);
         const dynamic = true;
@@ -629,8 +632,6 @@ function main(recordModule, dayjsModule, fcLibModule, fcClientLibModule) {
             type: record.Type.PURCHASE_ORDER,
             isDynamic: dynamic
         });
-
-
 
         log.debug({ title: 'poRecord', details: poRecord });
 

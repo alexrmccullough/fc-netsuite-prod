@@ -508,12 +508,12 @@ function main(logModule,  taskModule, fcLibModule, fcClientLibModule) {
         ZERO_AVAILABILITY_CSV_FILENAME_PREFIX: 'Zero_Availability_Items_',
         FolderIds: {
             INPUT: {
-                Sandbox: 8544,
+                Sandbox: 8142,
                 Prod: 8142,
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
             },
             RESULTS: {
-                Sandbox: 8546,
+                Sandbox: 8141,
                 Prod: 8141,
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
             },

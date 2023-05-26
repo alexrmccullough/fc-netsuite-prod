@@ -79,25 +79,26 @@ function main() {
     var Emails = {
 
         JIT_PO_EMAIL: {
-            Subject: {
-                Template: `Purchase Order {{poNumber}} for {{dueDate}} from Food Connects`,
-                Placeholders: {
-                    DUEDATE: '{{dueDate}}',
-                    PONUMBER: '{{poNumber}}'
-                }
-            },
-            Body: {
-                Template: `
-                <p> Please find attached a Purchase Order from <strong>Food Connects</strong>, for pickup/delivery on {{dueDate}}. Shipping labels are attached in two formats: 1) 8x11' sheet labels for regular printers, 2) Single-roll 2x4' labels for label printers. </p>
-                <p> Please reach out to procurement@foodconnects.org ASAP with any questions you have.</p>
-                <p> Thank you! </p>
-                <p> Best, </p>
-                <p> The Procurement Team at Food Connects </p>
-                `,
-                Placeholders: {
-                    DUEDATE: '{{dueDate}}'
-                }
-            },
+            NSEmailTemplateId: 24,
+            // Subject: {
+            //     Template: `Purchase Order {{poNumber}} for {{dueDate}} from Food Connects`,
+            //     Placeholders: {
+            //         DUEDATE: '{{dueDate}}',
+            //         PONUMBER: '{{poNumber}}'
+            //     }
+            // },
+            // Body: {
+            //     Template: `
+            //     <p> Please find attached a Purchase Order from <strong>Food Connects</strong>, for pickup/delivery on {{dueDate}}. Shipping labels are attached in two formats: 1) 8x11' sheet labels for regular printers, 2) Single-roll 2x4' labels for label printers. </p>
+            //     <p> Please reach out to procurement@foodconnects.org ASAP with any questions you have.</p>
+            //     <p> Thank you! </p>
+            //     <p> Best, </p>
+            //     <p> The Procurement Team at Food Connects </p>
+            //     `,
+            //     Placeholders: {
+            //         DUEDATE: '{{dueDate}}'
+            //     }
+            // },
         },
 
         SUMMARIZE_EMAIL: {
@@ -120,10 +121,9 @@ function main() {
                     POS_FAILED: '{{POS_FAILED}}',
                 }
             },
-            RecipientsEmails: ['procurement@foodconnects.org'],
+            RecipientsEmails: ['procurement@foodconnects.org', 'operations@foodconnects.org'],
             CcEmails: [],
             BccEmails: [],
-            Subject: 'Food Connects - JIT POs Summary',
 
         }
     };

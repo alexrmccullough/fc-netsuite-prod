@@ -437,7 +437,7 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
         // FIX: Update this logic to present a nice table
         let newOutputFields = ThisAppLib.Settings.PoImportCsv.NewOutputFields;
 
-        let ouputFieldsFromOrigQuery = Object.keys(ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1).reduce(
+        let outputFieldsFromOrigQuery = Object.keys(ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1).reduce(
             (acc, key) => {
                 let fieldInfo = ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[key];
                 // if (ThisAppLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1[fieldid].includeInCsv)
@@ -448,11 +448,11 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
             {}
         );
 
-        log.debug({title: 'ouputFieldsFromOrigQuery', details: ouputFieldsFromOrigQuery});
+        log.debug({title: 'ouputFieldsFromOrigQuery', details: outputFieldsFromOrigQuery});
 
         let outputFieldHeaders = [
             ...Object.values(newOutputFields),
-            ...Object.values(ouputFieldsFromOrigQuery)
+            ...Object.values(outputFieldsFromOrigQuery)
         ];
 
         log.debug({title: 'outputFieldHeaders', details: outputFieldHeaders});
@@ -526,13 +526,16 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
                 };
 
                 //NOTE/FIX?: Assuming that the query is structured such that vendorId > itemId is always unique
-                let origFieldValues = Object.keys(ouputFieldsFromOrigQuery).reduce(
+                let origFieldValues = Object.keys(outputFieldsFromOrigQuery).reduce(
                     (acc, key) => {
-                        acc[ouputFieldsFromOrigQuery[key]] = jitSOItemQueryResults[vendorId][itemId][0][key];
+                        acc[outputFieldsFromOrigQuery[key]] = jitSOItemQueryResults[vendorId][itemId][0][key];
                         return acc;
                     },
                     {}
                 );
+
+                log.debug({title: 'newFieldValues', details: newFieldValues});
+                log.debug({title: 'origFieldValues', details: origFieldValues});
 
 
                 let row = { ...newFieldValues, ...origFieldValues };

@@ -1,0 +1,167 @@
+<?xml version="1.0"?><!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd"><#if record??>
+<pdf>
+<head>
+	<link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}" src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}" src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
+    <macrolist>
+        <macro id="nlheader">
+            <table class="header" style="width: 100%;"><tr>
+	<td rowspan="2"><#if companyInformation.logoUrl?length != 0><img src="${companyInformation.logoUrl}" style="float: left; margin: 7px" /> </#if><span class="nameandaddress">${companyInformation.companyName}</span><br /><span class="nameandaddress">${companyInformation.addressText}</span></td>
+	<td align="right"><span class="title">${record@title}</span></td>
+	</tr>
+	<tr>
+	<td align="right">${record.trandate}</td>
+	</tr></table>
+        </macro>
+        <macro id="nlfooter">
+            <table class="footer" style="width: 100%;"><tr>
+	<td align="right"><pagenumber/> of <totalpages/></td>
+	</tr></table>
+        </macro>
+    </macrolist>
+    <style type="text/css">* {
+			font-family: NotoSans, sans-serif;
+		}
+		table {
+			font-size: 9pt;
+			table-layout: fixed;
+		}
+        th {
+            font-weight: bold;
+            font-size: 8pt;
+            vertical-align: middle;
+            padding: 5px 6px 3px;
+            background-color: #e3e3e3;
+            color: #333333;
+        }
+        td {
+            padding: 4px 6px;
+        }
+		td p { align:left }
+        b {
+            font-weight: bold;
+            color: #333333;
+        }
+        table.header td {
+            padding: 0;
+            font-size: 10pt;
+        }
+        table.footer td {
+            padding: 0;
+            font-size: 8pt;
+        }
+        table.itemtable th {
+            padding-bottom: 10px;
+            padding-top: 10px;
+        }
+        table.body td {
+            padding-top: 2px;
+        }
+        td.addressheader {
+            font-size: 8pt;
+            padding-top: 6px;
+            padding-bottom: 2px;
+        }
+        td.address {
+            padding-top: 0px;
+        }
+        span.title {
+            font-size: 28pt;
+        }
+        span.number {
+            font-size: 16pt;
+        }
+        hr {
+            border-top: 1px dashed #d3d3d3;
+            width: 100%;
+            color: #ffffff;
+            background-color: #ffffff;
+            height: 1px;
+        }
+</style>
+</head>
+<body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt" padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
+    <table style="width: 100%;"><tr>
+	<td class="addressheader" colspan="3"><b>${record.billaddress@label}</b></td>
+	</tr>
+	<tr>
+	<td class="address" colspan="3">${record.billaddress}</td>
+	</tr></table>
+
+<table class="body" style="width: 100%;"><tr>
+	<th align="right">${record.amountDue@label}</th>
+	</tr>
+	<tr>
+	<td align="right">${record.amountDue}</td>
+	</tr></table>
+
+<table class="itemtable" style="width: 100%; margin-top: 10px;"><!-- start items -->
+<thead>
+	<tr>
+	<th colspan="3">${record.lines.datecol@label}</th>
+	<th colspan="12">${record.lines.description@label}</th>
+	<th align="right" colspan="3">${record.lines.charge@label}</th>
+	<th align="right" colspan="4">${record.lines.payment@label}</th>
+	<th align="right" colspan="4">${record.lines.balance@label}</th>
+	</tr>
+</thead>
+<#list record.lines as line><tr>
+	<td colspan="3">${line.datecol}</td>
+	<td colspan="12">${line.description} <#if line.memo?starts_with("HTM")>(${line.memo})</#if></td>
+	<td align="right" colspan="3">${line.charge}</td>
+	<td align="right" colspan="4">${line.payment}</td>
+	<td align="right" colspan="4">${line.balance}</td>
+	</tr>
+	</#list></table>
+
+<table style="width: 100%; margin-top: 10px;"><tr>
+	<th>${record.aging1@label}</th>
+	<th>${record.aging2@label}</th>
+	<th>${record.aging3@label}</th>
+	<th>${record.aging4@label}</th>
+	<th>${record.aging5@label}</th>
+	<th>${record.agingbal@label}</th>
+	</tr>
+	<tr>
+	<td>${record.aging1}</td>
+	<td>${record.aging2}</td>
+	<td>${record.aging3}</td>
+	<td>${record.aging4}</td>
+	<td>${record.aging5}</td>
+	<td>${record.agingbal}</td>
+	</tr></table>
+<#if preferences.RETURNFORM && remittanceSlip??>
+
+<hr />
+<div class="remittanceSlip">
+<table style="width: 100%; margin-top: 10px;"><tr>
+	<td><span class="nameandaddress">${companyInformation.companyName}</span></td>
+	<td align="right"><span class="number">${remittanceSlip@title}</span></td>
+	</tr></table>
+
+<table style="width: 100%; margin-top: 10px;"><tr>
+	<th>${remittanceSlip.customername@label}</th>
+	<th>${record.trandate@label}</th>
+	<th>${record.amountDue@label}</th>
+	<th>${remittanceSlip.amountPaid@label}</th>
+	</tr>
+	<tr>
+	<td>${companyInformation.addressText}</td>
+	<td>${record.trandate}</td>
+	<td align="right">${record.amountDue}</td>
+	<td>&nbsp;</td>
+	</tr></table>
+
+<table style="width: 100%; margin-top: 10px;"><tr>
+	<th>${remittanceSlip.ccinfo@label}</th>
+	<th>${remittanceSlip.companyaddress@label}</th>
+	</tr>
+	<tr>
+	<td>${remittanceSlip.ccinfo}</td>
+	<td>${companyInformation.addressText}</td>
+	</tr></table>
+</div>
+</#if></body></pdf><#else><pdf><head></head><body>
+
+<p>Multi currency customer setting was detected. Please use Multi Currency Advanced Printing Template</p>
+</body>
+</pdf></#if>

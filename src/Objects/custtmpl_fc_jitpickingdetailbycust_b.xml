@@ -1,10 +1,10 @@
-<advancedpdftemplate scriptid="custtmpl_fc_jitpickingdetailbycust_a">
+<advancedpdftemplate scriptid="custtmpl_fc_jitpickingdetailbycust_b">
   <description></description>
   <displaysourcecode>F</displaysourcecode>
   <isinactive>F</isinactive>
-  <preferred>F</preferred>
+  <preferred>T</preferred>
   <printtype>SEARCH</printtype>
   <savedsearch>[scriptid=customsearch_fc_jitpickdetailbycust1]</savedsearch>
-  <title>FC | JIT Picking Detail by Customer A</title>
+  <title>FC | JIT Picking Detail by Customer B, Lot #s</title>
   <trantype>CUSTINVC</trantype>
 </advancedpdftemplate>

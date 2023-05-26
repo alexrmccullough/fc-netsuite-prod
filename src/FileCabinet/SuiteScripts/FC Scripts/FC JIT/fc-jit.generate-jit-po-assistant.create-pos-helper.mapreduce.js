@@ -13,6 +13,7 @@ var
     runtime,
     email,
     query,
+    search,
     record,
     task,
     file,
@@ -20,22 +21,35 @@ var
     FCJITGenPoLib,
     Papa;
 
-define(['N/runtime', 
-    'N/email', 
-    'N/query', 
-    'N/record', 
-    'N/task', 
-    'N/file', 
-    '../Libraries/fc-main.library.module', 
-    modulePathGenerateJitPoUtilityLibrary, 
+define(['N/runtime',
+    'N/email',
+    'N/query',
+    'N/search',
+    'N/record',
+    'N/task',
+    'N/file',
+    '../Libraries/fc-main.library.module',
+    modulePathGenerateJitPoUtilityLibrary,
     '../Libraries/papaparse.min'
 ], main);
 
-function main(runtimeModule, emailModule, queryModule, recordModule, taskModule, fileModule, fcMainLibModule, fcGenerateJITPoLibModule, papaParseModule) {
+function main(
+    runtimeModule,
+    emailModule,
+    queryModule,
+    searchModule,
+    recordModule,
+    taskModule,
+    fileModule,
+    fcMainLibModule,
+    fcGenerateJITPoLibModule,
+    papaParseModule
+) {
 
     runtime = runtimeModule;
     email = emailModule;
     query = queryModule;
+    search = searchModule;
     record = recordModule;
     task = taskModule;
     file = fileModule;
@@ -70,8 +84,6 @@ function getInputData(context) {
     try {
         // Load the CSV file with the import data
         // Convert it to an array of objects with keys matching the NS fields to be referenced when creating the POs
-
-
         let curFile = file.load({ id: jitPoImportCsvFileId });
         // let curFileContents = curFile.getContents();
 
@@ -86,6 +98,11 @@ function getInputData(context) {
 
         let rawHeaders = parsedFile.meta.fields;
         rows = parsedFile.data;
+
+        log.debug({ title: 'getInputData - rawHeaders', details: rawHeaders });
+        log.debug({ title: 'getInputData - rows', details: rows });
+
+
 
     } catch (e) {
         log.error({ title: 'getInputData - error', details: e });
@@ -182,20 +199,49 @@ function reduce(context) {
         log.debug({ title: 'reduce - poItemRows', details: poItemRowsRaw });
 
         let poItemRowsParsed = poItemRowsRaw.map(JSON.parse);
+        log.debug({ title: 'reduce - poItemRowsParsed', details: poItemRowsParsed });
+
+        if (!poItemRowsParsed || poItemRowsParsed.length === 0) {
+            throw new Error(`No items were found for PO External ID ${poExternalId}.`);
+        };
+
         poItemRowsParsed = FCLib.sortArrayOfObjsByKey(
             poItemRowsParsed,
-            FCJITGenPoLib.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.label
+            FCJITGenPoLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.itemdisplayname.label
         );
-
+        log.debug({ title: 'reduce - poItemRowsParsed - AFTER SORT', details: poItemRowsParsed });
 
         poRecord = FCJITGenPoLib.buildPoRecord(poItemRowsParsed);
-
         log.debug({ title: 'reduce - poRecord', details: poRecord });
+
+        var poId;
+        try {
+            poId = poRecord.save();
+            log.debug({ title: 'reduce - poId', details: poId });
+        } catch (e) {
+            log.error({ title: 'reduce - poRecord.save() error', details: e });
+            throw e;
+        }
+
+        const poInfo = search.lookupFields({
+            type: record.Type.PURCHASE_ORDER,
+            id: poId,
+            columns: ['tranid']
+        });
+
+        // const vendorName = poInfo.entity.text;
+        // log.debug({ title: 'reduce - vendorName', details: vendorName });
+        log.debug({ title: 'reduce - poInfo', details: poInfo });
+
+        const poTranId = poInfo.tranid;
+        log.debug({ title: 'reduce - poTranId', details: poTranId });
 
         let out = {
             key: context.key,
             value: {
-                // poRecordId: poId,
+                poRecordId: poId,
+                vendorName: poItemRowsParsed[0][FCJITGenPoLib.Queries.GET_FUTURE_SOS_FOR_JIT_ITEMS.FieldSet1.vendorentityid.label],
+                poTranId: poTranId,
                 poExternalId: context.key,
                 success: true,
                 // sendEmail: sendEmail
@@ -203,17 +249,10 @@ function reduce(context) {
         };
         log.debug({ title: 'reduce - result out 1', details: out });
 
-        let poId = poRecord.save();
-
-        out.value.poRecordId = poId;
-
-        log.debug({ title: 'reduce - result out 2', details: out });
 
 
         // log.debug({ title: 'reduce - result', details: `key: ${context.key}, value: ${context.value}`});
-
         context.write(out);
-
 
     } catch (e) {
         log.error({ title: 'reduce - error', details: { 'context': context, 'error': e } });
@@ -339,6 +378,8 @@ function summarize(context) {
         let thisVal = JSON.parse(value);
         if (thisVal.success) {
             posSucceeded[thisVal.poExternalId] = thisVal;
+
+            // FIX: NOT USING THIS RIGHT NOW. Using separate JIT PO sender assistant
             if (thisVal.sendEmail) {
                 posToEmail.push(thisVal.poRecordId);
             }
@@ -349,6 +390,10 @@ function summarize(context) {
             };
         }
     });
+
+    log.debug({ title: 'summarize - posSucceeded', details: posSucceeded });
+    log.debug({ title: 'summarize - posFailed', details: posFailed });
+
 
     let thisUserRec = runtime.getCurrentUser();
 
@@ -379,8 +424,8 @@ function summarize(context) {
 }
 
 
-function sendTotalFailureEmail (reason) {
-    let emailBody = 
+function sendTotalFailureEmail(reason) {
+    let emailBody =
         `The JIT PO creation process failed to create any POs.
         Reason specified: ${reason ? reason : 'No reason specified.'}`;
 
@@ -410,7 +455,7 @@ function buildProcessSummaryEmail(
 
     if (posSucceededCount > 0) {
         for (const [key, value] of Object.entries(posSucceeded)) {
-            posSucceededList += `<li>Internal ID: ${value.poRecordId}, External ID: ${key}</li>`;
+            posSucceededList += `<li>Vendor: ${value.vendorName}, PO: ${value.poTranId}, Internal ID: ${value.poRecordId}, External ID: ${key}</li>`;
         }
     }
 

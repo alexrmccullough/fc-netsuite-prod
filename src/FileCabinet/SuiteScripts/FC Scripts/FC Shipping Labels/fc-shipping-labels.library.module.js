@@ -187,7 +187,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             Path: './fc-shipping-labels.generate-pdf.template8x11.main.xml',
             // FileId: 27457,    // PROD
             FileId: {
-                Sandbox: 28770,
+                Sandbox: 27457,
                 Prod: 27457,
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
             },
@@ -200,7 +200,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             LabelColsPerPage: 1,
             Path: './fc-shipping-labels.generate-pdf.template2x4zebra.main.xml',
             FileId: {
-                Sandbox: 28769,
+                Sandbox: 27456,
                 Prod: 27456,
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
             },
@@ -212,7 +212,7 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
             Path: './fc-shipping-labels.generate-pdf.template_general.label.xml',
             // FileId: 27455,     // PROD
             FileId: {
-                Sandbox: 28768,
+                Sandbox: 27455,
                 Prod: 27455,
                 GetId: function () { return FCLib.getEnvSpecificFileId(this.Sandbox, this.Prod); },
             },

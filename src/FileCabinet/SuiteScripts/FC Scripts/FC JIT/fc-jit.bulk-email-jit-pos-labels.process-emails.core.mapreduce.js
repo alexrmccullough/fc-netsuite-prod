@@ -14,10 +14,12 @@ var modulePathShipLabelLibrary = '../FC Shipping Labels/fc-shipping-labels.libra
 var
     runtime,
     query,
+    render,
     file,
     FCLib,
     FCJITBulkEmailLib,
     FCJITGenPoLib,
+    FCShipLabelLib,
     dayjs;
 
 
@@ -201,6 +203,7 @@ function reduce(context) {
             let jsonContents = FCLib.getTextFileContents(shippingLabelJsonFileId);
             log.debug({ title: 'reduce - jsonContents', details: jsonContents });
             shippingLabelData = JSON.parse(jsonContents);
+            
             log.debug({ title: 'reduce - shippingLabelData', details: shippingLabelData });
             shippingLabelSearchResults = {
                 data: shippingLabelData
@@ -259,27 +262,38 @@ function reduce(context) {
 
 
         // Build email subject
-        let emailSubject = FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Template;
-        emailSubject = emailSubject.replace(
-            FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Placeholders.PONUMBER,
-            thisPoInfo.displayId
-        ).replace(
-            FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Placeholders.DUEDATE,
-            formattedDueDate
-        );
+        // let emailSubject = FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Template;
+        // emailSubject = emailSubject.replace(
+        //     FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Placeholders.PONUMBER,
+        //     thisPoInfo.displayId
+        // ).replace(
+        //     FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Subject.Placeholders.DUEDATE,
+        //     formattedDueDate
+        // );
 
-        log.debug({ title: 'reduce - emailSubject', details: emailSubject });
+        // log.debug({ title: 'reduce - emailSubject', details: emailSubject });
 
-        // Build email body
-        // FIX: Add detail
-        let emailBody = FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Body.Template;
-        emailBody = emailBody.replace(
-            FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Body.Placeholders.DUEDATE,
-            formattedDueDate
-        );
-        // emailBody = emailBody.replace(JIT_PO_EMAIL_BODY.Placeholders.INSTRUCTIONS, emailInfo.instructions);
-        log.debug({ title: 'reduce - emailBody', details: emailBody });
+        // // Build email body
+        // // FIX: Add detail
+        // let emailBody = FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Body.Template;
+        // emailBody = emailBody.replace(
+        //     FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.Body.Placeholders.DUEDATE,
+        //     formattedDueDate
+        // );
+        // // emailBody = emailBody.replace(JIT_PO_EMAIL_BODY.Placeholders.INSTRUCTIONS, emailInfo.instructions);
+        // log.debug({ title: 'reduce - emailBody', details: emailBody });
 
+
+        // Build email from template
+        const emailTemplateId = FCJITBulkEmailLib.Emails.JIT_PO_EMAIL.NSEmailTemplateId;
+
+        let mergedPoEmail = render.mergeEmail({
+            templateId: emailTemplateId,
+            transactionId: parseInt(poInternalId),
+        });
+
+        let emailSubject = mergedPoEmail.subject;
+        let emailBody = mergedPoEmail.body;
 
         let emailAttachments = [poPdf];
         if (shippingLabelPdf_1) { 
@@ -303,7 +317,7 @@ function reduce(context) {
             subject: emailSubject,
             attachments: emailAttachments,
             relatedRecords: {
-                transactionId: poInternalId,
+                transactionId: parseInt(poInternalId)   ,
                 entityId: thisPoInfo.vendorId
             },
             // replyTo: ,
@@ -369,9 +383,11 @@ function summarize(context) {
         failedPoNames
     );
 
+
+
     let emailSubject = FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Subject.Template;
     emailSubject = emailSubject.replace(
-        FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Subject.Placeholders.TIMESTAMP,
+        FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Subject.Placeholders.TsuMESTAMP,
         dayjs().format('M/D/YYYY h:mm A')
     );
 

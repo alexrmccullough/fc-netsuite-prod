@@ -10,30 +10,33 @@
             <macro id="nlheader">
                 <table class="header" style="width: 100%;">
                     <tr>
-                        <td rowspan="3">
+                        <td rowspan="3" width="25%">
                             <#if companyInformation.logoUrl?length != 0>
                                 <img src="${companyInformation.logoUrl?no_esc}"
                                     style="float: left; margin: 7px" />
                             </#if>
+                        </td>
+                        <td width="25%">
                             <div style="align:right; vertical-align:bottom; font-size: 9pt;">
 
-                                <span class="nameandaddress">${companyInformation.companyName}</span>
+                                <span class="nameandaddress">
+                                    ${companyInformation.companyName?no_esc}</span>
                                 <br />
-                                <span class="nameandaddress">${companyInformation.addressText}</span>
+                                <span class="nameandaddress">
+                                    ${companyInformation.addressText?no_esc}</span>
                             </div>
                         </td>
-                        <td align="right">
+                        <td align="right" width="50%">
                             <span class="title">${record@title}</span>
                         </td>
                     </tr>
                     <tr>
-                        <td align="right">
+                        <td width="25%"></td>
+                        <td align="right" width="50%">
                             <span class="number">#${record.tranid}</span>
                         </td>
                     </tr>
-                    <tr>
-                        <td align="right">${record.trandate}</td>
-                    </tr>
+
                 </table>
             </macro>
             <macro id="nlfooter">
@@ -139,12 +142,24 @@
                 </td>
             </tr>
             <tr>
-                <td class="address" colspan="6" rowspan="2">${record.billaddress}</td>
+                <td class="address" colspan="6" rowspan="2">
+                    <b>${record.billaddress?no_esc}</b>
+                </td>
                 <td align="right" class="totalboxmid" colspan="5">${record.total}</td>
             </tr>
             <tr>
-                <td align="right" class="totalboxbot" colspan="5"><b>${record.duedate@label}:</b>
-                    ${record.duedate}</td>
+                <td colspan="2"
+                    style="font-size: 8pt; background-color: #e3e3e3; font-weight: bold;">READY/DELIV
+                    DATE</td>
+                <td align="right" colspan="3"
+                    style="font-size: 11pt; background-color: #e3e3e3; font-weight: bold;">
+                    <#if record.custbody_fc_vendorduedate?has_content>
+                    ${record.custbody_fc_vendorduedate?string["EEEE, MM/dd/yyyy"]}
+                    <#else>
+                        ${record.duedate?string["EEEE, MM/dd/yyyy"]}
+                    </#if>
+                </td>
+
             </tr>
         </table>
 
@@ -152,7 +167,16 @@
             <table style="width: 65%; margin-top: 10px; align:center;">
                 <tr>
                     <td style="padding: 5px;width:85%;background-color:#D3D3D3;border:1px black;"><strong>
-                        Memo:</strong> ${record.memo}</td>
+                        Memo:</strong> ${record.memo?no_esc}</td>
+                </tr>
+            </table>
+        </#if>
+
+        <#if record.message?has_content>
+            <table style="width: 65%; margin-top: 10px; align:center;">
+                <tr>
+                    <td style="padding: 5px;width:85%;background-color:#D3D3D3;border:1px black;"><strong>
+                        Message:</strong> ${record.message?no_esc}</td>
                 </tr>
             </table>
         </#if>
@@ -185,14 +209,21 @@
                     <tr>
                         <td align="center" colspan="3" line-height="150%">${item.quantity}</td>
                         <#assign itemCt = itemCt + item.quantity>
-                        <#assign itemname = item.item?keep_before(" ")>
-                        <#if item.vendorname?has_content>
-                            <td colspan="12"><span class="itemname">itemname</span><br />
-                                ${item.vendorname}</td>
-                        <#else>
-                            <td colspan="12"><span class="itemname">itemname</span><br />
-                                ${item.displayname}</td>
-                        </#if>
+                        <#assign itemname = item.item?keep_before(" ")?no_esc>
+                        <td colspan="12">
+                            <span class="itemname">${itemname}</span>
+                            <br />
+
+                            <#if item.vendorname?has_content>
+                                ${item.vendorname?no_esc}:
+                            </#if>
+
+                            <#if item.purchaseDescription?has_content>
+                            ${item.purchaseDescription?no_esc}
+                            <#else>
+                                ${item.displayName?no_esc}
+                            </#if>
+                        </td>
 
                         <td align="right" colspan="4">${item.rate}</td>
                         <td align="right" colspan="4">${item.amount}</td>
@@ -202,7 +233,7 @@
                     <td colspan="3">Total Ct: ${itemCt}</td>
                     <td colspan="12"></td>
                     <td colspan="4"></td>
-                    <td colspan=></td>
+                    <td colspan="4"></td>
 
                 </tr>
 

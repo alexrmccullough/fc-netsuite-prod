@@ -182,26 +182,29 @@
 
 	<#assign sectionqtycounter = 0>
 	<#assign grandtotalcounter = 0>
+	<#assign curQuantity = 0>
 
 
 	<body padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
+		<#assign sectionqtycounter = 0>
+		<#assign grandtotalcounter = 0>
 
 		<#list results as result>
 
 		<#if (record_counter> 1)> <#if (result.formulatext_1 != prev_section)>
 				<tr>
 					<td class="sectiontotal_title" colspan="2">Section Total: </td>
-					<td class="sectiontotal_value">${sectionqtycounter}</td>
+					<td class="sectiontotal_value">${sectionqtycounter?no_esc}</td>
 				</tr>
 
 				</table>
 			</#if>
-	<#if (result.formulatext_2 != prev_shipment)>
+			<#if (result.formulatext_2 != prev_shipment)>
 				<table style="width: 100%; margin-top: 0px;">
 					<thead>
 						<tr>
 							<th class="grandtotal_title">GRAND TOTAL:</th>
-							<th class="grandtotal_value">${grandtotalcounter}</th>
+							<th class="grandtotal_value">${grandtotalcounter?no_esc}</th>
 						</tr>
 					</thead>
 				</table>
@@ -209,7 +212,6 @@
 				<pbr></pbr>
 			</#if>
 		</#if>
-
 
 		<#if (result.formulatext_2 != prev_shipment)>
 		<#assign grandtotalcounter = 0>
@@ -221,21 +223,19 @@
 								style="float: left; margin: 7px; height: 75px; width 90px;" />
 						</#if>
 					</td>
-					<td align="left" colspan="3" text-align="right">
+					<td align="left" colspan="3" text-align="left">
 						<span class="doctype">Pickup Ticket</span>
 					</td>
-
 				</tr>
 				<tr>
 					<td align="right" colspan="3" text-align="right">
-						<span class="vendorname">${result.mainname}</span>
+						<span class="vendorname">${result.mainname?no_esc}</span>
 					</td>
 				</tr>
-
 				<tr>
 					<td colspan="2"></td>
 					<td align="right" colspan="3" text-align="right">
-						<span class="duedate">Receive By: ${result.duedate}</span>
+						<span class="duedate">Receive By: ${result.duedate?no_esc}</span>
 					</td>
 				</tr>
 			</table>
@@ -245,7 +245,7 @@
 		<#assign sectionqtycounter = 0>
 			<table class="darkmode" style="width: 100%; margin-top: 10px; margin-bottom: 0px;">
 				<tr>
-					<td style="width: 15%; font-weight: 700">${result.formulatext_3}</td>
+					<td style="width: 15%; font-weight: 700">${result.formulatext_3?no_esc}</td>
 				</tr>
 			</table>
 			<table class="itemtable" style="width: 100%; margin-top: 0px;">
@@ -260,15 +260,25 @@
 
 
 		<tr>
-			<td class="quantity">${result.quantity}</td>
-			<td class="iteminfo"><span class="itemname">${result.itemid}</span><br />
-				${result.displayname}</td>
+
+			<td class="quantity">
+				<#if result.custcol_fc_anticipated_short?has_content>
+					<#assign curQuantity = result.quantity - result.custcol_fc_anticipated_short>
+					~${curQuantity}
+				<#else>
+					<#assign curQuantity = result.quantity>
+					${curQuantity}
+				</#if>
+				
+			</td>
+			<td class="iteminfo"><span class="itemname">${result.itemid?no_esc}</span><br />
+				${result.displayname?no_esc}</td>
 			<td class="podetails">${result.formulahtml?no_esc}</td>
 		</tr>
 
 
-		<#assign sectionqtycounter = sectionqtycounter + result.quantity>
-		<#assign grandtotalcounter = grandtotalcounter + result.quantity>
+		<#assign sectionqtycounter = sectionqtycounter + curQuantity>
+		<#assign grandtotalcounter = grandtotalcounter + curQuantity>
 
 		<#assign prev_section = result.formulatext_1>
 		<#assign prev_shipment = result.formulatext_2>

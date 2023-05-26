@@ -43,6 +43,7 @@
       <object>customsearch_fc_shippinglabel_mainstatic</object>
       <object>customrecord_filing_authorization</object>
       <object>customrecord_ecsl_audit_trail_hdr</object>
+      <object>customsearch_fc_delivery_tickets_conso_2</object>
       <object>customrecord_rd_route_shipment_record</object>
       <object>customrecord_tax_return_setup_item</object>
       <object>customrecord_rd_route_address_location</object>
