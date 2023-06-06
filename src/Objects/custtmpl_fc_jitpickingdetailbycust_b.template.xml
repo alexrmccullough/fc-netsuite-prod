@@ -207,7 +207,7 @@
 	< startDate )>
 	<#assign startDate = result.formuladate>
 	</#if>
-	<#if (result.formuladate_1?has_content) && (result.formuladate_1> endDate)> <#assign startDate = result.formuladate_1>
+	<#if (result.formuladate_1?has_content) && (result.formuladate_1 > endDate)> <#assign endDate = result.formuladate_1>
 		</#if>
 	</#list>
 
@@ -272,10 +272,12 @@
 					</td>
 				</tr>
 				<tr>
+					<#if 1 == 0>
 					<td align="right" colspan="4">
 						<span class="po_duedate_header">Receive By: </span>
 						<span class="po_duedate">${result.formulatext_4}</span>
 					</td>
+					</#if>
 				</tr>
 			</table>
 		</#if>

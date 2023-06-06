@@ -374,7 +374,7 @@ function summarize(context) {
     let posFailed = {};
     let posToEmail = [];
 
-    context.output.iterator().each(function (key, value) {
+    context.output.iterator().each(function (value) {
         let thisVal = JSON.parse(value);
         if (thisVal.success) {
             posSucceeded[thisVal.poExternalId] = thisVal;

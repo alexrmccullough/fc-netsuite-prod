@@ -155,7 +155,7 @@
                     style="font-size: 11pt; background-color: #e3e3e3; font-weight: bold;">
                     <#if record.custbody_fc_vendorduedate?has_content>
                     ${record.custbody_fc_vendorduedate?string["EEEE, MM/dd/yyyy"]}
-                    <#else>
+                    <#elseif record.duedate?has_content>
                         ${record.duedate?string["EEEE, MM/dd/yyyy"]}
                     </#if>
                 </td>

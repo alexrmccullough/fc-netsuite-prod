@@ -1,0 +1,41 @@
+/**
+ * NOTES:
+ *   
+ *  General structure
+ *    - Based in Advanced PDF template that pulls from multiple datasets: invoice data, delivery ticket search data
+ *        How do I loop over both sets of data at once while maintaining pdfset? 
+ *          pdfset
+ *             while (customer/date is the same in invoices)
+ *                 print one invoice with a page break 
+ *             while (customer/date is the same as invoice customer/date and same as previous in delivery ticket search)
+ *                 print delivery ticket
+ *                 keep index for next loop
+ * 
+ * 
+ *    - Scripting part based in querying, organizing, and cleaning the datasets to be passed as one step to renderer
+ *         - Query on sales orders. Include
+ *              route
+ *              stop order
+ *              attached invoices (ids)
+ *              customer
+ *              ship date
+ *              qty
+ *              amount
+ * 
+ *              sort in order: customer/date
+ 
+ * 
+ *         - Run Delivery Ticket search using filters
+ *             filters:
+ *                  invoice ids (from main query)
+ *             sort in order: customer/date
+ * 
+ * 
+ * 
+ * 
+ * 
+ *              
+ * 
+ * 
+ * 
+ */

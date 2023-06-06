@@ -205,8 +205,6 @@
 	</body>
 </pdf>
 
-<#macro 
-
 
 <#macro applyTable check>
 

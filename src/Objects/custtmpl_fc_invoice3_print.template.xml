@@ -248,12 +248,7 @@
         </#if>
         <table class="total" style="width: 100%; margin-top: 10px;">
             <tr height="24pt">
-                <td background-color="#ffffff" colspan="2" height="24pt" width="150px">
-                    <@filecabinet nstype="image" alt="" style="width: 150px; height: 35px;" src="${companyInformation.appDomain}/core/media/media.nl?id=54050&c=6668932&h=6tV-ft1tZwrIJyHTBkA45OVtEIcMS1gQLYoDlvyIrc1cUgcG"  href="https://checkout.paystand.com/v4/?publishableKey=2l0z7g27hh6ni7bzqrjnbohg&amp;viewCheckout=portal-medium&amp;module=ns_invoice&amp;extInvoiceId=${record.id}&amp;externalCss=https%3A%2F%2F6668932.app.netsuite.com%2Fcore%2Fmedia%2Fmedia.nl%3Fid%3D17347%26c%3D6668932%26h%3DREk-2IDwWjZuar1R26yP40lRw7H9dX3PJfr8CS-yz0B2moVd%26_xt%3D.css&amp;logoUrl=https%3A%2F%2F6668932.app.netsuite.com%2Fcore%2Fmedia%2Fmedia.nl%3Fid%3D17345%26c%3D6668932%26h%3DZ8jlOtosRaabQtPp9uOMqSyAu1BM8K1CzUCpagSg2wVUWeZo&amp;drawerType=open" target="_blank"/>
-                </td>
-                <td background-color="#ffffff" colspan="2" height="24pt" align="left">
-                    <@filecabinet nstype="image" alt="" style="width: 205px; height: 35px;" src="${companyInformation.appDomain}/core/media/media.nl?id=54049&c=6668932&h=h3-EgwUgbqe04-S1j_LSgl4i7g83fUYpTqVcWXPqTO5xQEc7" href="https://checkout.paystand.com/v4/?publishableKey=2l0z7g27hh6ni7bzqrjnbohg&amp;viewCheckout=portal-medium&amp;module=ns_tokenize&amp;extCustomerId=${record.companyid}&amp;externalCss=https%3A%2F%2F6668932.app.netsuite.com%2Fcore%2Fmedia%2Fmedia.nl%3Fid%3D17347%26c%3D6668932%26h%3DREk-2IDwWjZuar1R26yP40lRw7H9dX3PJfr8CS-yz0B2moVd%26_xt%3D.css&amp;logoUrl=https%3A%2F%2F6668932.app.netsuite.com%2Fcore%2Fmedia%2Fmedia.nl%3Fid%3D17345%26c%3D6668932%26h%3DZ8jlOtosRaabQtPp9uOMqSyAu1BM8K1CzUCpagSg2wVUWeZo&amp;drawerType=open" target="_blank"/>
-                </td>
+                <td colspan="4">&nbsp;</td>
                 <td align="right" vertical-align="bottom" width="20%">
                     <b>${record.subtotal@label}</b>
                 </td>

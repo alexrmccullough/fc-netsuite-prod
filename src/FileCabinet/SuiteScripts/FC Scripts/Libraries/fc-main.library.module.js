@@ -722,7 +722,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     }
     exports.addDaysToDate = addDaysToDate;
 
-    
+
     function convertCSVStringToHTMLTableStylized({
         csvString = '',
         headerBGColor = '#009879',
@@ -782,11 +782,8 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.generateRandomNumberXDigits = generateRandomNumberXDigits;
 
     function getStandardDateString1(date = new Date()) {
-        let dateObj = new Date(date);
-        let year = dateObj.getFullYear();
-        let month = dateObj.getMonth() + 1;
-        let day = dateObj.getDate();
-        return `${year}${month}${day}`;
+        let dateObj = dayjs(date);
+        return dateObj.format('YYMMDD');
     }
     exports.getStandardDateString1 = getStandardDateString1;
 
@@ -823,7 +820,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.generateTimestampedFilename = generateTimestampedFilename;
 
 
-    function runSearch(savedSearchId, filters = []) {
+    function runSearch(savedSearchId, filters = [] ) {
         let searchObj = search.load({
             id: savedSearchId
         });
@@ -898,6 +895,62 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         };
     }
     exports.runSearch = runSearch;
+
+    // NOT IN USE
+    function reSortSearchByNewColumn(mySearch, newSortColumns) {
+        // Manually copy the search.
+        //    While we're copying it, clear any existing sort settings and ensure that the targeted column has a sort setting
+        //    added to it. 
+        let oldColumns = mySearch.columns;
+        let type = mySearch.searchType;
+        let filters = mySearch.filters;
+
+        log.debug({ title: 'reSortSearchByExistingColumn - mySearch', details: mySearch });
+        log.debug({ title: 'reSortSearchByExistingColumn - columns', details: oldColumns });
+        log.debug({ title: 'reSortSearchByExistingColumn - type', details: type });
+        log.debug({ title: 'reSortSearchByExistingColumn - filters', details: filters });
+
+        let newColumns = [];
+        
+
+        for (let oldColumn of oldColumns) {
+            let oldName = oldColumn.name;
+            let oldJoin = oldColumn.join;
+            let oldFormula = oldColumn.formula;
+            let oldFunction = oldColumn.function;
+            let oldSummary = oldColumn.summary;
+            // let oldSort = oldColumn.sort;
+            let newColumn = search.createColumn({
+                name: oldName,
+                join: oldJoin,
+                formula: oldFormula,
+                function: oldFunction,
+                summary: oldSummary,
+            });
+
+            newColumns.push(newColumn);
+        }
+
+        for (let newSortColumn of newSortColumns) {
+            newColumns.push(newSortColumn);
+        }
+
+
+
+        log.debug({title: 'newSortColumns: ', details: newSortColumns});
+        log.debug({title: 'newColumns', details: newColumns});
+
+
+        let newSearch = search.create({
+            type: type,
+            filters: filters,
+            columns: newColumns,
+        });
+
+        return newSearch;
+
+    }
+    exports.reSortSearchByNewColumn = reSortSearchByNewColumn;
 
 
     function addPersistentParamsField(assistant, params) {

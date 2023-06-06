@@ -1,0 +1,9 @@
+<advancedpdftemplate scriptid="custtmpl_fc_invoice3_digital" standard="STDTMPLEMPTY">
+  <description></description>
+  <displaysourcecode>T</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>TRANSACTION</printtype>
+  <title>FH AM | Invoice 3 DIGITAL</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

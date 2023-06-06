@@ -1,13 +1,16 @@
 var FCLib;
 var FCClientLib;
+var search;
 
 
 define([
+    'N/search',
     '../Libraries/fc-main.library.module',
     '../Libraries/fc-client.library.module',
 ], main);
 
-function main(fcLibModule, fcClientLibModule) {
+function main(searchModule, fcLibModule, fcClientLibModule) {
+    search = searchModule;
     FCLib = fcLibModule;
     FCClientLib = fcClientLibModule;
 
@@ -199,6 +202,14 @@ function main(fcLibModule, fcClientLibModule) {
                 },
             },
         },
+
+        // SearchParameters: {
+        //     SHIPPING_LABEL_SORT_COLUMN: search.createColumn({
+        //         name: 'formulatext',
+        //         formula: `{item.custitem_fc_brand} || '_' || {item.displayname} || '_' || {name}`,
+        //         sort: search.Sort.ASC,
+        //     }),
+        // },
     };
 
     var Ids = {
@@ -217,6 +228,9 @@ function main(fcLibModule, fcClientLibModule) {
         CSVImportMappings: {
             JIT_PO_IMPORT_ASSISTANT_CSVIMPORT: -1
         },
+        Searches: {
+            VENDOR_LABEL_SEARCH_ID: 'customsearch_fc_shippinglabel_jitvends',
+        }
     };
     exports.Ids = Ids;
 

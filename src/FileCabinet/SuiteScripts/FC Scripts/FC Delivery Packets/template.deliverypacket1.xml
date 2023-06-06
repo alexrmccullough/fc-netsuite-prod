@@ -1,0 +1,291 @@
+<#ftl output_format="XML" auto_esc=true>
+<?xml version="1.0"?>
+<!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+
+<pdfset>
+
+    <#list data.shipments as shipment>
+        <pdf>
+            <head>
+                <macrolist>
+                </macrolist>
+                <style type="text/css">* {
+                    }
+                    body{
+                    font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+                    }
+                    table {
+                    font-size: 9pt;
+                    table-layout: fixed;
+                    }
+
+                    .darkmode {
+                    background-color: black;
+                    color: white;
+                    }
+
+                    p {
+                    }
+
+                    th {
+                    font-weight: bold;
+                    font-size: 8pt;
+                    vertical-align: middle;
+                    padding: 5px 6px 3px;
+                    background-color: #e3e3e3;
+                    color: #333333;
+                    }
+                    td {
+                    padding: 4px 6px;
+                    border: 0px;
+                    }
+                    td p { align:left }
+                    b {
+                    font-weight: bold;
+                    color: #333333;
+                    }
+
+
+                    table.body td {
+                    padding-top: 2px;
+                    }
+
+                    table.header td {
+                    padding: 0;
+                    font-size: 10pt;
+                    }
+                    table.footer td {
+                    padding: 0;
+                    font-size: 8pt;
+                    }
+
+
+                    table.itemtable th {
+                    padding-bottom: 10px;
+                    padding-top: 10px;
+                    }
+
+                    table.itemtable tr {
+                    border-bottom: 1px solid #333333;
+                    }
+
+                    table.itemtable th.quantity {
+                    width: 10%;
+                    }
+
+                    table.itemtable th.iteminfo {
+                    width: 70%;
+                    }
+
+                    table.itemtable th.invdetails {
+                    width: 20%;
+                    align: right;
+                    }
+
+                    table.itemtable td.quantity {
+                    align: right;
+                    vertical-align:middle;
+                    font-weight: bold;
+                    font-size: 11pt;
+                    width: 10%;
+                    }
+
+                    table.itemtable td.iteminfo {
+                    align: left;
+                    vertical-align:middle;
+                    width: 70%;
+                    }
+
+                    table.itemtable td.invdetails {
+                    align: right;
+                    vertical-align:middle;
+                    width: 20%;
+                    }
+
+                    td.addressheader {
+                    font-size: 8pt;
+                    padding-top: 6px;
+                    padding-bottom: 2px;
+                    }
+                    td.address {
+                    padding-top: 0;
+                    }
+
+                    td.sectiontotal_title {
+                    font-weight: 500;
+                    font-size: 13pt;
+                    width: 80%;
+                    align: right;
+                    text-align: right;
+
+                    }
+
+                    td.sectiontotal_value {
+                    font-weight: 500;
+                    font-size: 13pt;
+                    align:left;
+                    text-align: left;
+                    }
+
+                    th.grandtotal_title {
+                    font-weight: 500;
+                    font-size: 18pt;
+                    width: 80%;
+                    align: right;
+                    text-align: right;
+                    }
+
+                    th.grandtotal_value {
+                    font-weight: 500;
+                    font-size: 18pt;
+                    align:left;
+                    text-align: left;
+                    }
+
+                    span.doctype {
+                    font-size: 28pt;
+                    align: left;
+                    text-align: left;
+                    font-weight:500;
+                    }
+
+                    span.customername {
+                    font-size: 20pt;
+                    align: right;
+                    text-align: right;
+                    }
+                    span.routename {
+                    font-size: 18pt;
+                    align: right;
+                    text-align: right;
+                    }
+                    span.shipdate {
+                    font-size: 18pt;
+                    align: right;
+                    text-align: right;
+                    }
+                    span.number {
+                    font-size: 16pt;
+                    }
+                    span.itemname {
+                    font-weight: bold;
+                    line-height: 150%;
+                    }
+                    hr {
+                    width: 100%;
+                    color: #d3d3d3;
+                    background-color: #d3d3d3;
+                    height: 1px;
+                    }
+                </style>
+            </head>
+
+
+            <body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt"
+                padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
+                <#assign last_sectionid = ''>
+
+                <#assign sectionqtycounter = 0>
+                <#assign grandtotalcounter = 0>
+
+                <table class="header" style="width: 100%;">
+                    <tr>
+                        <td rowspan="2" colspan="2">
+                            <#if data.logoUrl?length != 0>
+                                <img src="${data.logoUrl}"
+                                    style="float: left; margin: 7px; height: 75px; width 90px;" />
+                            </#if>
+                        </td>
+                        <td align="right" colspan="3" text-align="right">
+                            <span class="doctype">Delivery Ticket</span>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td align="right" colspan="3" text-align="right">
+                            <span class="customername">${shipment.customername}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"></td>
+                        <td align="right" colspan="3" text-align="right">
+                            <span class="routename">${shipment.routename}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"></td>
+                        <td align="right" colspan="3" text-align="right">
+                            <span class="shipdate">${shipment.shipdate}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="padding-top:6px; font-weight: bold;">Ship To:
+                            ${shipment.shipaddress}</td>
+                    </tr>
+                </table>
+
+                <#list data.shipmentLines?filter(line -> (line.uniqueshipmentid == shipment.uniqueshipmentid)) as shipmentLine>
+                <#if (shipmentLine.ticketsection != last_sectionid)>
+                <#assign last_sectionid = shipmentLine.ticketsection>
+                <#assign sectionqtycounter = 0>
+                    <table class="darkmode"
+                        style="width: 100%; margin-top: 10px; margin-bottom: 0px;">
+                        <tr>
+                            <td style="width: 15%; font-weight: 700">${shipmentLine.frozen} </td>
+                        </tr>
+                    </table>
+                    <table class="itemtable" style="width: 100%; margin-top: 0px;">
+                    <thead>
+                        <tr>
+                            <th class="quantity">Quantity</th>
+                            <th class="iteminfo">Item Name</th>
+                            <th class="sodetails">Inv Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                </#if>
+
+                <tr>
+                    <td class="quantity">${shipmentLine.quantitydelivered?number}</td>
+                    <td class="iteminfo"><span class="itemname">${shipmentLine.itemname}</span><br />
+                        ${shipmentLine.displayname}</td>
+                    <td class="sodetails">${shipmentLine.invoice_nums}</td>
+                </tr>
+
+                <#assign sectionqtycounter += shipmentLine.quantitydelivered?number>
+                <#assign grandtotalcounter += shipmentLine.quantitydelivered?number>
+
+
+                    <#if (shipmentLine?is_last) || (shipmentLine.next_ticketsection != shipmentLine.ticketsection)>
+                        <tr>
+                            <td class="sectiontotal_title" colspan="2">Section Total: </td>
+                            <td class="sectiontotal_value">${sectionqtycounter}</td>
+                        </tr>
+                        </tbody>
+                        </table>
+                    </#if>
+
+                </#list>
+
+                <table style="width: 100%; margin-top: 0px;">
+                    <thead>
+                        <tr>
+                            <th class="grandtotal_title">GRAND TOTAL: </th>
+                            <th class="grandtotal_value">${grandtotalcounter}</th>
+                        </tr>
+                    </thead>
+                </table>
+
+            </body>
+        </pdf>
+        <pdf>
+            <head>
+            </head>
+            <body>
+                <p>test</p>
+            </body>
+        </pdf>
+    </#list>
+
+</pdfset>

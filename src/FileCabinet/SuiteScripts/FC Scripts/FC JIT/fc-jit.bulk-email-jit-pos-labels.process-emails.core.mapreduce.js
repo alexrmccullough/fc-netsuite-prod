@@ -203,7 +203,7 @@ function reduce(context) {
             let jsonContents = FCLib.getTextFileContents(shippingLabelJsonFileId);
             log.debug({ title: 'reduce - jsonContents', details: jsonContents });
             shippingLabelData = JSON.parse(jsonContents);
-            
+
             log.debug({ title: 'reduce - shippingLabelData', details: shippingLabelData });
             shippingLabelSearchResults = {
                 data: shippingLabelData
@@ -361,7 +361,7 @@ function summarize(context) {
     var posSuccessful = [];
     var posFailed = [];
 
-    context.output.iterator().each(function (key, value) {
+    context.output.iterator().each(function (value) {
         let thisPo = JSON.parse(value);
         if (thisPo.success === true) { posSuccessful.push(thisPo); }
         else { posFailed.push(thisPo); }
@@ -387,7 +387,7 @@ function summarize(context) {
 
     let emailSubject = FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Subject.Template;
     emailSubject = emailSubject.replace(
-        FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Subject.Placeholders.TsuMESTAMP,
+        FCJITBulkEmailLib.Emails.SUMMARIZE_EMAIL.Subject.Placeholders.TIMESTAMP,
         dayjs().format('M/D/YYYY h:mm A')
     );
 

@@ -168,7 +168,8 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                         fieldId: 'temp.curlotqty',
                         outputLabel: 'Current Lot Qty',
                     },
-                }
+                },
+
             }
         },
         Urls: {
@@ -433,8 +434,6 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
                     Resources.ShipToWidthHtml :
                     '';
 
-
-
                 for (let i = 1; i <= lineLabelCount; i++) {  // individual label
                     labelCounter += 1;
                     let thisLabelQty = Math.min(quantityRemaining, qtyPerLabel);
@@ -602,11 +601,13 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
 
 
     function runLotNumberedShippingLabelSearch({
+        searchId = exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Id,
         soShipStartDate = null,
         soShipEndDate = null,
         vendorInternalIds = [],            // Preferred vendor / primary vendor -- need to add this to search? 
         customerInternalIds = [],
         itemIsJit = null,
+        // customSortByColumns = [],
     } = {}) {
 
         // Validate parameters
@@ -690,8 +691,9 @@ function main(queryModule, taskModule, runtimeModule, emailModule, searchModule,
 
         // Run search on date filter
         let searchResultsRaw = FCLib.runSearch(
-            exports.Searches.SHIPPING_LABEL_SS_MAIN_IDS.Id,
-            filters
+            searchId,
+            filters,
+            // customSortByColumns
         );
 
         // If the search results are empty, return an empty results obj

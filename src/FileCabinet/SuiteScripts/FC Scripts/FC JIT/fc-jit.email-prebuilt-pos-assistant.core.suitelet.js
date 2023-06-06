@@ -289,17 +289,20 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         // Run query/search for labels, filtered by JIT items only
         // FIX: Can we combine this savedsearch into the above query?
         let soShipLabelSearchFilters = {
+            searchId: ThisAppLib.Ids.Searches.VENDOR_LABEL_SEARCH_ID,
             vendorInternalIds: Object.values(vendorInfo),
             itemIsJit: true,
             soShipStartDate: params[ThisAppLib.Settings.Ui.Step1.Parameters.CAPTURE_SOS_START_DATE_ID],
             soShipEndDate: params[ThisAppLib.Settings.Ui.Step1.Parameters.CAPTURE_SOS_END_DATE_ID],
+            // customSortByColumns: [
+            //     ThisAppLib.SearchParameters.SHIPPING_LABEL_SORT_COLUMN,
+            // ],
         };
 
         let soShipLabelSearchResults = FCShipLabelLib.runLotNumberedShippingLabelSearch(soShipLabelSearchFilters);
         debugHtml += `<pre>searchResults: ${JSON.stringify(soShipLabelSearchResults)}</pre><br><br>`;
 
         // FIX: Add check here for empty search results? 
-
 
         // FIX / Challenge: If we don't assume that there is a strict 1-1 relationship between item and vendor, 
         //   then how do we display a summary of the PO item quantities against label item quantities?

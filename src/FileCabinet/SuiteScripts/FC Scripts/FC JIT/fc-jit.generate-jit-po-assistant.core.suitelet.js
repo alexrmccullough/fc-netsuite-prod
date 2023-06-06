@@ -482,14 +482,10 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
             ]
         );
 
-
-
-        let preformattedPODeliveryDate_1 = FCLib.getStandardDateString1(
+        // Create a lot number for these JIT POs. Lot number is based on PO delivery date
+        let lotPrefix = ThisAppLib.Settings.PurchaseOrder.GENERATE_LOT_NUMBER(
             persistentParams[ThisAppLib.Ui.Step1.Parameters.CAPTURE_PO_DELIVERY_DUE_DATE_ID]
         );
-
-        // Create a lot number for these JIT POs. Lot number is based on PO delivery date
-        let lotPrefix = ThisAppLib.Settings.PurchaseOrder.GENERATE_LOT_NUMBER(preformattedPODeliveryDate_1);
         let lotNumber = getNextAvailableLotNumber(lotPrefix);
         let poSequenceCounter = 1;
 
@@ -500,10 +496,10 @@ function main(fileModule, logModule, queryModule, runtimeModule, serverWidgetMod
         //        Vendor
         //    Rejected POs/items
         //        Vendor   
-        for (let vendorId in finalItemQuantities) {
+        for (let vendorId in finalItemQuantities) { 
             let poExternalId = generatePOExternalId({
                 vendorId: vendorId,
-                preformattedDate: preformattedPODeliveryDate_1,
+                // preformattedDate: preformattedPODeliveryDate_1,
             });
 
             for (let itemId in finalItemQuantities[vendorId]) {

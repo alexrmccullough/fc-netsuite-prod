@@ -1,0 +1,290 @@
+<#ftl output_format="XML">
+<?xml version="1.0"?>
+<!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
+<#assign last_shipment = ''>
+
+<pdfset>
+    <#list shipments as shipment>
+
+    <pdf>
+        <head>
+            <macrolist>
+            </macrolist>
+            <style type="text/css">* {
+                }
+                body{
+                font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+                }
+                table {
+                font-size: 9pt;
+                table-layout: fixed;
+                }
+
+                .darkmode {
+                background-color: black;
+                color: white;
+                }
+
+                p {
+                }
+
+                th {
+                font-weight: bold;
+                font-size: 8pt;
+                vertical-align: middle;
+                padding: 5px 6px 3px;
+                background-color: #e3e3e3;
+                color: #333333;
+                }
+                td {
+                padding: 4px 6px;
+                border: 0px;
+                }
+                td p { align:left }
+                b {
+                font-weight: bold;
+                color: #333333;
+                }
+
+
+                table.body td {
+                padding-top: 2px;
+                }
+
+                table.header td {
+                padding: 0;
+                font-size: 10pt;
+                }
+                table.footer td {
+                padding: 0;
+                font-size: 8pt;
+                }
+
+
+                table.itemtable th {
+                padding-bottom: 10px;
+                padding-top: 10px;
+                }
+
+                table.itemtable tr {
+                border-bottom: 1px solid #333333;
+                }
+
+                table.itemtable th.quantity {
+                width: 10%;
+                }
+
+                table.itemtable th.iteminfo {
+                width: 70%;
+                }
+
+                table.itemtable th.sodetails {
+                width: 20%;
+                align: right;
+                }
+
+                table.itemtable td.quantity {
+                align: right;
+                vertical-align:middle;
+                font-weight: bold;
+                font-size: 11pt;
+                width: 10%;
+                }
+
+                table.itemtable td.iteminfo {
+                align: left;
+                vertical-align:middle;
+                width: 70%;
+                }
+
+                table.itemtable td.sodetails {
+                align: right;
+                vertical-align:middle;
+                width: 20%;
+                }
+
+                td.addressheader {
+                font-size: 8pt;
+                padding-top: 6px;
+                padding-bottom: 2px;
+                }
+                td.address {
+                padding-top: 0;
+                }
+
+                td.sectiontotal_title {
+                font-weight: 500;
+                font-size: 13pt;
+                width: 80%;
+                align: right;
+                text-align: right;
+
+                }
+
+                td.sectiontotal_value {
+                font-weight: 500;
+                font-size: 13pt;
+                align:left;
+                text-align: left;
+                }
+
+                th.grandtotal_title {
+                font-weight: 500;
+                font-size: 18pt;
+                width: 80%;
+                align: right;
+                text-align: right;
+                }
+
+                th.grandtotal_value {
+                font-weight: 500;
+                font-size: 18pt;
+                align:left;
+                text-align: left;
+                }
+
+                span.doctype {
+                font-size: 28pt;
+                align: left;
+                text-align: left;
+                font-weight:500;
+                }
+
+                span.customername {
+                font-size: 20pt;
+                align: right;
+                text-align: right;
+                }
+                span.routename {
+                font-size: 18pt;
+                align: right;
+                text-align: right;
+                }
+                span.shipdate {
+                font-size: 18pt;
+                align: right;
+                text-align: right;
+                }
+                span.number {
+                font-size: 16pt;
+                }
+                span.itemname {
+                font-weight: bold;
+                line-height: 150%;
+                }
+                hr {
+                width: 100%;
+                color: #d3d3d3;
+                background-color: #d3d3d3;
+                height: 1px;
+                }
+            </style>
+        </head>
+
+
+
+        <body header="nlheader" header-height="10%" footer="nlfooter" footer-height="20pt"
+            padding="0.5in 0.5in 0.5in 0.5in" size="Letter">
+
+
+            <#assign last_sectionid = ''>
+            <#assign record_counter = >
+
+            <#assign sectionqtycounter = 0>
+            <#assign grandtotalcounter = 0>
+
+
+                <table class="header" style="width: 100%;">
+                    <tr>
+                        <td rowspan="2" colspan="2">
+                            <#if companyInformation.logoUrl?length != 0>
+                                <img src="${companyInformation.logoUrl?no_esc}"
+                                    style="float: left; margin: 7px; height: 75px; width 90px;" />
+                            </#if>
+                        </td>
+                        <td align="left" colspan="3" text-align="left">
+                            <span class="doctype">Shipping Ticket</span>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td align="right" colspan="3" text-align="right">
+                            <span class="customername">${shipment.entity?no_esc}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"></td>
+                        <td align="right" colspan="3" text-align="right">
+                            <span class="routename">${shipment.routename?no_esc}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"></td>
+                        <td align="right" colspan="3" text-align="right">
+                            <span class="shipdate">${shipment.shipdate}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="padding-top:6px; font-weight: bold;">Ship To:
+                            ${shipment.shipaddress?no_esc}</td>
+                    </tr>
+                </table>            
+
+            <#list shipmentLines?filter(line -> (line.uniqueshipment == shipment)) as shipmentLine>
+                <#if (shipmentLine.ticketsection != last_sectionid)>
+                    <#assign last_sectionid = shipmentLine.ticketsection>
+                    <#assign sectionqtycounter = 0>
+                    <table class="darkmode" style="width: 100%; margin-top: 10px; margin-bottom: 0px;">
+                        <tr>
+                            <td style="width: 15%; font-weight: 700">${shipmentLine.frozen} </td>
+                        </tr>
+                    </table>
+                    <table class="itemtable" style="width: 100%; margin-top: 0px;">
+                    <thead>
+                        <tr>
+                            <th class="quantity">Quantity</th>
+                            <th class="iteminfo">Item Name</th>
+                            <th class="sodetails">SO Detail</th>
+                        </tr>
+                    </thead>
+                    
+                </#if>
+
+                
+                <tr>
+                    <td class="quantity">${shipmentLine.quantity}</td>
+                    <td class="iteminfo"><span class="itemname">${shipmentLine.itemname?no_esc}</span><br />
+                        ${shipmentLine.displayname?no_esc}</td>
+                    <td class="sodetails">${shipmentLine.so_nums?no_esc}</td>
+                </tr>
+                <#assign sectionqtycounter = sectionqtycounter + shipmentLine.quantity>
+                <#assign grandtotalcounter = grandtotalcounter + shipmentLine.quantity>
+
+
+                <#if shipmentLine.next_ticketsection != ticketsection>
+                     <tr>
+                        <td class="sectiontotal_title" colspan="2">Section Total: </td>
+                        <td class="sectiontotal_value">${sectionqtycounter}</td>
+                    </tr>
+
+                    </table>                   
+                </#if>
+
+
+                <#assign last_sectionid = shipmentLine.ticketsection>
+                <#assign last_shipmentid = shipmentLine.uniqueshipment>
+                <#assign record_counter++>
+            </#list>
+
+            <table style="width: 100%; margin-top: 0px;">
+                <thead>
+                    <tr>
+                        <th class="grandtotal_title">GRAND TOTAL: </th>
+                        <th class="grandtotal_value">${grandtotalcounter}</th>
+                    </tr>
+                </thead>
+            </table>
+
+        </body>
+    </pdf>
+</pdfset>
