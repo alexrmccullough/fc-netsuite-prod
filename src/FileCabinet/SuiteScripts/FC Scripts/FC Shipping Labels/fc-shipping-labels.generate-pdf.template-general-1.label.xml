@@ -20,7 +20,7 @@
         </div>
         
         <div class="route-title textpadding2pc">
-            <p>Route:</p> 
+            <p>Route:</p>
         </div>
         <div class="route-value textpadding2pc">
             <p><!--@@ROUTENAME@@--></p>
@@ -37,7 +37,7 @@
         </div>
 
         <div class="orderid-title textpadding2pc">
-            <p>Order:</p> 
+            <p>SO:</p> 
         </div>
         <div class="orderid-value textpadding2pc">
             <p><!--@@ORDERID@@--></p>

@@ -72,7 +72,8 @@ function main(logModule,  taskModule, fcLibModule, fcClientLibModule) {
                         Item.custitem_fc_zen_sft_comm_qty AS itemstandingjitqty,
                         Item.custitem_fc_am_jit_start_qty AS itemstartjitqty,
                         Item.custitem_fc_am_jit_remaining AS itemremainjitqty,
-                        Item.custitem_fc_zen_jit_producers AS itemjitproducers,		
+                        Item.custitem_fc_zen_jit_producers AS itemjitproducers,
+                        Item.isonline AS display_in_webstore	
                     FROM
                         Item
                     WHERE
@@ -195,71 +196,70 @@ function main(logModule,  taskModule, fcLibModule, fcClientLibModule) {
             },
             GET_JIT_VENDORS_WITHOUT_SUCCESS_CSV_ITEMS: {
                 Query: `
- 
-                                    WITH ExcludeVendors AS (
-                                        SELECT Vendor.id AS vendorinternalid
-                                        FROM Item
-                                            LEFT JOIN ItemVendor ON Item.id = ItemVendor.item
-                                            LEFT JOIN Vendor ON ItemVendor.vendor = Vendor.id
-                                        @@VENDOR_FILTER_LINE@@
-                                    ),
-                                    T AS (
-                                        SELECT ItemVendor.vendor as vendorid,
-                                            Vendor.companyname as vendorname,
-                                            COUNT(Item.id) AS jititemcount,
-                                            CASE
-                                                WHEN SUM(
-                                                    CASE
-                                                        WHEN Item.custitem_fc_am_jit_remaining > 0 THEN 1
-                                                        ELSE 0
-                                                    END
-                                                ) > 0 THEN 'Yes'
-                                                ELSE 'No'
-                                            END AS hasitemsjitremaining,
-                                            SUM(
-                                                CASE
-                                                    WHEN Item.custitem_fc_am_jit_remaining > 0 THEN 1
-                                                    ELSE 0
-                                                END
-                                            ) AS countitemswithjitremaining,
-                                            SUM(
-                                                CASE
-                                                    WHEN Item.custitem_fc_zen_sft_comm_qty > 0 THEN 1
-                                                    ELSE 0
-                                                END
-                                            ) AS countitemswithstandingjit,
-                                            CASE
-                                                WHEN SUM(
-                                                    CASE
-                                                        WHEN Item.custitem_fc_zen_sft_comm_qty > 0 THEN 1
-                                                        ELSE 0
-                                                    END
-                                                ) > 0 THEN 'T'
-                                                ELSE ''
-                                            END AS hasstandingjit
-                                        FROM Item
-                                            LEFT JOIN ItemVendor ON Item.id = ItemVendor.item
-                                            LEFT JOIN Vendor ON ItemVendor.vendor = Vendor.id
-                                        WHERE ItemVendor.preferredVendor = 'T'
-                                            AND Item.custitem_soft_comit = 'T'
-                                            AND Vendor.id NOT IN (
-                                                SELECT vendorinternalid
-                                                FROM ExcludeVendors
-                                            )
-                                        GROUP BY ItemVendor.vendor,
-                                            Vendor.companyname
-                                    )
-                                    SELECT T.vendorid AS vendorinternalid,
-                                        T.vendorname AS vendorname,
-                                        T.jititemcount AS jititemcount,
-                                        T.hasitemsjitremaining AS hasitemsjitremaining,
-                                        T.countitemswithjitremaining AS countitemswithjitremaining,
-                                        T.countitemswithstandingjit AS countitemswithstandingjit,
-                                        T.hasstandingjit AS hasstandingjit
-                                    FROM T
-                                    ORDER BY 
-                                        T.hasstandingjit,
-                                        T.vendorname
+                    WITH ExcludeVendors AS (
+                        SELECT Vendor.id AS vendorinternalid
+                        FROM Item
+                            LEFT JOIN ItemVendor ON Item.id = ItemVendor.item
+                            LEFT JOIN Vendor ON ItemVendor.vendor = Vendor.id
+                        @@VENDOR_FILTER_LINE@@
+                    ),
+                    T AS (
+                        SELECT ItemVendor.vendor as vendorid,
+                            Vendor.companyname as vendorname,
+                            COUNT(Item.id) AS jititemcount,
+                            CASE
+                                WHEN SUM(
+                                    CASE
+                                        WHEN Item.custitem_fc_am_jit_remaining > 0 THEN 1
+                                        ELSE 0
+                                    END
+                                ) > 0 THEN 'Yes'
+                                ELSE 'No'
+                            END AS hasitemsjitremaining,
+                            SUM(
+                                CASE
+                                    WHEN Item.custitem_fc_am_jit_remaining > 0 THEN 1
+                                    ELSE 0
+                                END
+                            ) AS countitemswithjitremaining,
+                            SUM(
+                                CASE
+                                    WHEN Item.custitem_fc_zen_sft_comm_qty > 0 THEN 1
+                                    ELSE 0
+                                END
+                            ) AS countitemswithstandingjit,
+                            CASE
+                                WHEN SUM(
+                                    CASE
+                                        WHEN Item.custitem_fc_zen_sft_comm_qty > 0 THEN 1
+                                        ELSE 0
+                                    END
+                                ) > 0 THEN 'T'
+                                ELSE ''
+                            END AS hasstandingjit
+                        FROM Item
+                            LEFT JOIN ItemVendor ON Item.id = ItemVendor.item
+                            LEFT JOIN Vendor ON ItemVendor.vendor = Vendor.id
+                        WHERE ItemVendor.preferredVendor = 'T'
+                            AND Item.custitem_soft_comit = 'T'
+                            AND Vendor.id NOT IN (
+                                SELECT vendorinternalid
+                                FROM ExcludeVendors
+                            )
+                        GROUP BY ItemVendor.vendor,
+                            Vendor.companyname
+                    )
+                    SELECT T.vendorid AS vendorinternalid,
+                        T.vendorname AS vendorname,
+                        T.jititemcount AS jititemcount,
+                        T.hasitemsjitremaining AS hasitemsjitremaining,
+                        T.countitemswithjitremaining AS countitemswithjitremaining,
+                        T.countitemswithstandingjit AS countitemswithstandingjit,
+                        T.hasstandingjit AS hasstandingjit
+                    FROM T
+                    ORDER BY 
+                        T.hasstandingjit,
+                        T.vendorname
                         `,
                 BuildQuery: function (itemIds) {
                     let vendorFilter = ''

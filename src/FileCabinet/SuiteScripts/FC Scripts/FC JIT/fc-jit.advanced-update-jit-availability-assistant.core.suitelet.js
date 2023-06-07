@@ -387,9 +387,7 @@ function main(fileModule, httpsModule, logModule, messageModule, queryModule, re
         errorResultsField.defaultValue = errorHtml;
         successfulResultsField.defaultValue = successTableHtml;
 
-
         assistant.clientScriptModulePath = '../Libraries/fc.page-input-behavior.client.js';
-
 
         // Save the selected CSV file IDs + our sessionSubfolder id to a persistentParams object
         let persistentParams = {
