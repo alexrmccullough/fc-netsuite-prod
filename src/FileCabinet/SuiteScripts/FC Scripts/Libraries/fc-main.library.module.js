@@ -2,33 +2,44 @@ var record,
     query,
     task,
     runtime,
-    email,
     search,
     file,
     serverWidget,
+    format,
     dayjs;
 
 define(['N/record',
     'N/query',
     'N/task',
     'N/runtime',
-    'N/email',
     'N/search',
     'N/file',
     'N/ui/serverWidget',
+    'N/format/i18n',
     './dayjs.min'
 ], main);
 
-function main(recordModule, queryModule, taskModule, runtimeModule, emailModule, searchModule, fileModule, serverWidgetModule, dayjsModule) {
+function main(
+    recordModule,
+    queryModule,
+    taskModule,
+    runtimeModule,
+    searchModule,
+    fileModule,
+    serverWidgetModule,
+    formatModule,
+    dayjsModule
+) {
     record = recordModule;
     query = queryModule;
     task = taskModule;
     runtime = runtimeModule;
-    email = emailModule;
     search = searchModule;
     file = fileModule;
     serverWidget = serverWidgetModule;
+    format = formatModule;
     dayjs = dayjsModule;
+
 
     var exports = {
         Form: {
@@ -188,7 +199,10 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     };
     exports.Ui = Ui;
 
-
+    var Currencies = {
+        USD: () => { return format.getCurrencyFormatter({ currency: 'USD' }) },
+    };
+    exports.Currencies = Currencies;
 
 
     function lookupInternalItemType(itemType, isLotItem) {
@@ -820,7 +834,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
     exports.generateTimestampedFilename = generateTimestampedFilename;
 
 
-    function runSearch(savedSearchId, filters = [] ) {
+    function runSearch(savedSearchId, filters = []) {
         let searchObj = search.load({
             id: savedSearchId
         });
@@ -911,7 +925,7 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
         log.debug({ title: 'reSortSearchByExistingColumn - filters', details: filters });
 
         let newColumns = [];
-        
+
 
         for (let oldColumn of oldColumns) {
             let oldName = oldColumn.name;
@@ -937,8 +951,8 @@ function main(recordModule, queryModule, taskModule, runtimeModule, emailModule,
 
 
 
-        log.debug({title: 'newSortColumns: ', details: newSortColumns});
-        log.debug({title: 'newColumns', details: newColumns});
+        log.debug({ title: 'newSortColumns: ', details: newSortColumns });
+        log.debug({ title: 'newColumns', details: newColumns });
 
 
         let newSearch = search.create({

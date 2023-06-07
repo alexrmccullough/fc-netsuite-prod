@@ -3,9 +3,6 @@
 <!DOCTYPE pdf PUBLIC "-//big.faceless.org//report" "report-1.1.dtd">
 <pdf>
     <head>
-        <link name="NotoSans" type="font" subtype="truetype" src="${nsfont.NotoSans_Regular}"
-            src-bold="${nsfont.NotoSans_Bold}" src-italic="${nsfont.NotoSans_Italic}"
-            src-bolditalic="${nsfont.NotoSans_BoldItalic}" bytes="2" />
         <macrolist>
             <macro id="nlheader">
                 <table class="header" style="width: 100%;">

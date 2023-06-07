@@ -178,13 +178,15 @@ function main(fileModule, logModule, queryModule, recordModule, runtimeModule, s
         const fieldDefObj = ThisAppLib.Settings.Ui.Step1.Sublists.UNSENT_POS_SELECT.Fields;
         const fieldDefs = [
             fieldDefObj.CB_Select,
-            fieldDefObj.PoInternalId,
-            fieldDefObj.PoExternalId,
             fieldDefObj.PoName,
+            // fieldDefObj.PoInternalId,
+            fieldDefObj.PoExternalId,
+            fieldDefObj.CreatedDate,
             fieldDefObj.TransactionDate,
             fieldDefObj.DueDate,
             fieldDefObj.VendorName,
             fieldDefObj.TotalAmount,
+            fieldDefObj.Status,
             fieldDefObj.PoEmailed,
         ];
 

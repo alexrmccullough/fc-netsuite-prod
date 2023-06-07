@@ -1,16 +1,19 @@
 var FCLib;
 var FCClientLib;
 var search;
+var dayjs;
 
 
 define([
     'N/search',
+    '../Libraries/dayjs.min',
     '../Libraries/fc-main.library.module',
     '../Libraries/fc-client.library.module',
 ], main);
 
-function main(searchModule, fcLibModule, fcClientLibModule) {
+function main(searchModule, dayjsModule, fcLibModule, fcClientLibModule) {
     search = searchModule;
+    dayjs = dayjsModule;
     FCLib = fcLibModule;
     FCClientLib = fcClientLibModule;
 
@@ -18,42 +21,33 @@ function main(searchModule, fcLibModule, fcClientLibModule) {
         Queries: {
             GET_BASIC_UNSENT_PO_INFO: {
                 Query: `
-                    WITH SentMsg AS (
-                        SELECT Message.transaction AS transactionid
-                        FROM Message
-                        WHERE Message.transaction IS NOT NULL
-                            AND Message.Emailed = 'T'
-                        GROUP BY 
-                            Message.transaction
-                    )
-                    SELECT Transaction.id AS pointernalid,
-                        Transaction.entity as vendorid,
-                        Vendor.companyName as vendorname,
-                        Transaction.tranDisplayName as podisplayname,
-                        Transaction.tranId as poid,
-                        Transaction.dueDate as duedate,
-                        Transaction.externalid as poexternalid,
-                        Transaction.tranDate as transactiondate,
-                        SUM(TransactionLine.rate * TransactionLine.quantity) AS totalamount,
-                        NVL2(SentMsg.transactionid, 1, 0) AS transactionemailed
-                    FROM Transaction
-                        LEFT OUTER JOIN Vendor ON Transaction.entity = Vendor.id
-                        LEFT OUTER JOIN TransactionLine ON TransactionLine.transaction = Transaction.id
-                        LEFT OUTER JOIN SentMsg ON Transaction.id = SentMsg.transactionid
-                    WHERE Transaction.type = 'PurchOrd'
-                        AND Vendor.custentity_fc_zen_soft_com_vendor = 'T'
-                        @@PO_ID_FILTER_1@@
-                    GROUP BY Transaction.id,
-                        Transaction.entity,
-                        Vendor.companyName,
-                        Transaction.tranDisplayName,
-                        Transaction.tranId,
-                        Transaction.dueDate,
-                        Transaction.externalid,
-                        Transaction.tranDate,
-                        NVL2(SentMsg.transactionid, 1, 0)
-                    ORDER BY Transaction.tranDisplayName
-        
+                WITH SentMsg AS (
+                    SELECT Message.transaction AS transactionid
+                    FROM Message
+                    WHERE Message.transaction IS NOT NULL
+                        AND Message.Emailed = 'T'
+                    GROUP BY 
+                        Message.transaction
+                )
+                SELECT Transaction.id AS pointernalid,
+                    Transaction.entity as vendorid,
+                    Vendor.companyName as vendorname,
+                    Transaction.tranDisplayName as podisplayname,
+                    Transaction.tranId as poid,
+                    Transaction.dueDate as duedate,
+                    Transaction.externalid as poexternalid,
+                    Transaction.tranDate as transactiondate,
+                    Transaction.foreignTotal * -1 as totalamount,
+                    NVL2(SentMsg.transactionid, 1, 0) AS transactionemailed,
+                    Transaction.createddate,
+                    REPLACE(BUILTIN.DF(Transaction.status), 'Purchase Order : ') AS status_desc
+                FROM Transaction
+                    LEFT OUTER JOIN Vendor ON Transaction.entity = Vendor.id
+                    LEFT OUTER JOIN SentMsg ON Transaction.id = SentMsg.transactionid
+                WHERE Transaction.type = 'PurchOrd'
+                    AND Vendor.custentity_fc_zen_soft_com_vendor = 'T'
+                    AND BUILTIN.CF(Transaction.status) IN ('PurchOrd:B', 'PurchOrd:D', 'PurchOrd:E', 'PurchOrd:F')
+                ORDER BY Transaction.createddate DESC
                     `,
                 BuildQuery: function (poIds = null) {
                     let thisQuery = this.Query;
@@ -109,6 +103,14 @@ function main(searchModule, fcLibModule, fcClientLibModule) {
                     transactionemailed: {
                         fieldid: 'transactionemailed',
                         label: 'PO Emailed',
+                    },
+                    status: {
+                        fieldid: 'status_desc',
+                        label: 'PO Status',
+                    },
+                    createddate: {
+                        fieldid: 'createddate',
+                        label: 'PO Created Date',
                     }
                 },
             },
@@ -261,7 +263,7 @@ function main(searchModule, fcLibModule, fcClientLibModule) {
                         Fields: {
                             CB_Select: {
                                 Label: 'Select',
-                                DefaultState: 'checked',
+                                DefaultState: '',
                                 GetTableElem: function (thisRow) {
                                     const queryFields = exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1;
                                     const poId = thisRow[queryFields.pointernalid.fieldid];
@@ -293,11 +295,18 @@ function main(searchModule, fcLibModule, fcClientLibModule) {
                                 },
                             },
                             TransactionDate: {
-                                Label: 'Created Date',
+                                Label: 'PO Date',
                                 GetTableElem: function (thisRow) {
                                     const rawValue = thisRow[exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.transactiondate.fieldid];
                                     return rawValue ? rawValue : '';
                                 },
+                            },
+                            CreatedDate: {
+                                Label: 'Created On',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.createddate.fieldid];
+                                    return rawValue ? rawValue : '';
+                                }
                             },
                             DueDate: {
                                 Label: 'Due Date',
@@ -317,7 +326,7 @@ function main(searchModule, fcLibModule, fcClientLibModule) {
                                 Label: 'Total Amount',
                                 GetTableElem: function (thisRow) {
                                     const rawValue = thisRow[exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.totalamount.fieldid];
-                                    return rawValue ? rawValue : '';
+                                    return rawValue ? FCLib.Currencies.USD().format({number: rawValue}) : '';
                                 },
                             },
                             PoEmailed: {
@@ -326,7 +335,14 @@ function main(searchModule, fcLibModule, fcClientLibModule) {
                                     const rawValue = thisRow[exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.transactionemailed.fieldid];
                                     return rawValue ? 'Already Emailed' : '';
                                 },
-                            }
+                            },
+                            Status: {
+                                Label: 'Status',
+                                GetTableElem: function (thisRow) {
+                                    const rawValue = thisRow[exports.Queries.GET_BASIC_UNSENT_PO_INFO.FieldSet1.status.fieldid];
+                                    return rawValue ? rawValue : '';
+                                }
+                            },
                         },
                     },
                 }
