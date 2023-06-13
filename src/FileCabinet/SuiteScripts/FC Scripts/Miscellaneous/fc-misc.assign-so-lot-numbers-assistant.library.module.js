@@ -1,14 +1,21 @@
 var FCLib;
 var FCClientLib;
+var FCLotMgmtLib;
 
 define([
     '../Libraries/fc-main.library.module',
-    '../Libraries/fc-client.library.module'
+    '../Libraries/fc-client.library.module',
+    // './fc-misc.general-lot-mgmt.library.module'
 ], main);
 
-function main(fcLibModule, fcClientLibModule) {
+function main(
+    fcLibModule, 
+    fcClientLibModule, 
+    // fcLotMgmtLibModule
+    ) {
     FCLib = fcLibModule;
     FCClientLib = fcClientLibModule;
+    // FCLotMgmtLib = fcLotMgmtLibModule;
 
     var exports = {
         Form: {
@@ -159,6 +166,7 @@ function main(fcLibModule, fcClientLibModule) {
 
         Parameters: {
             SELECTED_SO_JSON_FILE_ID: 'custscript_fc_am_selected_so_json',
+            ITEM_TYPE_TO_ASSIGN: 'custscript_fc_am_item_type_to_assign',
         },
 
         SELECTED_SO_JSON_FILE: {
@@ -283,6 +291,13 @@ function main(fcLibModule, fcClientLibModule) {
                     },
                 },
                 Fields: {
+                    ITEM_TYPE_SELECTOR_FIELD_ID: 'custpage_item_type_selector',
+                    ITEM_TYPE_SELECTOR_FIELD_LABEL: 'Assign Lots to Item Type',
+                    ITEM_TYPE_SELECTOR_FIELD_OPTIONS: {
+                        Stocked: { value: 'stockeditems', text: 'Stocked Items', selected: true },
+                        Jit: { value: 'jititems', text: 'JIT Items', selected: false },
+                        All: { value: 'allitems', text: 'All Items', selected: false },
+                    },
                     SO_TABLE_FIELD_ID: 'custpage_so_table',
                     SO_TABLE_FIELD_LABEL: 'Sales Orders with Unassigned Lots',
                 },

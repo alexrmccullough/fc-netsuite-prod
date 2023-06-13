@@ -6,7 +6,9 @@ define([
 function main() {
     
     var exports = {
-     
+        Misc: {
+            FORM_MULTISELECT_DELIMITER: /\u0005/,
+        }
     };
 
 

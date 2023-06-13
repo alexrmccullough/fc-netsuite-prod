@@ -155,13 +155,24 @@ function reduce(context) {
 
         log.debug({ title: 'reduce - itemType', details: itemType });
 
+        let itemValues = {
+            [FCLib.Ids.Fields.Item.StartJITQty]: result[FCLib.Ids.Fields.Item.StartJITQty],
+            [FCLib.Ids.Fields.Item.RemainingJITQty]: result[FCLib.Ids.Fields.Item.RemainingJITQty],
+        };
+
+        /***
+         * ADDED 2023.06.07 per request from David Paysnick
+         *    If StartJITQty > 0, then set Item.isonline (display in webstore) to 'T'
+         */
+        if (Number(result[FCLib.Ids.Fields.Item.StartJITQty]) > 0) {
+            itemValues[FCLib.Ids.Fields.Item.DisplayInWebstore] = 'T';
+        }
+        /****/
+
         changedRecordId = record.submitFields({
             type: itemType,
             id: result[FCLib.Ids.Fields.Item.InternalId],
-            values: {
-                [FCLib.Ids.Fields.Item.StartJITQty]: result[FCLib.Ids.Fields.Item.StartJITQty],
-                [FCLib.Ids.Fields.Item.RemainingJITQty]: result[FCLib.Ids.Fields.Item.RemainingJITQty],
-            },
+            values: itemValues
         });
 
 

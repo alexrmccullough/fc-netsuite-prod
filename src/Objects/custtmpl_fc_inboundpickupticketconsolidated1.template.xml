@@ -262,8 +262,8 @@
 		<tr>
 
 			<td class="quantity">
-				<#if result.custcol_fc_anticipated_short?has_content>
-					<#assign curQuantity = result.quantity - result.custcol_fc_anticipated_short>
+				<#if result.custcol_fc_reported_short?has_content>
+					<#assign curQuantity = result.quantity?number - result.custcol_fc_reported_short?number>
 					~${curQuantity}
 				<#else>
 					<#assign curQuantity = result.quantity>

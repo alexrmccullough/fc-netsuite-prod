@@ -14,7 +14,10 @@ var
     config,
     dayjs,
     FCLib,
+    FCLibGeneral,
     ThisAppLib;
+
+var multiselectDelimiter;
 
 
 define([
@@ -27,6 +30,7 @@ define([
     'N/config',
     '../Libraries/dayjs.min',
     '../Libraries/fc-main.library.module',
+    '../Libraries/fc-general.library.module',
     './fc-deliv-packets.library-general.module'
 ], main);
 
@@ -40,6 +44,7 @@ function main(
     configModule,
     dayjsModule,
     fcLibModule,
+    fcLibGeneralModule,
     thisAppLibModule
 ) {
     ui = serverWidgetModule;
@@ -51,7 +56,9 @@ function main(
     config = configModule;
     dayjs = dayjsModule;
     FCLib = fcLibModule;
+    FCLibGeneral = fcLibGeneralModule;
     ThisAppLib = thisAppLibModule;
+    multiselectDelimiter = FCLibGeneral.Misc.FORM_MULTISELECT_DELIMITER;
 
     return {
         onRequest: function (context) {
@@ -72,6 +79,33 @@ function main(
                     label: 'End Date'
                 });
 
+                let customerSelectField = form.addField({
+                    id: ThisAppLib.SuiteletParams.CUSTOMER_SELECT,
+                    type: ui.FieldType.MULTISELECT,
+                    label: 'Customer',
+                    source: 'customer'
+                });
+                // Make customerSelectField hidden for now
+                // customerSelectField.updateDisplayType({
+                //     displayType: ui.FieldDisplayType.HIDDEN
+                // });
+
+                let routeSelectField = form.addField({
+                    id: ThisAppLib.SuiteletParams.ROUTE_SELECT,
+                    type: ui.FieldType.MULTISELECT,
+                    label: 'Route',
+                    source: 'CUSTOMRECORD_RD_ROUTE'
+                });
+                // Make routeSelectField hidden for now
+                // routeSelectField.updateDisplayType({
+                //     displayType: ui.FieldDisplayType.HIDDEN
+                // });
+
+                startDateField.updateLayoutType({layoutType: ui.FieldLayoutType.STARTROW});
+                endDateField.updateLayoutType({layoutType: ui.FieldLayoutType.MIDROW});
+                customerSelectField.updateLayoutType({layoutType: ui.FieldLayoutType.MIDROW});
+                routeSelectField.updateLayoutType({layoutType: ui.FieldLayoutType.ENDROW});
+
                 form.addSubmitButton({
                     label: 'Generate Packets',
                 });
@@ -85,15 +119,30 @@ function main(
             else {      // POST
                 const startDateRaw = context.request.parameters[ThisAppLib.SuiteletParams.START_SHIP_DATE];
                 const endDateRaw = context.request.parameters[ThisAppLib.SuiteletParams.END_SHIP_DATE];
-                const startDate = dayjs(startDateRaw).format('MM/DD/YYYY');
-                const endDate = dayjs(endDateRaw).format('MM/DD/YYYY');
+                const customerSelect = context.request.parameters[ThisAppLib.SuiteletParams.CUSTOMER_SELECT];
+                const routeSelect = context.request.parameters[ThisAppLib.SuiteletParams.ROUTE_SELECT];
 
-                log.debug("Suitelet is posting.")
-                var params = {
-                    [ThisAppLib.SuiteletParams.START_SHIP_DATE]: startDate,
-                    [ThisAppLib.SuiteletParams.END_SHIP_DATE]: endDate,
+                let params = {
                     [ThisAppLib.SuiteletParams.SUBMITTED]: 'T'
                 };
+
+                if (startDateRaw) {
+                    params[ThisAppLib.SuiteletParams.START_SHIP_DATE] = dayjs(startDateRaw).format('MM/DD/YYYY');
+                }
+                if (endDateRaw) {
+                    params[ThisAppLib.SuiteletParams.END_SHIP_DATE] = dayjs(endDateRaw).format('MM/DD/YYYY');
+                }
+                if (customerSelect) {
+                    params[ThisAppLib.SuiteletParams.CUSTOMER_SELECT] = 
+                        JSON.stringify(customerSelect.split(multiselectDelimiter));
+                }
+                if (routeSelect) {
+                    params[ThisAppLib.SuiteletParams.ROUTE_SELECT] = 
+                        JSON.stringify(routeSelect.split(multiselectDelimiter));
+                }
+                
+                log.debug("Suitelet is posting.");
+
                 var suiteletURL = url.resolveScript({
                     scriptId: ThisAppLib.Scripts.THISAPP_MAIN_SUITELET.ScriptId,
                     deploymentId: ThisAppLib.Scripts.THISAPP_MAIN_SUITELET.DeployId,

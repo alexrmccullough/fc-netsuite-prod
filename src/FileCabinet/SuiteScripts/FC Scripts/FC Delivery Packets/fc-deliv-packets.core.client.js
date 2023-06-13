@@ -53,30 +53,11 @@ define([
         // Get the required parameters from the URL
         let startShipDate = thisUrl.searchParams.get(ThisAppLib.SuiteletParams.START_SHIP_DATE);
         let endShipDate = thisUrl.searchParams.get(ThisAppLib.SuiteletParams.END_SHIP_DATE);
+        let customerSelect = thisUrl.searchParams.get(ThisAppLib.SuiteletParams.CUSTOMER_SELECT);
+        let routeSelect = thisUrl.searchParams.get(ThisAppLib.SuiteletParams.ROUTE_SELECT);
 
-        let requiredParams = {
-            'startShipDate': startShipDate,
-            'endShipDate': endShipDate,
-        };
 
-        let missingParams = [];
-        for (let param in requiredParams) {
-            if (!requiredParams[param]) {
-                missingParams.push(param);
-            }
-        }
-
-        if (missingParams.length > 0) {
-            let msg = 'The following required parameters are missing: ' + missingParams.join(', ');
-            dialog.alert({
-                title: 'Missing required parameters',
-                message: msg,
-            })
-            return;
-        }
-
-        // If we get here, then all required parameters are present
-        //   so launch the server Suitelet to generate the PDF
+        // Launch the server Suitelet to generate the PDF
         var suiteletURL = url.resolveScript({
             scriptId: ThisAppLib.Scripts.GENERATOR_SUITELET.ScriptId,
             deploymentId: ThisAppLib.Scripts.GENERATOR_SUITELET.DeployId,
@@ -84,6 +65,8 @@ define([
             params: {
                 [ThisAppLib.SuiteletParams.START_SHIP_DATE]: startShipDate,
                 [ThisAppLib.SuiteletParams.END_SHIP_DATE]: endShipDate,
+                [ThisAppLib.SuiteletParams.CUSTOMER_SELECT]: customerSelect,
+                [ThisAppLib.SuiteletParams.ROUTE_SELECT]: routeSelect,
             }
         });
 

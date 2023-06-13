@@ -52,6 +52,10 @@ function main(
 
 function getInputData(context) {
     var currentScript = runtime.getCurrentScript();
+
+    var itemTypeToUpdate = currentScript.getParameter({
+        name: ThisAppLib.MRSettings.Parameters.ITEM_TYPE_TO_ASSIGN
+    });
     var sosToUpdateJsonFileId = currentScript.getParameter({
         name: ThisAppLib.MRSettings.Parameters.SELECTED_SO_JSON_FILE_ID
     });
@@ -82,11 +86,16 @@ function getInputData(context) {
         soListQueryResults = FCLib.sqlSelectAllRows(sqlSoListQuery);
         log.debug({ title: 'getInputData - soListQueryResults', details: soListQueryResults });
 
-        
+
         soListQueryResults = FCLib.sortArrayOfObjsByKeys(
             soListQueryResults,
             [ThisAppLib.Queries.MR_GET_SOS_TO_UPDATE_DETAILS.FieldSet1.ShipDate.fieldid]
         )
+
+        // Add selected item-type-to-update to each line
+        soListQueryResults.forEach(so => {
+            so[ThisAppLib.MRSettings.Parameters.ITEM_TYPE_TO_ASSIGN] = itemTypeToUpdate;
+        });
 
     } catch (e) {
         log.error({ title: 'getInputData - error', details: e });
@@ -146,7 +155,11 @@ function reduce(context) {
         });
         log.debug({ title: 'reduce - soRecord', details: soRecord });
 
-        soUpdateSummary = FCLotMgmtLib.doAssignSOLotNumbers(soRecord);
+        soUpdateSummary = FCLotMgmtLib.doAssignSOLotNumbers(
+            soRecord,
+            soInfo[ThisAppLib.MRSettings.Parameters.ITEM_TYPE_TO_ASSIGN]
+        );
+        
         log.debug({ title: 'reduce - soUpdateSummary', details: soUpdateSummary });
 
         soRecord.save();
@@ -285,7 +298,7 @@ function summarize(context) {
 }
 
 
-function sendTotalFailureEmail (reason) {
+function sendTotalFailureEmail(reason) {
     let emailBody =
         `The Autoassign SO Lot Numbers process failed.
         Reason specified: ${reason ? reason : 'No reason specified.'}`;

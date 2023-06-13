@@ -49,16 +49,32 @@ function main(
         onRequest: function (context) {
             if (context.request.method === 'GET') {
                 let params = context.request.parameters;
-                let startDate = dayjs(params[ThisAppLib.SuiteletParams.START_SHIP_DATE]).format('MM/DD/YYYY');
-                let endDate = dayjs(params[ThisAppLib.SuiteletParams.END_SHIP_DATE]).format('MM/DD/YYYY');
+                let startDate = params[ThisAppLib.SuiteletParams.START_SHIP_DATE] ? 
+                    dayjs(params[ThisAppLib.SuiteletParams.START_SHIP_DATE]).format('MM/DD/YYYY') : null;
+                
+                let endDate = params[ThisAppLib.SuiteletParams.END_SHIP_DATE] ?
+                    dayjs(params[ThisAppLib.SuiteletParams.END_SHIP_DATE]).format('MM/DD/YYYY') : null;
+                
+                let customerSelect = params[ThisAppLib.SuiteletParams.CUSTOMER_SELECT] ?
+                    JSON.parse(params[ThisAppLib.SuiteletParams.CUSTOMER_SELECT]) : null;
 
-                const sqlTransactionQuery = ThisAppLib.Queries.QUERY_TRANSACTIONS.BuildQuery(startDate, endDate);
+                let routeSelect = params[ThisAppLib.SuiteletParams.ROUTE_SELECT] ?
+                    JSON.parse(params[ThisAppLib.SuiteletParams.ROUTE_SELECT]) : null;
+
+                let queryParams = {
+                    startShipDate: startDate,
+                    endShipDate: endDate,
+                    customersSelect: customerSelect,
+                    routesSelect: routeSelect,
+                };
+
+                const sqlTransactionQuery = ThisAppLib.Queries.QUERY_TRANSACTIONS.BuildQuery(queryParams);
                 let transactionResults = FCLib.sqlSelectAllRows(sqlTransactionQuery);
 
-                const sqlInvoiceLineQuery = ThisAppLib.Queries.QUERY_INVOICE_LINES.BuildQuery(startDate, endDate);
+                const sqlInvoiceLineQuery = ThisAppLib.Queries.QUERY_INVOICE_LINES.BuildQuery(queryParams)
                 let invoiceLineResults = FCLib.sqlSelectAllRows(sqlInvoiceLineQuery);
 
-                const sqlTicketLineQuery = ThisAppLib.Queries.QUERY_TICKET_LINES.BuildQuery(startDate, endDate);
+                const sqlTicketLineQuery = ThisAppLib.Queries.QUERY_TICKET_LINES.BuildQuery(queryParams);
                 let ticketLineResults = FCLib.sqlSelectAllRows(sqlTicketLineQuery);
 
 
@@ -148,7 +164,6 @@ function main(
                 const logoUrl = file.load({
                     id: logoId
                 }).url;
-
 
                 // context.response.write(JSON.stringify(shipmentLineResults));
                 // return;

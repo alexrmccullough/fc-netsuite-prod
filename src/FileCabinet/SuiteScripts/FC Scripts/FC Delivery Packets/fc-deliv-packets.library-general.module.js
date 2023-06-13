@@ -1,7 +1,15 @@
-define([], main);
+
+var dayjs;
+
+define([
+    '../Libraries/dayjs.min',
+], main);
 
 function main(
+    dayjsModule
 ) {
+    dayjs = dayjsModule;
+
     var exports = {
         Queries: {
             QUERY_SHIPMENTS_OLD1: {
@@ -107,34 +115,41 @@ function main(
                         BUILTIN.DF(Inv.terms) AS invoice_terms,
                         Inv.otherrefnum AS invoice_otherrefnum,
                         BUILTIN.DF(Inv.employee) AS invoice_salesrep,
-                        NVL(Inv.custbody_fc_inv_num_toprint, 1) AS invoice_copiestoprint
+                        NVL(Inv.custbody_fc_inv_num_toprint, 1) AS invoice_copiestoprint,
+                        Customer.category AS customercategory
                     
-                        FROM NextTransactionLink AS NTL
-                        RIGHT OUTER JOIN Transaction AS SO ON (
-                            SO.id = NTL.previousDoc
-                            AND SO.type = 'SalesOrd'
-                        )
-                        RIGHT OUTER JOIN Transaction AS Inv ON (
-                            Inv.id = NTL.nextDoc
-                            AND Inv.type = 'CustInvc'
-                        )
-                        LEFT OUTER JOIN CUSTOMRECORD_RD_ROUTE_SHIPMENT_RECORD AS RouteShipment ON (
-                            RouteShipment.custrecord_rd_route_shipment_sales_order = SO.id
-                        )
-                        LEFT OUTER JOIN TransactionShippingAddress ON (
-                            SO.shippingaddress = TransactionShippingAddress.nkey
-                        )
-                        LEFT OUTER JOIN TransactionBillingAddress ON (
-                            SO.billingaddress = TransactionBillingAddress.nkey
-                        )
-                        INNER JOIN TransactionLine AS InvLine ON (Inv.id = InvLine.transaction)
-                        LEFT OUTER JOIN TransactionShipment ON SO.id = TransactionShipment.doc
+                    FROM NextTransactionLink AS NTL
+                    RIGHT OUTER JOIN Transaction AS SO ON (
+                        SO.id = NTL.previousDoc
+                        AND SO.type = 'SalesOrd'
+                    )
+                    RIGHT OUTER JOIN Transaction AS Inv ON (
+                        Inv.id = NTL.nextDoc
+                        AND Inv.type = 'CustInvc'
+                    )
+                    LEFT OUTER JOIN CUSTOMRECORD_RD_ROUTE_SHIPMENT_RECORD AS RouteShipment ON (
+                        RouteShipment.custrecord_rd_route_shipment_sales_order = SO.id
+                    )
+                    LEFT OUTER JOIN TransactionShippingAddress ON (
+                        SO.shippingaddress = TransactionShippingAddress.nkey
+                    )
+                    LEFT OUTER JOIN TransactionBillingAddress ON (
+                        SO.billingaddress = TransactionBillingAddress.nkey
+                    )
+                    INNER JOIN TransactionLine AS InvLine ON (Inv.id = InvLine.transaction)
+                    LEFT OUTER JOIN TransactionShipment ON SO.id = TransactionShipment.doc
+
+                    LEFT OUTER JOIN Customer ON Inv.entity = Customer.id
 
                     WHERE 
                         NULL IS NULL
                         AND InvLine.donotdisplayline = 'F'
+                        AND Customer.category != 10
                         @@START_SHIP_DATE@@
                         @@END_SHIP_DATE@@
+                        @@CUSTOMERS@@
+                        @@ROUTES@@
+
                     GROUP BY (
                             TO_CHAR(SO.shipdate, 'YYYYMMDD') || '_' || SO.custbody_rd_so_route || '_' || SO.entity
                         ),
@@ -159,7 +174,9 @@ function main(
                         BUILTIN.DF(Inv.terms),
                         Inv.otherrefnum,
                         BUILTIN.DF(Inv.employee),
-                        NVL(Inv.custbody_fc_inv_num_toprint, 1)
+                        NVL(Inv.custbody_fc_inv_num_toprint, 1),
+                        Customer.category
+                        
                     ORDER BY RouteShipment.custrecord_rd_route_shipment_ship_date,
                         RouteShipment.custrecord_rd_route_shipment_route,
                         RouteShipment.custrecord_rd_route_shipment_seq_no
@@ -167,17 +184,42 @@ function main(
                 Parameters: {
                     StartShipDate: `AND SO.shipdate >= '@@START_DATE@@'`,
                     EndShipDate: `AND SO.shipdate <= '@@END_DATE@@'`,
+                    Customers: `AND SO.entity IN (@@CUSTOMERS@@)`,
+                    Routes: `AND RouteShipment.custrecord_rd_route_shipment_route IN (@@ROUTES@@)`,
                 },
-                BuildQuery: function (startShipDate = null, endShipDate = null) {
+                BuildQuery: function ({
+                    startShipDate = '',
+                    endShipDate = '',
+                    customersSelect = '',
+                    routesSelect = '',
+                }) {
                     let sqlQuery = this.Query;
                     if (startShipDate) {
-                        let filter = this.Parameters.StartShipDate.replace('@@START_DATE@@', startShipDate);
-                        sqlQuery = sqlQuery.replace('@@START_SHIP_DATE@@', filter);
+                        startShipDate = this.Parameters.StartShipDate.replace(
+                            '@@START_DATE@@',
+                            dayjs(startShipDate).format('MM/DD/YYYY')
+                        );
                     }
                     if (endShipDate) {
-                        let filter = this.Parameters.EndShipDate.replace('@@END_DATE@@', endShipDate);
-                        sqlQuery = sqlQuery.replace('@@END_SHIP_DATE@@', filter);
+                        endShipDate = this.Parameters.EndShipDate.replace(
+                            '@@END_DATE@@',
+                            dayjs(endShipDate).format('MM/DD/YYYY')
+                        );
                     }
+                    if (customersSelect && (customersSelect.length > 0)) {
+                        let customerStr = customersSelect.map(c => `'${c}'`).join(',');
+                        customersSelect = this.Parameters.Customers.replace('@@CUSTOMERS@@', customerStr);
+                    }
+                    if (routesSelect && (routesSelect.length > 0)) {
+                        let routeStr = routesSelect.map(r => `'${r}'`).join(',');
+                        routesSelect = this.Parameters.Routes.replace('@@ROUTES@@', routeStr);
+                    }
+
+                    sqlQuery = sqlQuery.replace('@@START_SHIP_DATE@@', startShipDate ? startShipDate : '');
+                    sqlQuery = sqlQuery.replace('@@END_SHIP_DATE@@', endShipDate ? endShipDate : '');
+                    sqlQuery = sqlQuery.replace('@@CUSTOMERS@@', customersSelect ? customersSelect : '');
+                    sqlQuery = sqlQuery.replace('@@ROUTES@@', routesSelect ? routesSelect : '');
+
                     return sqlQuery;
                 },
             },
@@ -196,7 +238,6 @@ function main(
                         InvLine.rate,
                         (InvLine.foreignAmount * -1) AS amount,
                         InvLine.memo AS linedescription,
-
                     
                     FROM 
                         NextTransactionLink AS NTL
@@ -214,25 +255,44 @@ function main(
                         AND InvLine.donotdisplayline = 'F'
                         @@START_SHIP_DATE@@ 
                         @@END_SHIP_DATE@@
-
+                        @@CUSTOMERS@@
+                        @@ROUTES@@
                 `,
                 Parameters: {
                     StartShipDate: `AND SO.shipdate >= '@@START_DATE@@'`,
                     EndShipDate: `AND SO.shipdate <= '@@END_DATE@@'`,
+                    Customers: `AND SO.entity IN (@@CUSTOMERS@@)`,
+                    Routes: `AND SO.custbody_rd_so_route IN (@@ROUTES@@)`,
                 },
-                BuildQuery: function (startShipDate = null, endShipDate = null) {
+                BuildQuery: function ({
+                    startShipDate = '',
+                    endShipDate = '',
+                    customersSelect = '',
+                    routesSelect = '',
+                }) {
                     let sqlQuery = this.Query;
                     if (startShipDate) {
-                        let filter = this.Parameters.StartShipDate.replace('@@START_DATE@@', startShipDate);
-                        sqlQuery = sqlQuery.replace('@@START_SHIP_DATE@@', filter);
+                        startShipDate = this.Parameters.StartShipDate.replace('@@START_DATE@@', startShipDate);
                     }
                     if (endShipDate) {
-                        let filter = this.Parameters.EndShipDate.replace('@@END_DATE@@', endShipDate);
-                        sqlQuery = sqlQuery.replace('@@END_SHIP_DATE@@', filter);
+                        endShipDate = this.Parameters.EndShipDate.replace('@@END_DATE@@', endShipDate);
                     }
+                    if (customersSelect && (customersSelect.length > 0)) {
+                        let customerStr = customersSelect.map(c => `'${c}'`).join(',');
+                        customersSelect = this.Parameters.Customers.replace('@@CUSTOMERS@@', customerStr);
+                    }
+                    if (routesSelect && (routesSelect.length > 0)) {
+                        let routeStr = routesSelect.map(r => `'${r}'`).join(',');
+                        routesSelect = this.Parameters.Routes.replace('@@ROUTES@@', routeStr);
+                    }
+
+                    sqlQuery = sqlQuery.replace('@@START_SHIP_DATE@@', startShipDate ? startShipDate : '');
+                    sqlQuery = sqlQuery.replace('@@END_SHIP_DATE@@', endShipDate ? endShipDate : '');
+                    sqlQuery = sqlQuery.replace('@@CUSTOMERS@@', customersSelect ? customersSelect : '');
+                    sqlQuery = sqlQuery.replace('@@ROUTES@@', routesSelect ? routesSelect : '');
+
                     return sqlQuery;
                 },
-
             },
             QUERY_TICKET_LINES: {
                 Query: `
@@ -248,7 +308,8 @@ function main(
                             OVER (ORDER BY (TO_CHAR(SO.shipdate,'YYYYMMDD') || '_' || SO.custbody_rd_so_route || '_' ||  SO.entity || '_' || CASE WHEN Item.custitem_fc_shippedfrozen = 'T' THEN 'Frozen' ELSE 'Not Frozen' END ||  '_' || Item.itemid)) 
                             AS next_ticketsection,
                         LISTAGG(Inv.tranid, ',') WITHIN GROUP (ORDER BY Inv.tranid) AS invoice_nums,
-                        SUM(InvLine.quantity) * -1 AS quantitydelivered
+                        SUM(InvLine.quantity) * -1 AS quantitydelivered,
+                        SUM(NVL(InvLine.custcol_fc_reported_short, 0)) AS invoice_reportedshort
 
                     FROM 
                         NextTransactionLink AS NTL
@@ -264,8 +325,10 @@ function main(
                         AND InvLine.itemType != 'Discount'
                         AND InvLine.itemType != 'ShipItem'
                         AND InvLine.donotdisplayline = 'F'
-                        @@START_SHIP_DATE@@ 
+                        @@START_SHIP_DATE@@
                         @@END_SHIP_DATE@@
+                        @@CUSTOMERS@@
+                        @@ROUTES@@
 
                     GROUP BY 
                         (TO_CHAR(SO.shipdate, 'YYYYMMDD') || '_' ||  SO.custbody_rd_so_route || '_' || SO.entity),
@@ -282,17 +345,36 @@ function main(
                 Parameters: {
                     StartShipDate: `AND SO.shipdate >= '@@START_DATE@@'`,
                     EndShipDate: `AND SO.shipdate <= '@@END_DATE@@'`,
+                    Customers: `AND SO.entity IN (@@CUSTOMERS@@)`,
+                    Routes: `AND SO.custbody_rd_so_route IN (@@ROUTES@@)`,
                 },
-                BuildQuery: function (startShipDate = null, endShipDate = null) {
+                BuildQuery: function ({
+                    startShipDate = '',
+                    endShipDate = '',
+                    customersSelect = '',
+                    routesSelect = '',
+                }) {
                     let sqlQuery = this.Query;
                     if (startShipDate) {
-                        let filter = this.Parameters.StartShipDate.replace('@@START_DATE@@', startShipDate);
-                        sqlQuery = sqlQuery.replace('@@START_SHIP_DATE@@', filter);
+                        startShipDate = this.Parameters.StartShipDate.replace('@@START_DATE@@', startShipDate);
                     }
                     if (endShipDate) {
-                        let filter = this.Parameters.EndShipDate.replace('@@END_DATE@@', endShipDate);
-                        sqlQuery = sqlQuery.replace('@@END_SHIP_DATE@@', filter);
+                        endShipDate = this.Parameters.EndShipDate.replace('@@END_DATE@@', endShipDate);
                     }
+                    if (customersSelect && (customersSelect.length > 0)) {
+                        let customerStr = customersSelect.map(c => `'${c}'`).join(',');
+                        customersSelect = this.Parameters.Customers.replace('@@CUSTOMERS@@', customerStr);
+                    }
+                    if (routesSelect && (routesSelect.length > 0)) {
+                        let routeStr = routesSelect.map(r => `'${r}'`).join(',');
+                        routesSelect = this.Parameters.Routes.replace('@@ROUTES@@', routeStr);
+                    }
+
+                    sqlQuery = sqlQuery.replace('@@START_SHIP_DATE@@', startShipDate ? startShipDate : '');
+                    sqlQuery = sqlQuery.replace('@@END_SHIP_DATE@@', endShipDate ? endShipDate : '');
+                    sqlQuery = sqlQuery.replace('@@CUSTOMERS@@', customersSelect ? customersSelect : '');
+                    sqlQuery = sqlQuery.replace('@@ROUTES@@', routesSelect ? routesSelect : '');
+
                     return sqlQuery;
                 },
             }
@@ -313,6 +395,8 @@ function main(
             SUBMITTED: 'custpage_submitted',
             START_SHIP_DATE: 'custpage_start_date',
             END_SHIP_DATE: 'custpage_end_date',
+            CUSTOMER_SELECT: 'custpage_customer_select',
+            ROUTE_SELECT: 'custpage_route_select',
         }
     };
 

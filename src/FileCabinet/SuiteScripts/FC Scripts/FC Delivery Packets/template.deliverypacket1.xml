@@ -197,7 +197,7 @@
                         </#if>
                     </td>
                     <td align="right" colspan="3" text-align="right">
-                        <span class="doctype">Delivery Ticket</span>
+                        <span class="doctype">Shipping Ticket</span>
                     </td>
 
                 </tr>
@@ -247,14 +247,22 @@
             </#if>
 
             <tr>
-                <td class="quantity">${ticketLine.quantitydelivered?number}</td>
+                <td class="quantity">
+                    <#assign curQuantity = ticketLine.quantitydelivered?number>
+                    <#if ticketLine.invoice_reportedshort?has_content  && (ticketLine.invoice_reportedshort?number > 0)>
+                        <#assign curQuantity = ticketLine.quantitydelivered?number - ticketLine.invoice_reportedshort?number>
+                        ~${curQuantity}
+                    <#else>
+                        ${curQuantity}
+                    </#if>
+                </td>
                 <td class="iteminfo"><span class="itemname">${ticketLine.itemname}</span><br />
                     ${ticketLine.displayname}</td>
                 <td class="sodetails">${ticketLine.invoice_nums}</td>
             </tr>
 
-            <#assign sectionqtycounter += ticketLine.quantitydelivered?number>
-            <#assign grandtotalcounter += ticketLine.quantitydelivered?number>
+            <#assign sectionqtycounter += curQuantity>
+            <#assign grandtotalcounter += curQuantity>
 
 
                 <#if (ticketLine?is_last) || (ticketLine.next_ticketsection != ticketLine.ticketsection)>
@@ -307,7 +315,7 @@
                                     </tr>
                                     <tr>
                                         <td align="right">
-                                            <span class="number">${invoice.invoice_num}</span>
+                                            <span class="number">#${invoice.invoice_num}</span>
                                         </td>
                                     </tr>
                                     <tr>

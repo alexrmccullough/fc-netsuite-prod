@@ -176,18 +176,27 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
             },
         },
 
-
     };
 
 
 
     var Settings = {
-
+        ITEM_TYPE_TO_ASSIGN_OPTIONS: {
+            stockeditems: function (isJitItemValue) {
+                return FCLib.looksLikeFalse(isJitItemValue);;
+            },
+            jititems: function (isJitItemValue) {
+                return FCLib.looksLikeTrue(isJitItemValue);
+            },
+            allitems: function (isJitItemValue) {
+                return true;
+            },
+        },
     };
     exports.Settings = Settings;
 
 
-    function doAssignSOLotNumbers(soRec) {
+    function doAssignSOLotNumbers(soRec, itemTypeToAssign = null) {
         let dynamic = soRec.isDynamic;
         log.audit({title: 'doAssignSOLotNumbers', details: 'Starting...'});
 
@@ -244,6 +253,19 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
         });
 
         for (let i = 0; i < itemLineCount; i++) {
+            if(itemTypeToAssign){
+                let itemIsJit = soRec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_fc_isjititem',
+                    line: i
+                });
+
+                if (!exports.Settings.ITEM_TYPE_TO_ASSIGN_OPTIONS[itemTypeToAssign](itemIsJit)) {
+                    continue;
+                }
+            }
+
+
             if (dynamic) {
                 soRec.selectLine({
                     sublistId: 'item',
@@ -372,7 +394,6 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
                 continue;
             }
 
-
             let currentInvAssnLineNum = invDetailLineCt;
 
             // It looks like we still have quantity on this line that needs to be assigned to a lot number.
@@ -407,8 +428,6 @@ function main(searchModule, queryModule, recordModule, dayjsModule, fcLibModule)
                             sublistId: 'inventoryassignment'
                         });
                     }
-
-
 
                     // Assign lot number to SO line
                     if (dynamic) {

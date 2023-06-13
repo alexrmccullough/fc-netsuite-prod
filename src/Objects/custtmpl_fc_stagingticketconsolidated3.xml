@@ -1,0 +1,10 @@
+<advancedpdftemplate scriptid="custtmpl_fc_stagingticketconsolidated3">
+  <description></description>
+  <displaysourcecode>T</displaysourcecode>
+  <isinactive>F</isinactive>
+  <preferred>T</preferred>
+  <printtype>SEARCH</printtype>
+  <savedsearch>[scriptid=customsearch_fc_staging_tickets2]</savedsearch>
+  <title>FC | Staging Tickets Consolidated 3</title>
+  <trantype>CUSTINVC</trantype>
+</advancedpdftemplate>

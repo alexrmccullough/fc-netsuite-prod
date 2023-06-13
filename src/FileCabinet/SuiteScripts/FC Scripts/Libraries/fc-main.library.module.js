@@ -109,6 +109,7 @@ function main(
                 StartJITQty: 'custitem_fc_am_jit_start_qty',
                 RemainingJITQty: 'custitem_fc_am_jit_remaining',
                 JITProducers: 'custitem_fc_zen_jit_producers',
+                DisplayInWebstore: 'isonline'
             },
             File: {
                 InternalId: 'id',
@@ -226,7 +227,7 @@ function main(
                     FROM ( 
                         SELECT 
                             ROWNUM AS ROWNUMBER, 
-                            * 
+                            *
                         FROM (
                             ${sql}
                             ) 
@@ -485,8 +486,6 @@ function main(
         tbodyTrStyle = '',
         thStyle = '',
         tdStyle = '',
-
-
     }) {
         let tableHtml = '';
         const tableElem = `<table style="${tableStyle}">`;

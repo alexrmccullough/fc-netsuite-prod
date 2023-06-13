@@ -73,7 +73,7 @@ function main(logModule,  taskModule, fcLibModule, fcClientLibModule) {
                         Item.custitem_fc_am_jit_start_qty AS itemstartjitqty,
                         Item.custitem_fc_am_jit_remaining AS itemremainjitqty,
                         Item.custitem_fc_zen_jit_producers AS itemjitproducers,
-                        Item.isonline AS display_in_webstore	
+                        Item.isonline AS displayinwebstore	
                     FROM
                         Item
                     WHERE
@@ -334,6 +334,7 @@ function main(logModule,  taskModule, fcLibModule, fcClientLibModule) {
                         Item.custitem_fc_am_jit_start_qty AS itemstartjitqty,
                         Item.custitem_fc_am_jit_remaining AS itemremainjitqty,
                         Item.custitem_fc_zen_jit_producers AS itemjitproducers,
+                        Item.isonline AS displayinwebstore,
                         ItemVendor.vendor as vendorid,
                         Vendor.companyname as vendorname
                     FROM
@@ -386,6 +387,10 @@ function main(logModule,  taskModule, fcLibModule, fcClientLibModule) {
                     VendorName: {
                         fieldid: 'vendorname',
                         label: 'Vendor Name',
+                    },
+                    DisplayInWebstore: {
+                        fieldid: 'displayinwebstore',
+                        label: 'Display In Webstore',
                     },
                 },
             },

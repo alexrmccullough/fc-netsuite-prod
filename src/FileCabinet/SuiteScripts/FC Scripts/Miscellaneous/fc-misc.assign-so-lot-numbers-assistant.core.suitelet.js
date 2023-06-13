@@ -129,7 +129,7 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
         // Run query to get sales orders
         let sqlSoQuery = ThisAppLib.Queries.GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO.BuildQuery();
         log.debug({ title: 'GET_SOS_WITH_UNASSIGNED_LOTS_BY_SO', details: sqlSoQuery });
-        
+
         let soQueryResults = FCLib.sqlSelectAllRows(sqlSoQuery);
         log.debug({ title: 'soQueryResults', details: soQueryResults });
 
@@ -166,6 +166,23 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
             });
         }
 
+        // Add a selector to target specific item types
+        let itemTypeSelectorField = assistant.addField({
+            id: ThisAppLib.Settings.Ui.Step1.Fields.ITEM_TYPE_SELECTOR_FIELD_ID,
+            type: serverWidget.FieldType.SELECT,
+            label: ThisAppLib.Settings.Ui.Step1.Fields.ITEM_TYPE_SELECTOR_FIELD_LABEL,
+        });
+
+        let optionsHash = ThisAppLib.Settings.Ui.Step1.Fields.ITEM_TYPE_SELECTOR_FIELD_OPTIONS;
+        for (let key in optionsHash) {
+            let option = optionsHash[key];
+            itemTypeSelectorField.addSelectOption({
+                value: option.value,
+                text: option.text,
+                isSelected: option.selected
+            });
+        }
+
         // Build the Form field to hold the table
         let soTableField = assistant.addField({
             id: ThisAppLib.Settings.Ui.Step1.Fields.SO_TABLE_FIELD_ID,
@@ -183,6 +200,8 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
 
     function writeResult(context, assistant) {
         let params = context.request.parameters;
+
+        let itemType = params[ThisAppLib.Settings.Ui.Step1.Fields.ITEM_TYPE_SELECTOR_FIELD_ID];
 
         let soInternalIdsSelected = FCLib.extractParametersFromRequest(
             params,
@@ -216,6 +235,7 @@ function main(fileModule, logModule, queryModule, renderModule, serverWidgetModu
             deploymentId: ThisAppLib.MRSettings.DEPLOYMENT_ID,
             params: {
                 [ThisAppLib.MRSettings.Parameters.SELECTED_SO_JSON_FILE_ID]: soJsonFileId,
+                [ThisAppLib.MRSettings.Parameters.ITEM_TYPE_TO_ASSIGN]: itemType,
             }
         });
 

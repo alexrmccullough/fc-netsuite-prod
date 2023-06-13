@@ -222,7 +222,7 @@
 						</#if>
 					</td>
 					<td align="left" colspan="3" text-align="left">
-						<span class="doctype">Shipping Ticket</span>
+						<span class="doctype">Staging Ticket</span>
 					</td>
 
 				</tr>

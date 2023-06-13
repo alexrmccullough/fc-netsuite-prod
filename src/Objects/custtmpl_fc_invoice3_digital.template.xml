@@ -266,11 +266,11 @@
                     <td align="right">${record.shippingcost}</td>
                 </tr>
             </#if>
-            <#if record.discountamount?c?number != 0>
+            <#if record.discounttotal?c?number != 0>
                 <tr class="discountrow">
                     <td colspan="4">&nbsp;</td>
                     <td align="right" style="font-weight: bold; color: #333333;">Discounts</td>
-                    <td align="right">${record.discountamount}</td>
+                    <td align="right">${record.discounttotal}</td>
                 </tr>
             </#if>
             <tr>
